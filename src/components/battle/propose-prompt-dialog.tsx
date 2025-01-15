@@ -11,7 +11,7 @@ import { BATTLE_ADDRESS, TOKEN_ADDRESS, BATTLE_ABI, BETTING_AMOUNT } from '@/lib
 
 // Base Sepolia configuration
 const BASE_SEPOLIA_CONFIG = {
-  chainId: "0x84532",
+  chainId: "0x14A34",
   chainName: "Base Sepolia",
   nativeCurrency: {
     name: "ETH",
@@ -23,7 +23,7 @@ const BASE_SEPOLIA_CONFIG = {
 };
 
 // Decimal chain ID for comparison
-const BASE_SEPOLIA_CHAIN_ID = 542002;
+const BASE_SEPOLIA_CHAIN_ID = 0x14A34;
 
 declare global {
   interface Window {

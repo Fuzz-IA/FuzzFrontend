@@ -84,19 +84,24 @@ export function ProposePromptDialog({ player, onSubmit }: ProposePromptDialogPro
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       await provider.send("eth_requestAccounts", []); // Request account access
 
-      // Switch to Base Sepolia
+      // Try to switch to Base Sepolia first
       try {
         await window.ethereum.request({
           method: 'wallet_switchEthereumChain',
           params: [{ chainId: BASE_SEPOLIA_CONFIG.chainId }],
         });
       } catch (switchError: any) {
-        // This error code indicates that the chain has not been added to MetaMask.
+        // Only add the chain if error code 4902 (chain not added)
         if (switchError.code === 4902) {
-          await window.ethereum.request({
-            method: 'wallet_addEthereumChain',
-            params: [BASE_SEPOLIA_CONFIG],
-          });
+          try {
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [BASE_SEPOLIA_CONFIG],
+            });
+          } catch (addError) {
+            console.error('Error adding the chain:', addError);
+            throw addError;
+          }
         } else {
           throw switchError;
         }

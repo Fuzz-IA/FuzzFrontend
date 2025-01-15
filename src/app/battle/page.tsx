@@ -1,33 +1,21 @@
-import { Metadata } from "next"
+'use client';
+
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Copy, ExternalLink, MonitorPlay } from "lucide-react"
+import { Copy, ExternalLink, MonitorPlay, MessageSquarePlus, Vote } from "lucide-react"
 import { Header } from "@/components/layout/header"
-
-export const metadata: Metadata = {
-  title: "Battle Arena",
-  description: "Face off against other players in the battle arena",
-}
-
-// Types for our battle data
-interface PlayerAttributes {
-  tokenCA: string
-  walletAddress: string
-  healthPoints: number
-  traits: string[]
-  status: "READY" | "WAITING" | "FIGHTING"
-  style: {
-    borderColor: string
-    textColor: string
-    lightTextColor: string
-    gradientFrom: string
-  }
-}
-
-interface BattleData {
-  playerOne: PlayerAttributes
-  playerTwo: PlayerAttributes
-}
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { useState } from "react"
+import { ProposePromptDialog } from "@/components/battle/propose-prompt-dialog"
+import { VotePromptDialog } from "@/components/battle/vote-prompt-dialog"
+import { PlayerAttributes, BattleData } from "@/types/battle"
 
 // Mock data - this would come from your API
 const battleData: BattleData = {
@@ -59,7 +47,29 @@ const battleData: BattleData = {
   }
 }
 
+type DialogContent = 'propose' | 'vote' | null;
+
 function PlayerCard({ player, title }: { player: PlayerAttributes, title: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [dialogContent, setDialogContent] = useState<DialogContent>(null);
+
+  const handlePromptSubmit = async (prompt: string) => {
+    // Here you would interact with your smart contract
+    console.log('Submitting prompt:', prompt);
+  };
+
+  const handleVote = async (promptId: string) => {
+    // Here you would interact with your smart contract
+    console.log('Voting for prompt:', promptId);
+  };
+
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+    if (!open) {
+      setDialogContent(null);
+    }
+  };
+
   return (
     <Card className={`relative w-full max-w-md border-2 ${player.style.borderColor} bg-black/40 p-6 backdrop-blur-xl`}>
       <div className={`absolute inset-0 bg-gradient-to-b ${player.style.gradientFrom} via-transparent to-transparent`} />
@@ -103,6 +113,83 @@ function PlayerCard({ player, title }: { player: PlayerAttributes, title: string
               </Badge>
             ))}
           </div>
+
+          <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+            <DialogTrigger asChild>
+              <Button 
+                className={`w-full mt-4 ${player.style.borderColor} ${player.style.textColor} hover:opacity-90 bg-black/40 backdrop-blur-xl border-2`}
+                variant="outline"
+              >
+                Join the Battle ⚔️
+              </Button>
+            </DialogTrigger>
+            <DialogContent 
+              className={`sm:max-w-[600px] bg-black/40 backdrop-blur-xl border-2 ${player.style.borderColor}`}
+            >
+              <div className={`absolute inset-0 bg-gradient-to-b ${player.style.gradientFrom} via-transparent to-transparent -z-10`} />
+              {dialogContent === null ? (
+                <>
+                  <DialogHeader>
+                    <DialogTitle className={`text-center ${player.style.textColor}`}>Choose Your Action</DialogTitle>
+                  </DialogHeader>
+                  <div className="flex flex-col gap-4 mt-4">
+                    <Button 
+                      onClick={() => setDialogContent('propose')}
+                      className={`w-full flex items-center justify-center gap-2 ${player.style.borderColor} ${player.style.textColor} hover:opacity-90 bg-black/40 backdrop-blur-xl border-2`}
+                      variant="outline"
+                    >
+                      <MessageSquarePlus className="h-4 w-4" />
+                      Propose a Prompt
+                    </Button>
+                    <Button 
+                      onClick={() => setDialogContent('vote')}
+                      className={`w-full flex items-center justify-center gap-2 ${player.style.borderColor} ${player.style.textColor} hover:opacity-90 bg-black/40 backdrop-blur-xl border-2`}
+                      variant="outline"
+                    >
+                      <Vote className="h-4 w-4" />
+                      Vote for a Prompt
+                    </Button>
+                  </div>
+                </>
+              ) : dialogContent === 'propose' ? (
+                <>
+                  <DialogHeader>
+                    <div className="flex items-center">
+                      <Button
+                        onClick={() => setDialogContent(null)}
+                        variant="ghost"
+                        className={`${player.style.textColor} hover:opacity-80`}
+                      >
+                        ← Back
+                      </Button>
+                      <DialogTitle className={`flex-1 text-center ${player.style.textColor}`}>
+                        Propose Your Prompt
+                      </DialogTitle>
+                    </div>
+                  </DialogHeader>
+                  <ProposePromptDialog player={player} onSubmit={handlePromptSubmit} />
+                </>
+              ) : (
+                <>
+                  <DialogHeader>
+                    <div className="flex items-center">
+                      <Button
+                        onClick={() => setDialogContent(null)}
+                        variant="ghost"
+                        className={`${player.style.textColor} hover:opacity-80`}
+                      >
+                        ← Back
+                      </Button>
+                      <DialogTitle className={`flex-1 text-center ${player.style.textColor}`}>
+                        Vote for a Prompt
+                      </DialogTitle>
+                    </div>
+                  </DialogHeader>
+                  <VotePromptDialog player={player} onVote={handleVote} />
+                </>
+              )}
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </Card>

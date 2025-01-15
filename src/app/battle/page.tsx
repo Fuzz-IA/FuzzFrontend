@@ -16,6 +16,7 @@ import { useState } from "react"
 import { ProposePromptDialog } from "@/components/battle/propose-prompt-dialog"
 import { VotePromptDialog } from "@/components/battle/vote-prompt-dialog"
 import { PlayerAttributes, BattleData } from "@/types/battle"
+import { CountdownTimer } from "@/components/battle/countdown-timer"
 
 // Mock data - this would come from your API
 const battleData: BattleData = {
@@ -215,19 +216,23 @@ export default function BattlePage() {
             <h1 className="bg-gradient-to-r from-orange-500 via-purple-500 to-blue-500 bg-clip-text text-5xl font-bold tracking-tight text-transparent sm:text-6xl">
               Battle Arena
             </h1>
+            <CountdownTimer />
             <p className="text-lg text-muted-foreground">
               Face off against other players in epic AI battles
             </p>
           </div>
           
           <div className="flex w-full flex-col items-center justify-center gap-8 lg:flex-row">
-            <PlayerCard player={battleData.playerOne} title="Progressive" />
+            <PlayerCard player={battleData.playerOne} title="Ethereum" />
 
-            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-r from-orange-500 via-purple-500 to-blue-500 text-2xl font-bold text-white shadow-lg">
-              VS
+            <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-black/40 backdrop-blur-xl border-2 border-white/20">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-red-500/20 rounded-full blur-sm" />
+              <span className="relative text-2xl font-bold bg-gradient-to-r from-blue-400 to-red-400 bg-clip-text text-transparent">
+                VS
+              </span>
             </div>
 
-            <PlayerCard player={battleData.playerTwo} title="Traditional" />
+            <PlayerCard player={battleData.playerTwo} title="Solana" />
           </div>
         </div>
       </main>

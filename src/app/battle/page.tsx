@@ -50,7 +50,7 @@ const battleData: BattleData = {
   }
 }
 
-type DialogContent = 'propose' | 'vote' | null;
+type DialogContent = 'propose' | 'vote' | 'support' | null;
 
 function AgentTotals({ isAgentA, player }: { isAgentA: boolean, player: PlayerAttributes }) {
   const [total, setTotal] = useState<string>('0')
@@ -148,6 +148,11 @@ function PlayerCard({ player, title, isAgentA }: { player: PlayerAttributes, tit
     console.log('Voting for prompt:', promptId);
   };
 
+  const handleSupport = async () => {
+    // Here you would interact with your smart contract
+    console.log('Supporting agent:', isAgentA);
+  };
+
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
     if (!open) {
@@ -237,6 +242,14 @@ function PlayerCard({ player, title, isAgentA }: { player: PlayerAttributes, tit
                       <Vote className="h-4 w-4" />
                       Vote for a Prompt
                     </Button>
+                    <Button 
+                      onClick={() => setDialogContent('support')}
+                      className={`w-full flex items-center justify-center gap-2 ${player.style.borderColor} ${player.style.textColor} hover:opacity-90 bg-black/40 backdrop-blur-xl border-2`}
+                      variant="outline"
+                    >
+                      <MessageSquarePlus className="h-4 w-4" />
+                      Support this Agent
+                    </Button>
                   </div>
                 </>
               ) : dialogContent === 'propose' ? (
@@ -256,6 +269,24 @@ function PlayerCard({ player, title, isAgentA }: { player: PlayerAttributes, tit
                     </div>
                   </DialogHeader>
                   <ProposePromptDialog player={player} onSubmit={handlePromptSubmit} isAgentA={isAgentA} />
+                </>
+              ) : dialogContent === 'support' ? (
+                <>
+                  <DialogHeader>
+                    <div className="flex items-center">
+                      <Button
+                        onClick={() => setDialogContent(null)}
+                        variant="ghost"
+                        className={`${player.style.textColor} hover:opacity-80`}
+                      >
+                        ← Back
+                      </Button>
+                      <DialogTitle className={`flex-1 text-center ${player.style.textColor}`}>
+                        Support this Agent
+                      </DialogTitle>
+                    </div>
+                  </DialogHeader>
+                  <ProposePromptDialog player={player} onSubmit={handleSupport} isAgentA={isAgentA} isSupport={true} />
                 </>
               ) : (
                 <>

@@ -45,9 +45,10 @@ interface ProposePromptDialogProps {
   player: PlayerAttributes
   onSubmit: (prompt: string) => Promise<void>
   isAgentA: boolean
+  isSupport?: boolean
 }
 
-export function ProposePromptDialog({ player, onSubmit, isAgentA }: ProposePromptDialogProps) {
+export function ProposePromptDialog({ player, onSubmit, isAgentA, isSupport = false }: ProposePromptDialogProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -55,7 +56,7 @@ export function ProposePromptDialog({ player, onSubmit, isAgentA }: ProposePromp
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!input.trim() || isLoading) return
+    if ((!input.trim() && !isSupport) || isLoading) return
 
     if (!authenticated || !user?.wallet) {
       setMessages(prev => [...prev, { 
@@ -67,8 +68,10 @@ export function ProposePromptDialog({ player, onSubmit, isAgentA }: ProposePromp
     }
 
     setIsLoading(true)
-    const newMessage: Message = { role: 'user', content: input }
-    setMessages(prev => [...prev, newMessage])
+    if (!isSupport) {
+      const newMessage: Message = { role: 'user', content: input }
+      setMessages(prev => [...prev, newMessage])
+    }
     setInput('')
 
     try {
@@ -165,7 +168,11 @@ export function ProposePromptDialog({ player, onSubmit, isAgentA }: ProposePromp
       }]);
       
       await tx.wait();
-      await onSubmit(input);
+      if (!isSupport) {
+        await onSubmit(input);
+      } else {
+        await onSubmit('');
+      }
       
       setMessages(prev => [...prev, { 
         role: 'assistant', 
@@ -204,25 +211,40 @@ export function ProposePromptDialog({ player, onSubmit, isAgentA }: ProposePromp
         ))}
       </div>
 
-      <form onSubmit={handleSubmit} className="p-4 border-t border-gray-800">
-        <div className="flex gap-2">
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder={authenticated ? "Type your prompt..." : "Connect wallet first..."}
-            disabled={!authenticated}
-            className="flex-1 bg-black/40 border-gray-800 text-white"
-          />
+      {!isSupport && (
+        <form onSubmit={handleSubmit} className="p-4 border-t border-gray-800">
+          <div className="flex gap-2">
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder={authenticated ? "Type your prompt..." : "Connect wallet first..."}
+              disabled={!authenticated}
+              className="flex-1 bg-black/40 border-gray-800 text-white"
+            />
+            <Button 
+              type="submit" 
+              disabled={isLoading || !authenticated}
+              className={`${player.style.borderColor} ${player.style.textColor} hover:opacity-90 bg-black/40 backdrop-blur-xl border-2`}
+              variant="outline"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
+        </form>
+      )}
+
+      {isSupport && (
+        <div className="p-4 border-t border-gray-800">
           <Button 
-            type="submit" 
+            onClick={handleSubmit}
             disabled={isLoading || !authenticated}
-            className={`${player.style.borderColor} ${player.style.textColor} hover:opacity-90 bg-black/40 backdrop-blur-xl border-2`}
+            className={`w-full ${player.style.borderColor} ${player.style.textColor} hover:opacity-90 bg-black/40 backdrop-blur-xl border-2`}
             variant="outline"
           >
-            <Send className="h-4 w-4" />
+            Support Agent {isAgentA ? 'A' : 'B'}
           </Button>
         </div>
-      </form>
+      )}
     </div>
   )
 } 

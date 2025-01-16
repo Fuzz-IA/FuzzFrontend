@@ -44,9 +44,10 @@ interface Message {
 interface ProposePromptDialogProps {
   player: PlayerAttributes
   onSubmit: (prompt: string) => Promise<void>
+  isAgentA: boolean
 }
 
-export function ProposePromptDialog({ player, onSubmit }: ProposePromptDialogProps) {
+export function ProposePromptDialog({ player, onSubmit, isAgentA }: ProposePromptDialogProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -156,7 +157,7 @@ export function ProposePromptDialog({ player, onSubmit }: ProposePromptDialogPro
       );
       
       // Then call assignTokensToAgent
-      const tx = await battleContract.assignTokensToAgent(true); // true for agentA
+      const tx = await battleContract.assignTokensToAgent(isAgentA);
       
       setMessages(prev => [...prev, { 
         role: 'assistant', 

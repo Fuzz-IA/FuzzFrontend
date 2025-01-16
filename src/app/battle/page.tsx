@@ -12,11 +12,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ProposePromptDialog } from "@/components/battle/propose-prompt-dialog"
 import { VotePromptDialog } from "@/components/battle/vote-prompt-dialog"
 import { PlayerAttributes, BattleData } from "@/types/battle"
 import { CountdownTimer } from "@/components/battle/countdown-timer"
+import { ethers } from 'ethers'
+import { BATTLE_ADDRESS, BATTLE_ABI } from '@/lib/contracts/battle-abi'
 
 // Mock data - this would come from your API
 const battleData: BattleData = {
@@ -50,7 +52,89 @@ const battleData: BattleData = {
 
 type DialogContent = 'propose' | 'vote' | null;
 
-function PlayerCard({ player, title }: { player: PlayerAttributes, title: string }) {
+function AgentTotals({ isAgentA, player }: { isAgentA: boolean, player: PlayerAttributes }) {
+  const [total, setTotal] = useState<string>('0')
+
+  useEffect(() => {
+    async function fetchTotal() {
+      try {
+        if (typeof window.ethereum !== 'undefined') {
+          const provider = new ethers.providers.Web3Provider(window.ethereum)
+          const contract = new ethers.Contract(BATTLE_ADDRESS, BATTLE_ABI, provider)
+          
+          // Call the appropriate contract function based on agent
+          const total = isAgentA 
+            ? await contract.totalAgentA()
+            : await contract.totalAgentB()
+            
+          // Convert from wei to ETH and format to 1 decimal place
+          const formattedTotal = ethers.utils.formatEther(total)
+          setTotal(Number(formattedTotal).toFixed(1))
+        }
+      } catch (error) {
+        console.error('Error fetching total:', error)
+      }
+    }
+
+    fetchTotal()
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchTotal, 30000)
+    return () => clearInterval(interval)
+  }, [isAgentA])
+
+  return (
+    <div className="flex justify-between">
+      <span className={player.style.lightTextColor}>TOTAL POOL</span>
+      <span className={`font-mono ${player.style.textColor}`}>{total} FUZZ</span>
+    </div>
+  )
+}
+
+function UserContributions({ isAgentA, player }: { isAgentA: boolean, player: PlayerAttributes }) {
+  const [contribution, setContribution] = useState<string>('0')
+
+  useEffect(() => {
+    async function fetchContribution() {
+      try {
+        if (typeof window.ethereum !== 'undefined') {
+          const provider = new ethers.providers.Web3Provider(window.ethereum)
+          const contract = new ethers.Contract(BATTLE_ADDRESS, BATTLE_ABI, provider)
+          
+          // Get the current user's address
+          const accounts = await provider.listAccounts()
+          if (accounts.length === 0) return
+          
+          const userAddress = accounts[0]
+          
+          // Call the appropriate contract function based on agent
+          const contribution = isAgentA 
+            ? await contract.userToAgentA(userAddress)
+            : await contract.userToAgentB(userAddress)
+            
+          // Convert from wei to ETH and format to 1 decimal place
+          const formattedContribution = ethers.utils.formatEther(contribution)
+          setContribution(Number(formattedContribution).toFixed(1))
+        }
+      } catch (error) {
+        console.error('Error fetching contribution:', error)
+      }
+    }
+
+    fetchContribution()
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchContribution, 30000)
+    return () => clearInterval(interval)
+  }, [isAgentA])
+
+  return (
+    <div className="flex justify-between">
+      <span className={player.style.lightTextColor}>YOUR CONTRIBUTION</span>
+      <span className={`font-mono ${player.style.textColor}`}>{contribution} FUZZ</span>
+    </div>
+  )
+}
+
+function PlayerCard({ player, title, isAgentA }: { player: PlayerAttributes, title: string, isAgentA: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
   const [dialogContent, setDialogContent] = useState<DialogContent>(null);
 
@@ -95,6 +179,9 @@ function PlayerCard({ player, title }: { player: PlayerAttributes, title: string
             <span className={player.style.lightTextColor}>HEALTH POINTS</span>
             <span className="font-mono text-green-400">{player.healthPoints}</span>
           </div>
+          
+          <AgentTotals isAgentA={isAgentA} player={player} />
+          <UserContributions isAgentA={isAgentA} player={player} />
           
           <div className="flex flex-wrap gap-2">
             <Badge 
@@ -168,7 +255,7 @@ function PlayerCard({ player, title }: { player: PlayerAttributes, title: string
                       </DialogTitle>
                     </div>
                   </DialogHeader>
-                  <ProposePromptDialog player={player} onSubmit={handlePromptSubmit} />
+                  <ProposePromptDialog player={player} onSubmit={handlePromptSubmit} isAgentA={isAgentA} />
                 </>
               ) : (
                 <>
@@ -223,7 +310,7 @@ export default function BattlePage() {
           </div>
           
           <div className="flex w-full flex-col items-center justify-center gap-8 lg:flex-row">
-            <PlayerCard player={battleData.playerOne} title="Ethereum" />
+            <PlayerCard player={battleData.playerOne} title="Ethereum" isAgentA={true} />
 
             <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-black/40 backdrop-blur-xl border-2 border-white/20">
               <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-red-500/20 rounded-full blur-sm" />
@@ -232,7 +319,7 @@ export default function BattlePage() {
               </span>
             </div>
 
-            <PlayerCard player={battleData.playerTwo} title="Solana" />
+            <PlayerCard player={battleData.playerTwo} title="Solana" isAgentA={false} />
           </div>
         </div>
       </main>

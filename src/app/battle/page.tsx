@@ -304,7 +304,7 @@ function PlayerCard({ player, title, isAgentA }: { player: PlayerAttributes, tit
                       </DialogTitle>
                     </div>
                   </DialogHeader>
-                  <VotePromptDialog player={player} onVote={handleVote} />
+                  <VotePromptDialog player={player} onVote={handleVote} isAgentA={isAgentA} />
                 </>
               )}
             </DialogContent>

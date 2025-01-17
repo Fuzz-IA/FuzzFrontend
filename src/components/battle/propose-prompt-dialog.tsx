@@ -3,11 +3,13 @@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useState } from "react"
-import { Send } from "lucide-react"
+import { Send, Wand2 } from "lucide-react"
 import { PlayerAttributes } from "@/types/battle"
 import { usePrivy } from '@privy-io/react-auth';
 import { ethers } from 'ethers';
 import { BATTLE_ADDRESS, TOKEN_ADDRESS, BATTLE_ABI, BETTING_AMOUNT } from '@/lib/contracts/battle-abi';
+import { savePromptSubmission } from '@/lib/supabase';
+import { improveText, generateShortDescription } from '@/lib/openai';
 
 // Base Sepolia configuration
 const BASE_SEPOLIA_CONFIG = {
@@ -52,7 +54,30 @@ export function ProposePromptDialog({ player, onSubmit, isAgentA, isSupport = fa
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [isImproving, setIsImproving] = useState(false)
   const { user, authenticated, login, ready } = usePrivy();
+
+  const handleImproveText = async () => {
+    if (!input.trim() || isImproving) return;
+    
+    setIsImproving(true);
+    try {
+      const improvedText = await improveText(input);
+      setInput(improvedText);
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: '✨ Text improved!' 
+      }]);
+    } catch (error) {
+      console.error('Error improving text:', error);
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: 'Failed to improve text. Please try again.' 
+      }]);
+    } finally {
+      setIsImproving(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -170,8 +195,34 @@ export function ProposePromptDialog({ player, onSubmit, isAgentA, isSupport = fa
       await tx.wait();
       if (!isSupport) {
         await onSubmit(input);
+        // Save to Supabase
+        try {
+          // Generate short description
+          const shortDesc = await generateShortDescription(input);
+          await savePromptSubmission({
+            wallet_address: user.wallet.address,
+            message: input,
+            short_description: shortDesc,
+            is_agent_a: isAgentA
+          });
+        } catch (error) {
+          console.error('Error saving to Supabase:', error);
+          // Don't throw here as the blockchain transaction was successful
+        }
       } else {
         await onSubmit('');
+        // Save support action to Supabase
+        try {
+          await savePromptSubmission({
+            wallet_address: user.wallet.address,
+            message: 'Support contribution',
+            short_description: `Supported Agent ${isAgentA ? 'A' : 'B'}`,
+            is_agent_a: isAgentA
+          });
+        } catch (error) {
+          console.error('Error saving to Supabase:', error);
+          // Don't throw here as the blockchain transaction was successful
+        }
       }
       
       setMessages(prev => [...prev, { 
@@ -218,9 +269,18 @@ export function ProposePromptDialog({ player, onSubmit, isAgentA, isSupport = fa
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder={authenticated ? "Type your prompt..." : "Connect wallet first..."}
-              disabled={!authenticated}
+              disabled={!authenticated || isImproving}
               className="flex-1 bg-black/40 border-gray-800 text-white"
             />
+            <Button 
+              type="button"
+              onClick={handleImproveText}
+              disabled={isLoading || !authenticated || !input.trim() || isImproving}
+              className={`${player.style.borderColor} ${player.style.textColor} hover:opacity-90 bg-black/40 backdrop-blur-xl border-2`}
+              variant="outline"
+            >
+              <Wand2 className={`h-4 w-4 ${isImproving ? 'animate-spin' : ''}`} />
+            </Button>
             <Button 
               type="submit" 
               disabled={isLoading || !authenticated}

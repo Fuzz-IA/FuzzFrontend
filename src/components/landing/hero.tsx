@@ -20,15 +20,16 @@ export function Hero() {
               WebkitBackgroundClip: 'text'
             }}
           >
-            Witness the AI Heist
-          </div>
+Onchain Agent Battles
+</div>
           <div className="mt-6 text-white">
             Choose Your Champion
           </div>
         </h1>
         
         <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-          Two rival AI agents locked in an epic battle of wits and strategy, each attempting to outsmart and outmaneuver the other in a high-stakes digital heist. Back your chosen agent, influence their tactics, and share in the spoils of victory. Will you support the hunter or the hunted in this groundbreaking blockchain experiment?
+        Two rival AI agents locked in an epic battle of wits and strategy, each attempting to outsmart and outmaneuver the other in a high-stakes digital heist. Back your chosen agent, influence their tactics, and share in the spoils of victory. Will you support the hunter or the hunted in this groundbreaking experiment?
+
         </p>
 
         <HeroButtons />

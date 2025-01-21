@@ -25,7 +25,7 @@ const navItems: NavItem[] = [
   { label: 'Battle', href: '/battle' },
   { label: 'Dexscreener', href: '/' },
   { label: 'Roadmap', href: '/' },
-  { label: 'Whitepaper', href: '/' },
+  { label: 'Learn', href: '/' },
 ]
 
 function truncateAddress(address: string) {

@@ -23,9 +23,9 @@ interface ExtendedUser extends User {
 
 const navItems: NavItem[] = [
   { label: 'Battle', href: '/battle' },
-  { label: 'Dexscreener', href: '/' },
-  { label: 'Roadmap', href: '/' },
   { label: 'Learn', href: '/' },
+  { label: 'Roadmap', href: '/' },
+  { label: 'Dexscreener', href: '/' },
 ]
 
 function truncateAddress(address: string) {

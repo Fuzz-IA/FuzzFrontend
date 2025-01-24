@@ -43,14 +43,25 @@ interface Message {
   content: string
 }
 
+interface PromptBetEvent {
+  event: string;
+  args: {
+    promptId: ethers.BigNumber;
+    user: string;
+    isAgentA: boolean;
+    amount: ethers.BigNumber;
+    gameId: ethers.BigNumber;
+  };
+}
+
 interface ProposePromptDialogProps {
   player: PlayerAttributes
   onSubmit: (prompt: string) => Promise<void>
-  isAgentA: boolean
+  selectedChain: 'solana' | 'base' | 'info'
   isSupport?: boolean
 }
 
-export function ProposePromptDialog({ player, onSubmit, isAgentA, isSupport = false }: ProposePromptDialogProps) {
+export function ProposePromptDialog({ player, onSubmit, selectedChain, isSupport = false }: ProposePromptDialogProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -81,7 +92,7 @@ export function ProposePromptDialog({ player, onSubmit, isAgentA, isSupport = fa
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if ((!input.trim() && !isSupport) || isLoading) return
+    if ((!input.trim() && !isSupport) || isLoading || selectedChain === 'info') return
 
     if (!authenticated || !user?.wallet) {
       setMessages(prev => [...prev, { 
@@ -103,15 +114,8 @@ export function ProposePromptDialog({ player, onSubmit, isAgentA, isSupport = fa
       if (!ready) throw new Error('Privy is not ready');
       if (!user?.wallet) throw new Error('No wallet found');
 
-      // Debug logs
-      console.log('Wallet:', user.wallet);
-      console.log('Wallet methods:', Object.keys(user.wallet));
-      console.log('Wallet prototype methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(user.wallet)));
-      console.log('Wallet address:', user.wallet.address);
-
-      // Get provider from window.ethereum
       const provider = new ethers.providers.Web3Provider(window.ethereum);
-      await provider.send("eth_requestAccounts", []); // Request account access
+      await provider.send("eth_requestAccounts", []);
 
       // Try to switch to Base Sepolia first
       try {
@@ -142,7 +146,6 @@ export function ProposePromptDialog({ player, onSubmit, isAgentA, isSupport = fa
         throw new Error(`Please switch to Base Sepolia network. Current chain ID: ${network.chainId}`);
       }
 
-      // Get fresh provider and signer after network switch
       const updatedProvider = new ethers.providers.Web3Provider(window.ethereum, {
         chainId: BASE_SEPOLIA_CHAIN_ID,
         name: "Base Sepolia"
@@ -155,14 +158,14 @@ export function ProposePromptDialog({ player, onSubmit, isAgentA, isSupport = fa
         content: 'Approving token spending...' 
       }]);
 
-      // Create contracts with the signer directly
+      // Create contracts
       const tokenContract = new ethers.Contract(
         TOKEN_ADDRESS, 
         TOKEN_ABI, 
         signer
       );
       
-      // First approve token spending
+      // Approve token spending
       const approveTx = await tokenContract.approve(BATTLE_ADDRESS, BETTING_AMOUNT);
       
       setMessages(prev => [...prev, { 
@@ -174,60 +177,55 @@ export function ProposePromptDialog({ player, onSubmit, isAgentA, isSupport = fa
 
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: 'Assigning tokens to agent...' 
+        content: 'Submitting prompt with bet...' 
       }]);
 
-      // Create battle contract with the signer directly
+      // Create battle contract
       const battleContract = new ethers.Contract(
         BATTLE_ADDRESS, 
         BATTLE_ABI, 
         signer
       );
       
-      // Then call assignTokensToAgent
-      const tx = await battleContract.assignTokensToAgent(isAgentA);
+      // Call betWithPrompt instead of assignTokensToAgent
+      const tx = await battleContract.betWithPrompt(
+        selectedChain === 'solana', // true if Solana, false otherwise
+        BETTING_AMOUNT
+      );
       
       setMessages(prev => [...prev, { 
         role: 'assistant', 
         content: 'Waiting for transaction confirmation...' 
       }]);
       
-      await tx.wait();
+      const receipt = await tx.wait();
+      const event = receipt.events?.find((e: PromptBetEvent) => e.event === 'PromptBet');
+      const promptId = event?.args?.promptId.toString();
+
+      if (!promptId) {
+        throw new Error('Failed to get prompt ID from transaction');
+      }
+
       if (!isSupport) {
         await onSubmit(input);
         // Save to Supabase
         try {
-          // Generate short description
           const shortDesc = await generateShortDescription(input);
           await savePromptSubmission({
             wallet_address: user.wallet.address,
             message: input,
             short_description: shortDesc,
-            is_agent_a: isAgentA
+            is_agent_a: selectedChain === 'solana',
+            prompt_id: Number(promptId)
           });
         } catch (error) {
           console.error('Error saving to Supabase:', error);
-          // Don't throw here as the blockchain transaction was successful
-        }
-      } else {
-        await onSubmit('');
-        // Save support action to Supabase
-        try {
-          await savePromptSubmission({
-            wallet_address: user.wallet.address,
-            message: 'Support contribution',
-            short_description: `Supported Agent ${isAgentA ? 'A' : 'B'}`,
-            is_agent_a: isAgentA
-          });
-        } catch (error) {
-          console.error('Error saving to Supabase:', error);
-          // Don't throw here as the blockchain transaction was successful
         }
       }
       
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: 'Tokens approved and assigned successfully! 🎉' 
+        content: 'Prompt submitted and bet placed successfully! 🎉' 
       }]);
     } catch (error: any) {
       console.error('Contract interaction error:', error);
@@ -250,61 +248,55 @@ export function ProposePromptDialog({ player, onSubmit, isAgentA, isSupport = fa
             className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
-              className={`max-w-[80%] rounded-lg px-4 py-2 ${
+              className={`rounded-lg px-4 py-2 max-w-[80%] ${
                 message.role === 'user'
-                  ? `${player.style.textColor} bg-black/40 border ${player.style.borderColor}`
-                  : 'bg-gray-800 text-white'
+                  ? `${player.style.borderColor} border bg-black/40`
+                  : 'bg-gray-800'
               }`}
             >
-              {message.content}
+              <p className={message.role === 'user' ? player.style.textColor : 'text-gray-300'}>
+                {message.content}
+              </p>
             </div>
           </div>
         ))}
       </div>
 
-      {!isSupport && (
-        <form onSubmit={handleSubmit} className="p-4 border-t border-gray-800">
-          <div className="flex gap-2">
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder={authenticated ? "Type your prompt..." : "Connect wallet first..."}
-              disabled={!authenticated || isImproving}
-              className="flex-1 bg-black/40 border-gray-800 text-white"
-            />
-            <Button 
+      <form onSubmit={handleSubmit} className="p-4 border-t border-gray-800">
+        <div className="flex gap-2">
+          <Input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder={isSupport ? "Support this agent with 1 FUZZ" : "Type your prompt..."}
+            disabled={isLoading || selectedChain === 'info'}
+            className="flex-1"
+          />
+          {!isSupport && (
+            <Button
               type="button"
+              variant="outline"
+              size="icon"
               onClick={handleImproveText}
-              disabled={isLoading || !authenticated || !input.trim() || isImproving}
-              className={`${player.style.borderColor} ${player.style.textColor} hover:opacity-90 bg-black/40 backdrop-blur-xl border-2`}
-              variant="outline"
+              disabled={!input.trim() || isImproving || isLoading || selectedChain === 'info'}
             >
-              <Wand2 className={`h-4 w-4 ${isImproving ? 'animate-spin' : ''}`} />
+              <Wand2 className="h-4 w-4" />
             </Button>
-            <Button 
-              type="submit" 
-              disabled={isLoading || !authenticated}
-              className={`${player.style.borderColor} ${player.style.textColor} hover:opacity-90 bg-black/40 backdrop-blur-xl border-2`}
-              variant="outline"
-            >
-              <Send className="h-4 w-4" />
-            </Button>
-          </div>
-        </form>
-      )}
-
-      {isSupport && (
-        <div className="p-4 border-t border-gray-800">
+          )}
           <Button 
-            onClick={handleSubmit}
-            disabled={isLoading || !authenticated}
-            className={`w-full ${player.style.borderColor} ${player.style.textColor} hover:opacity-90 bg-black/40 backdrop-blur-xl border-2`}
-            variant="outline"
+            type="submit"
+            disabled={(!input.trim() && !isSupport) || isLoading || selectedChain === 'info'}
           >
-            Support Agent {isAgentA ? 'A' : 'B'}
+            {isLoading ? (
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Processing...
+              </div>
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
           </Button>
         </div>
-      )}
+      </form>
     </div>
-  )
+  );
 } 

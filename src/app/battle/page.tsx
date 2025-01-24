@@ -137,6 +137,7 @@ function UserContributions({ isAgentA, player }: { isAgentA: boolean, player: Pl
 function PlayerCard({ player, title, isAgentA }: { player: PlayerAttributes, title: string, isAgentA: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
   const [dialogContent, setDialogContent] = useState<DialogContent>(null);
+  const selectedChain = isAgentA ? 'base' : 'solana';
 
   const handlePromptSubmit = async (prompt: string) => {
     // Here you would interact with your smart contract
@@ -268,7 +269,11 @@ function PlayerCard({ player, title, isAgentA }: { player: PlayerAttributes, tit
                       </DialogTitle>
                     </div>
                   </DialogHeader>
-                  <ProposePromptDialog player={player} onSubmit={handlePromptSubmit} isAgentA={isAgentA} />
+                  <ProposePromptDialog 
+                    player={player} 
+                    onSubmit={handlePromptSubmit} 
+                    selectedChain={selectedChain} 
+                  />
                 </>
               ) : dialogContent === 'support' ? (
                 <>
@@ -286,7 +291,12 @@ function PlayerCard({ player, title, isAgentA }: { player: PlayerAttributes, tit
                       </DialogTitle>
                     </div>
                   </DialogHeader>
-                  <ProposePromptDialog player={player} onSubmit={handleSupport} isAgentA={isAgentA} isSupport={true} />
+                  <ProposePromptDialog 
+                    player={player} 
+                    onSubmit={handleSupport} 
+                    selectedChain={selectedChain}
+                    isSupport={true} 
+                  />
                 </>
               ) : (
                 <>
@@ -304,7 +314,7 @@ function PlayerCard({ player, title, isAgentA }: { player: PlayerAttributes, tit
                       </DialogTitle>
                     </div>
                   </DialogHeader>
-                  <VotePromptDialog player={player} onVote={handleVote} isAgentA={isAgentA} />
+                  {/* <VotePromptDialog player={player} onVote={handleVote} isAgentA={isAgentA} /> */}
                 </>
               )}
             </DialogContent>

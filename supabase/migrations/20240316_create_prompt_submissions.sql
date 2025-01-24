@@ -4,5 +4,6 @@ create table prompt_submissions (
   message text not null,
   short_description text not null,
   is_agent_a boolean not null,
+  prompt_id bigint not null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 ); 

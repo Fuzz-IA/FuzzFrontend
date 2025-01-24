@@ -13,6 +13,7 @@ export interface PromptSubmission {
   message: string
   short_description: string
   is_agent_a: boolean
+  prompt_id: number
 }
 
 export interface Prompt {
@@ -22,6 +23,7 @@ export interface Prompt {
   short_description: string
   is_agent_a: boolean
   created_at: string
+  prompt_id: number
 }
 
 export async function savePromptSubmission(data: PromptSubmission) {

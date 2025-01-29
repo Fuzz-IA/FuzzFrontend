@@ -21,7 +21,11 @@ import {
 import { BetButton } from './bet-button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { VotePromptDialog } from '@/components/battle/vote-prompt-dialog';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { ethers } from 'ethers';
+import { BATTLE_ABI, BATTLE_ADDRESS } from '@/lib/contracts/battle-abi';
+import { Skeleton } from "@/components/ui/skeleton";
+import { Loader2 } from "lucide-react";
 
 interface BattleSidebarProps {
   selectedChain: 'solana' | 'base' | 'info';
@@ -170,8 +174,65 @@ interface BattleActionsProps {
   selectedChain: 'solana' | 'base';
 }
 
+interface AgentInfo {
+  name: string;
+  address: string;
+  total: string;
+}
+
 function BattleActions({ selectedChain }: BattleActionsProps) {
   const [showVoteDialog, setShowVoteDialog] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [totalPool, setTotalPool] = useState<string>('0');
+  const [agentA, setAgentA] = useState<AgentInfo>({ name: 'Solana', address: '', total: '0' });
+  const [agentB, setAgentB] = useState<AgentInfo>({ name: 'Base', address: '', total: '0' });
+
+  useEffect(() => {
+    async function fetchContractData() {
+      setIsLoading(true);
+      try {
+        if (typeof window.ethereum !== 'undefined') {
+          const provider = new ethers.providers.Web3Provider(window.ethereum);
+          const contract = new ethers.Contract(BATTLE_ADDRESS, BATTLE_ABI, provider);
+          
+          // Fetch total accumulated
+          const total = await contract.getTotalAcumulated();
+          setTotalPool(ethers.utils.formatEther(total));
+          
+          // Fetch agent addresses and totals
+          const [agentAAddress, agentBAddress, totalA, totalB] = await Promise.all([
+            contract.agentA(),
+            contract.agentB(),
+            contract.totalAgentA(),
+            contract.totalAgentB()
+          ]);
+
+          setAgentA(prev => ({
+            ...prev,
+            address: agentAAddress,
+            total: ethers.utils.formatEther(totalA)
+          }));
+
+          setAgentB(prev => ({
+            ...prev,
+            address: agentBAddress,
+            total: ethers.utils.formatEther(totalB)
+          }));
+        }
+      } catch (error) {
+        console.error('Error fetching contract data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchContractData();
+    const interval = setInterval(fetchContractData, 30000); // Refresh every 30s
+    return () => clearInterval(interval);
+  }, []);
+
+  // Solo mostrar el agente correspondiente según la cadena seleccionada
+  const selectedAgent = selectedChain === 'solana' ? agentA : agentB;
 
   return (
     <>
@@ -180,9 +241,49 @@ function BattleActions({ selectedChain }: BattleActionsProps) {
         <Card className="bg-card p-6">
           <div className="flex items-center gap-3 text-xl font-bold">
             <Trophy className="h-6 w-6 text-yellow-500" />
-            <span>1,000 USDC</span>
+            {isLoading ? (
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-8 w-24" />
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <span>{totalPool} FUZZ</span>
+            )}
           </div>
-          <p className="text-sm text-muted-foreground mt-2">Current round ends in 2h 30m</p>
+          <div className="mt-4 space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Agent {selectedAgent.name} Total:</span>
+              {isLoading ? (
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-4 w-16" />
+                  <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <span className="font-mono">{selectedAgent.total} FUZZ</span>
+              )}
+            </div>
+          </div>
+          <div className="mt-4 space-y-2 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Agent {selectedAgent.name}:</span>
+              {isLoading ? (
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-4 w-24" />
+                  <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <a 
+                  href={`https://sepolia.basescan.org/address/${selectedAgent.address}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-mono text-primary hover:underline"
+                >
+                  {truncateAddress(selectedAgent.address)}
+                  <ExternalLink className="inline ml-1 h-3 w-3" />
+                </a>
+              )}
+            </div>
+          </div>
         </Card>
       </SidebarGroup>
 
@@ -194,8 +295,13 @@ function BattleActions({ selectedChain }: BattleActionsProps) {
           variant="secondary" 
           size="lg"
           onClick={() => setShowVoteDialog(true)}
+          disabled={isLoading}
         >
-          <Vote className="mr-2 h-5 w-5" />
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+          ) : (
+            <Vote className="mr-2 h-5 w-5" />
+          )}
           Vote for next prompt
         </Button>
       </SidebarGroup>

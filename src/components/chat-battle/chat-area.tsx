@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { usePrivy } from '@privy-io/react-auth';
 import { ethers } from 'ethers';
@@ -8,6 +8,8 @@ import { BATTLE_ABI, BATTLE_ADDRESS, TOKEN_ADDRESS, BETTING_AMOUNT } from '@/lib
 import { savePromptSubmission } from '@/lib/supabase';
 import { generateShortDescription, improveText } from '@/lib/openai';
 import { Send, Wand2 } from "lucide-react";
+import { apiClient } from '@/lib/api';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
 
 // Base Sepolia configuration
 const BASE_SEPOLIA_CONFIG = {
@@ -29,6 +31,12 @@ const TOKEN_ABI = [
   "function approve(address spender, uint256 amount) public returns (bool)"
 ] as const;
 
+// Hardcoded agent IDs
+const AGENT_IDS = {
+    AGENT1_ID: '07b6bf73-fe56-0327-ad9a-9be8fa688dc3', // tate
+    AGENT2_ID: 'e0e10e6f-ff2b-0d4c-8011-1fc1eee7cb32'  // trump
+} as const;
+
 interface PromptBetEvent {
   event: string;
   args: {
@@ -38,6 +46,17 @@ interface PromptBetEvent {
     amount: ethers.BigNumber;
     gameId: ethers.BigNumber;
   };
+}
+
+interface Message {
+    id: string;
+    fromAgent: string;
+    toAgent: string;
+    content: string;
+    timestamp: number;
+    user?: string;
+    createdAt: number;
+    text?: string;
 }
 
 interface ChatAreaProps {
@@ -56,14 +75,134 @@ export function ChatArea({ selectedChain }: ChatAreaProps) {
 }
 
 function ChatMessages() {
-  return (
-    <div className="flex-1 overflow-y-auto p-6">
-      {/* Messages will be implemented here */}
-      <div className="space-y-4 max-w-3xl mx-auto">
-        {/* Message content will go here */}
-      </div>
-    </div>
-  );
+    const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+    const queryClient = useQueryClient();
+    const messagesContainerRef = useRef<HTMLDivElement>(null);
+    const [lastUpdateTime, setLastUpdateTime] = useState<number>(0);
+
+    const scrollToBottom = () => {
+        if (messagesContainerRef.current) {
+            messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+        }
+    };
+
+    // Función para cargar mensajes de ambos agentes
+    const fetchMessages = async () => {
+        try {
+            // Obtener mensajes del Agent 1
+            const roomId1 = await apiClient.stringToUuid(
+                `default-room-${AGENT_IDS.AGENT1_ID}`
+            );
+            const response1 = await apiClient.getAgentMemories(
+                AGENT_IDS.AGENT1_ID,
+                roomId1
+            );
+
+            // Obtener mensajes del Agent 2
+            const roomId2 = await apiClient.stringToUuid(
+                `default-room-${AGENT_IDS.AGENT2_ID}`
+            );
+            const response2 = await apiClient.getAgentMemories(
+                AGENT_IDS.AGENT2_ID,
+                roomId2
+            );
+
+            // Combinar y ordenar todos los mensajes
+            const allMemories = [
+                ...(response1?.memories || []),
+                ...(response2?.memories || [])
+            ].sort((a, b) => a.createdAt! - b.createdAt!);
+
+            queryClient.setQueryData(
+                ["messages"],
+                allMemories
+                    .filter(memory => memory.userId !== "12dea96f-ec20-0935-a6ab-75692c994959")
+                    .map(memory => ({
+                        ...memory.content,
+                        id: memory.id,
+                        user: memory.userId === AGENT_IDS.AGENT1_ID ? "user" : undefined,
+                        createdAt: memory.createdAt,
+                        isHistory: true,
+                        text: memory.content.text,
+                        fromAgent: memory.agentId,
+                        toAgent: memory.userId
+                    }))
+            );
+
+            setLastUpdateTime(Date.now());
+            scrollToBottom();
+        } catch (error) {
+            console.error('Error fetching messages:', error);
+        }
+    };
+
+    // Carga inicial
+    useEffect(() => {
+        const initChat = async () => {
+            try {
+                await fetchMessages();
+            } finally {
+                setIsLoadingHistory(false);
+            }
+        };
+
+        initChat();
+    }, []);
+
+    // Refresco automático cada 5 segundos
+    useEffect(() => {
+        const interval = setInterval(() => {
+            fetchMessages();
+        }, 5000);
+
+        return () => clearInterval(interval);
+    }, []);
+
+    // Auto-scroll cuando hay nuevos mensajes
+    useEffect(() => {
+        const messages = queryClient.getQueryData<Message[]>(["messages"]);
+        if (messages?.length) {
+            scrollToBottom();
+        }
+    }, [queryClient.getQueryData(["messages"])]);
+
+    const messages = queryClient.getQueryData<Message[]>(["messages"]) || [];
+
+    if (isLoadingHistory) {
+        return (
+            <div className="flex justify-center items-center p-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex-1 overflow-y-auto p-6" ref={messagesContainerRef}>
+            <div className="mb-2 text-sm text-gray-500 text-center">
+                Last updated: {new Date(lastUpdateTime).toLocaleTimeString()}
+            </div>
+            <div className="space-y-4 max-w-3xl mx-auto">
+                {messages.map((message) => (
+                    <div
+                        key={message.id}
+                        className={`flex ${
+                            message.user === "user" ? 'justify-end' : 'justify-start'
+                        }`}
+                    >
+                        <div className="bg-primary/10 rounded-lg p-4 max-w-[80%]">
+                            <p className="text-sm text-muted-foreground">
+                                From: {message.fromAgent}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                                {new Date(message.createdAt).toLocaleTimeString()}
+                            </p>
+                            <p className="mt-1">{message.text || message.content}</p>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
 }
 
 function ChatInput({ selectedChain }: { selectedChain: 'solana' | 'base' | 'info' }) {
@@ -74,7 +213,7 @@ function ChatInput({ selectedChain }: { selectedChain: 'solana' | 'base' | 'info
 
   const handleImproveText = async () => {
     if (!input.trim() || isImproving) return;
-    
+
     setIsImproving(true);
     try {
       const improvedText = await improveText(input);
@@ -220,4 +359,4 @@ function ChatInput({ selectedChain }: { selectedChain: 'solana' | 'base' | 'info
       </form>
     </div>
   );
-} 
+}

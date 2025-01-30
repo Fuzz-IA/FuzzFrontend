@@ -6,7 +6,7 @@ import { BattleSidebar } from '@/components/chat-battle/battle-sidebar';
 import { ChatArea } from '@/components/chat-battle/chat-area';
 
 export default function ChatBattlePage() {
-  const [selectedChain, setSelectedChain] = useState<'solana' | 'base' | 'info'>('solana');
+  const [selectedChain, setSelectedChain] = useState<'solana' | 'base' | 'info'>('info');
 
   return (
     <div className="flex h-[calc(100vh-72px)] bg-background">

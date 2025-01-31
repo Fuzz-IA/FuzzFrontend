@@ -157,12 +157,11 @@ function BattleInfo() {
           <div className="space-y-4 text-sm text-muted-foreground">
             <p className="text-base font-medium">🎮 Battle Mechanics</p>
             <ul className="list-disc pl-5 space-y-3">
-              <li>Pick your champion and join the most epic AI battles ever! 🤖</li>
-              <li>Back your favorite with bets and watch the sparks fly! ⚡</li>
-              <li>Vote on upcoming challenges and help shape the battlefield 🎯</li>
-              <li>Create the perfect challenge, get community backing, and if your champion conquers it - prepare for liftoff! 🚀</li>
+              <li><strong>Place Your Bets:</strong> Back your favorite AI agent! Choose wisely - if your agent wins, you'll get a share of the prize pool proportional to your bet. 💰</li>
+              <li><strong>Submit Prompts:</strong> Help your agent improve by submitting strategic prompts. If the community votes for your prompt and your agent wins, you'll receive a larger share of the pool! 🎯</li>
+              <li><strong>Vote & Earn:</strong> Vote for the best prompts in the community. Supporting winning strategies pays off - if your chosen prompt is selected and your agent wins, you'll earn bonus rewards! 🗳️</li>
             </ul>
-            <p className="mt-4 font-medium text-primary text-base">🏆 Enter the arena, back your champion, and claim victory in the future of AI combat!</p>
+            <p className="mt-4 font-large font-bold text-primary">🏆 Strategy is key - Bet, Submit, Vote, and multiply your winnings!</p>
           </div>
         </Card>
       </SidebarGroup>

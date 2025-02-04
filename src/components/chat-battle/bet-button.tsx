@@ -9,6 +9,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import { ethers } from 'ethers';
 import { BATTLE_ABI, BATTLE_ADDRESS, TOKEN_ADDRESS } from '@/lib/contracts/battle-abi';
 import { Slider } from "@/components/ui/slider";
+import { contractToast } from '@/lib/utils';
 
 interface BetButtonProps {
   selectedChain: 'solana' | 'base' | 'info';
@@ -69,12 +70,13 @@ export function BetButton({ selectedChain }: BetButtonProps) {
 
   const handleBet = async () => {
     if (!authenticated) {
+      contractToast.wallet.notConnected();
       login();
       return;
     }
 
     if (typeof window.ethereum === 'undefined') {
-      alert('Please install MetaMask!');
+      contractToast.wallet.notInstalled();
       return;
     }
 
@@ -84,6 +86,8 @@ export function BetButton({ selectedChain }: BetButtonProps) {
 
       if (needsApproval) {
         setIsApproving(true);
+        contractToast.loading('Approving token spending...');
+        
         const tokenContract = new ethers.Contract(TOKEN_ADDRESS, [
           'function approve(address spender, uint256 amount) returns (bool)'
         ], signer);
@@ -91,20 +95,27 @@ export function BetButton({ selectedChain }: BetButtonProps) {
         const amountInWei = ethers.utils.parseEther(betAmount);
         const tx = await tokenContract.approve(BATTLE_ADDRESS, amountInWei);
         await tx.wait();
+        
+        contractToast.success('Token approval successful!');
         setIsApproving(false);
         setNeedsApproval(false);
       } else {
         setIsBetting(true);
+        contractToast.loading(`Placing bet of ${betAmount} FUZZ on ${selectedChain}...`);
+        
         const battleContract = new ethers.Contract(BATTLE_ADDRESS, BATTLE_ABI, signer);
         const amountInWei = ethers.utils.parseEther(betAmount);
         const tx = await battleContract.betOnAgent(selectedChain === 'solana', amountInWei);
         await tx.wait();
+        
+        contractToast.success(`Successfully bet ${betAmount} FUZZ on ${selectedChain}!`);
         setIsBetting(false);
         setShowBetDialog(false);
         setBetAmount('');
       }
     } catch (error) {
       console.error('Error:', error);
+      contractToast.error(error);
       setIsApproving(false);
       setIsBetting(false);
     }

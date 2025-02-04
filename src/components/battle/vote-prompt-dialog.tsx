@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Loader2, Vote } from "lucide-react";
+import { contractToast } from '@/lib/utils';
 
 // Base Sepolia configuration
 const BASE_SEPOLIA_CONFIG = {
@@ -87,6 +88,7 @@ export function VotePromptDialog({ selectedChain, onClose }: VotePromptDialogPro
 
   const handleVote = async (promptId: number) => {
     if (!authenticated) {
+      contractToast.wallet.notConnected();
       login();
       return;
     }
@@ -95,7 +97,7 @@ export function VotePromptDialog({ selectedChain, onClose }: VotePromptDialogPro
 
     try {
       if (typeof window.ethereum === 'undefined') {
-        alert('Please install MetaMask!');
+        contractToast.wallet.notInstalled();
         return;
       }
 
@@ -117,34 +119,41 @@ export function VotePromptDialog({ selectedChain, onClose }: VotePromptDialogPro
             });
           } catch (addError) {
             console.error('Error adding the chain:', addError);
+            contractToast.error(addError);
             throw addError;
           }
         } else {
+          contractToast.error(switchError);
           throw switchError;
         }
       }
 
       const network = await provider.getNetwork();
       if (network.chainId !== BASE_SEPOLIA_CHAIN_ID) {
+        contractToast.wallet.wrongNetwork('Base Sepolia');
         throw new Error(`Please switch to Base Sepolia network. Current chain ID: ${network.chainId}`);
       }
 
       const signer = provider.getSigner();
 
       // First approve token spending
+      contractToast.loading('Approving token spending...');
       const tokenContract = new ethers.Contract(TOKEN_ADDRESS, TOKEN_ABI, signer);
       const approveTx = await tokenContract.approve(BATTLE_ADDRESS, BETTING_AMOUNT);
       await approveTx.wait();
+      contractToast.success('Token approval successful!');
 
       // Then vote for the prompt
+      contractToast.loading('Submitting vote...');
       const battleContract = new ethers.Contract(BATTLE_ADDRESS, BATTLE_ABI, signer);
       const tx = await battleContract.voteForPrompt(promptId, BETTING_AMOUNT);
       await tx.wait();
+      contractToast.success('Vote submitted successfully! 🎉');
 
       onClose();
     } catch (error) {
       console.error('Error voting:', error);
-      alert('Error voting for prompt. Check console for details.');
+      contractToast.error(error);
     } finally {
       setIsVoting(false);
     }

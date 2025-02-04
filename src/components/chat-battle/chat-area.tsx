@@ -10,6 +10,7 @@ import { generateShortDescription, improveText } from '@/lib/openai';
 import { Send, Wand2 } from "lucide-react";
 import { apiClient } from '@/lib/api';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
+import { contractToast } from '@/lib/utils';
 
 // Base Sepolia configuration
 const BASE_SEPOLIA_CONFIG = {
@@ -231,6 +232,7 @@ function ChatInput({ selectedChain }: { selectedChain: 'solana' | 'base' | 'info
     if (!input.trim() || isLoading || selectedChain === 'info') return;
 
     if (!authenticated) {
+      contractToast.wallet.notConnected();
       login();
       return;
     }
@@ -239,7 +241,7 @@ function ChatInput({ selectedChain }: { selectedChain: 'solana' | 'base' | 'info
 
     try {
       if (typeof window.ethereum === 'undefined') {
-        alert('Please install MetaMask!');
+        contractToast.wallet.notInstalled();
         return;
       }
 
@@ -261,9 +263,11 @@ function ChatInput({ selectedChain }: { selectedChain: 'solana' | 'base' | 'info
             });
           } catch (addError) {
             console.error('Error adding the chain:', addError);
+            contractToast.error(addError);
             throw addError;
           }
         } else {
+          contractToast.error(switchError);
           throw switchError;
         }
       }
@@ -271,6 +275,7 @@ function ChatInput({ selectedChain }: { selectedChain: 'solana' | 'base' | 'info
       // Verify network
       const network = await provider.getNetwork();
       if (network.chainId !== BASE_SEPOLIA_CHAIN_ID) {
+        contractToast.wallet.wrongNetwork('Base Sepolia');
         throw new Error(`Please switch to Base Sepolia network. Current chain ID: ${network.chainId}`);
       }
 
@@ -278,11 +283,14 @@ function ChatInput({ selectedChain }: { selectedChain: 'solana' | 'base' | 'info
       const userAddress = await signer.getAddress();
 
       // First approve token spending
+      contractToast.loading('Approving token spending...');
       const tokenContract = new ethers.Contract(TOKEN_ADDRESS, TOKEN_ABI, signer);
       const approveTx = await tokenContract.approve(BATTLE_ADDRESS, BETTING_AMOUNT);
       await approveTx.wait();
+      contractToast.success('Token approval successful!');
 
       // Then submit prompt with bet
+      contractToast.loading('Submitting prompt with bet...');
       const battleContract = new ethers.Contract(BATTLE_ADDRESS, BATTLE_ABI, signer);
       const tx = await battleContract.betWithPrompt(
         selectedChain === 'solana', // true if Solana, false if Base
@@ -308,15 +316,17 @@ function ChatInput({ selectedChain }: { selectedChain: 'solana' | 'base' | 'info
           is_agent_a: selectedChain === 'solana',
           prompt_id: Number(promptId)
         });
+        contractToast.success('Prompt submitted successfully! 🎉');
       } catch (error) {
         console.error('Error saving to Supabase:', error);
+        contractToast.error(error);
         // Don't throw here as the blockchain transaction was successful
       }
 
       setInput('');
     } catch (error) {
       console.error('Error:', error);
-      alert('Error submitting prompt. Check console for details.');
+      contractToast.error(error);
     } finally {
       setIsLoading(false);
     }

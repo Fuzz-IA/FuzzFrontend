@@ -4,6 +4,7 @@ import "./globals.css";
 import PrivyClientProvider from "@/providers/privy-provider";
 import QueryProvider from "@/providers/query-provider";
 import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "@/components/ui/toaster";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,6 +35,8 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black`}
       >
+                <Toaster />
+
         <ThemeProvider defaultTheme="system">
           <QueryProvider>
             <PrivyClientProvider>{children}</PrivyClientProvider>

@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { usePrivy } from '@privy-io/react-auth';
 import { ethers } from 'ethers';
 import { BATTLE_ABI, BATTLE_ADDRESS, TOKEN_ADDRESS } from '@/lib/contracts/battle-abi';
+import { Slider } from "@/components/ui/slider";
 
 interface BetButtonProps {
   selectedChain: 'solana' | 'base' | 'info';
@@ -19,10 +20,12 @@ export function BetButton({ selectedChain }: BetButtonProps) {
   const [isApproving, setIsApproving] = useState(false);
   const [isBetting, setIsBetting] = useState(false);
   const [needsApproval, setNeedsApproval] = useState(true);
+  const [tokenBalance, setTokenBalance] = useState('0');
   const { login, authenticated } = usePrivy();
 
   useEffect(() => {
     checkAllowance();
+    checkBalance();
   }, [betAmount]);
 
   async function checkAllowance() {
@@ -42,6 +45,25 @@ export function BetButton({ selectedChain }: BetButtonProps) {
       }
     } catch (error) {
       console.error('Error checking allowance:', error);
+    }
+  }
+
+  async function checkBalance() {
+    try {
+      if (typeof window.ethereum !== 'undefined' && authenticated) {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        const tokenContract = new ethers.Contract(TOKEN_ADDRESS, [
+          'function balanceOf(address account) view returns (uint256)'
+        ], provider);
+        
+        const userAddress = await signer.getAddress();
+        const balance = await tokenContract.balanceOf(userAddress);
+        const formattedBalance = ethers.utils.formatEther(balance);
+        setTokenBalance(formattedBalance);
+      }
+    } catch (error) {
+      console.error('Error checking balance:', error);
     }
   }
 
@@ -88,6 +110,10 @@ export function BetButton({ selectedChain }: BetButtonProps) {
     }
   };
 
+  const handleSliderChange = (value: number[]) => {
+    setBetAmount(value[0].toString());
+  };
+
   return (
     <div className="flex flex-col gap-4">
       <Button 
@@ -108,23 +134,44 @@ export function BetButton({ selectedChain }: BetButtonProps) {
           <DialogHeader>
             <DialogTitle>Place your bet for {selectedChain}</DialogTitle>
           </DialogHeader>
-          <div className="flex flex-col gap-4">
-            <Input
-              type="number"
-              placeholder="Enter amount to bet"
-              value={betAmount}
-              onChange={(e) => setBetAmount(e.target.value)}
-            />
+          <div className="flex flex-col gap-6">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Available Balance:</span>
+                <span className="font-mono text-sm">{Number(tokenBalance).toFixed(2)} FUZZ</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Bet Amount:</span>
+                <span className="font-mono text-sm">{Number(betAmount || '0').toFixed(2)} FUZZ</span>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <Slider
+                defaultValue={[0]}
+                max={Number(tokenBalance)}
+                step={0.1}
+                value={[Number(betAmount || 0)]}
+                onValueChange={handleSliderChange}
+                className="w-full"
+              />
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>0 FUZZ</span>
+                <span>{Number(tokenBalance).toFixed(2)} FUZZ</span>
+              </div>
+            </div>
+
             <Button 
               onClick={handleBet} 
-              disabled={!betAmount || isApproving || isBetting}
+              disabled={!betAmount || isApproving || isBetting || Number(betAmount) > Number(tokenBalance)}
               className="w-full"
             >
               {!authenticated ? 'Connect Wallet' : 
                isApproving ? 'Approving...' : 
                isBetting ? 'Betting...' : 
                needsApproval ? 'Approve Token' : 
-               `Bet for ${selectedChain}`}
+               Number(betAmount) > Number(tokenBalance) ? 'Insufficient Balance' :
+               `Bet ${Number(betAmount).toFixed(2)} FUZZ for ${selectedChain}`}
             </Button>
           </div>
         </DialogContent>

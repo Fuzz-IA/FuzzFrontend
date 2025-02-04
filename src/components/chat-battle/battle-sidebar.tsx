@@ -11,6 +11,7 @@ import {
   SidebarFooter,
 } from '@/components/ui/sidebar';
 import { Trophy, Vote, MessageSquarePlus, Info, Shield, Brain, Target, ChevronDown, Wallet, LogOut, ExternalLink } from 'lucide-react';
+import { XIcon, TelegramIcon } from '@/components/icons';
 import { usePrivy } from '@privy-io/react-auth';
 import {
   DropdownMenu,
@@ -26,6 +27,7 @@ import { ethers } from 'ethers';
 import { BATTLE_ABI, BATTLE_ADDRESS } from '@/lib/contracts/battle-abi';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2 } from "lucide-react";
+import { ThemeToggle } from '../theme-toggle';
 
 interface BattleSidebarProps {
   selectedChain: 'solana' | 'base' | 'info';
@@ -73,8 +75,8 @@ export function BattleSidebar({ selectedChain, onChainSelect }: BattleSidebarPro
             variant={selectedChain === 'info' ? 'default' : 'outline'}
             className={`w-10 px-0 ${
               selectedChain === 'info'
-                ? 'bg-primary hover:bg-primary/90'
-                : ''
+                ? 'bg-primary/10 hover:bg-primary/20 text-primary dark:bg-primary/20 dark:hover:bg-primary/30'
+                : 'hover:bg-primary/10 dark:border-primary/20 dark:hover:bg-primary/20'
             }`}
             onClick={() => onChainSelect('info')}
           >
@@ -90,10 +92,30 @@ export function BattleSidebar({ selectedChain, onChainSelect }: BattleSidebarPro
           <BattleActions selectedChain={selectedChain} />
         )}
       </SidebarContent>
-      <SidebarFooter className="border-t p-4">
+      <SidebarFooter className="border-t p-4 space-y-4">
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            className="flex-1 bg-primary/10 hover:bg-primary/20 text-primary dark:bg-primary/20 dark:hover:bg-primary/30"
+            onClick={() => window.open('https://twitter.com/fuzzai_xyz', '_blank')}
+            aria-label="Twitter"
+          >
+            <XIcon className="h-5 w-5" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="flex-1 bg-primary/10 hover:bg-primary/20 text-primary dark:bg-primary/20 dark:hover:bg-primary/30"
+            onClick={() => window.open('https://t.me/fuzzai_xyz', '_blank')}
+            aria-label="Telegram"
+          >
+            <TelegramIcon className="h-5 w-5" />
+          </Button>
+        </div>
         {authenticated ? (
           <DropdownMenu>
-            <DropdownMenuTrigger className="flex items-center justify-center gap-2 w-full px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors font-medium">
+            <DropdownMenuTrigger className="flex items-center justify-center gap-2 w-full px-4 py-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary dark:bg-primary/20 dark:hover:bg-primary/30 transition-colors font-medium">
               {displayName}
               <ChevronDown className="h-4 w-4" />
             </DropdownMenuTrigger>
@@ -113,7 +135,7 @@ export function BattleSidebar({ selectedChain, onChainSelect }: BattleSidebarPro
         ) : (
           <Button 
             onClick={() => login()} 
-            className="w-full"
+            className="w-full bg-primary/10 hover:bg-primary/20 text-primary dark:bg-primary/20 dark:hover:bg-primary/30"
             size="lg"
           >
             <Wallet className="mr-2 h-5 w-5" />
@@ -129,7 +151,10 @@ function BattleInfo() {
   return (
     <>
       <SidebarGroup className="space-y-4">
-        <SidebarGroupLabel className="text-sm font-medium">About Fuzz AI</SidebarGroupLabel>
+        <div className="flex justify-between items-center">
+          <SidebarGroupLabel className="text-sm font-medium">About Fuzz AI</SidebarGroupLabel>
+          <ThemeToggle />
+        </div>
         <Card className="bg-card p-6">
           <h3 className="text-lg font-semibold mb-4">The Ultimate AI Combat Arena</h3>
           <div className="space-y-6 text-sm text-muted-foreground">

@@ -8,6 +8,8 @@ import { BATTLE_ABI, BATTLE_ADDRESS, TOKEN_ADDRESS, BETTING_AMOUNT } from '@/lib
 import { getPrompts, Prompt } from '@/lib/supabase';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Loader2, Vote } from "lucide-react";
 
 // Base Sepolia configuration
 const BASE_SEPOLIA_CONFIG = {
@@ -29,6 +31,11 @@ const TOKEN_ABI = [
   "function approve(address spender, uint256 amount) public returns (bool)"
 ] as const;
 
+function truncateAddress(address: string) {
+  if (!address) return '';
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
+
 interface VotePromptDialogProps {
   selectedChain: 'solana' | 'base' | 'info';
   onClose: () => void;
@@ -38,10 +45,12 @@ export function VotePromptDialog({ selectedChain, onClose }: VotePromptDialogPro
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isVoting, setIsVoting] = useState(false);
+  const [tokenBalance, setTokenBalance] = useState('0');
   const { login, authenticated } = usePrivy();
 
   useEffect(() => {
     loadPrompts();
+    checkBalance();
   }, [selectedChain]);
 
   const loadPrompts = async () => {
@@ -56,6 +65,25 @@ export function VotePromptDialog({ selectedChain, onClose }: VotePromptDialogPro
       setIsLoading(false);
     }
   };
+
+  async function checkBalance() {
+    try {
+      if (typeof window.ethereum !== 'undefined' && authenticated) {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        const tokenContract = new ethers.Contract(TOKEN_ADDRESS, [
+          'function balanceOf(address account) view returns (uint256)'
+        ], provider);
+        
+        const userAddress = await signer.getAddress();
+        const balance = await tokenContract.balanceOf(userAddress);
+        const formattedBalance = ethers.utils.formatEther(balance);
+        setTokenBalance(formattedBalance);
+      }
+    } catch (error) {
+      console.error('Error checking balance:', error);
+    }
+  }
 
   const handleVote = async (promptId: number) => {
     if (!authenticated) {
@@ -122,53 +150,62 @@ export function VotePromptDialog({ selectedChain, onClose }: VotePromptDialogPro
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
   return (
-    <ScrollArea className="h-[60vh] w-full pr-4">
-      <div className="space-y-4">
-        {prompts.length === 0 ? (
-          <div className="text-center text-muted-foreground p-4">
-            No prompts available for voting yet.
-          </div>
-        ) : (
-          prompts.map((prompt) => (
-            <Card key={prompt.id} className="bg-card">
-              <CardHeader>
-                <CardTitle className="text-lg">Prompt #{prompt.prompt_id}</CardTitle>
-                <CardDescription className="text-sm text-muted-foreground">
-                  {prompt.short_description}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm">{prompt.message}</p>
-              </CardContent>
-              <CardFooter>
-                <Button 
-                  onClick={() => handleVote(prompt.prompt_id)}
-                  disabled={isVoting}
-                  className="w-full"
-                >
-                  {isVoting ? (
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Voting...
-                    </div>
-                  ) : (
-                    'Vote for this prompt'
-                  )}
-                </Button>
-              </CardFooter>
-            </Card>
-          ))
-        )}
+    <DialogContent className="max-w-2xl">
+      <DialogHeader>
+        <DialogTitle>Vote for {selectedChain} Prompts</DialogTitle>
+      </DialogHeader>
+      <div className="text-sm text-muted-foreground mb-4">
+        Available Balance: {Number(tokenBalance).toFixed(2)} FUZZ
       </div>
-    </ScrollArea>
+      {isLoading ? (
+        <div className="flex items-center justify-center p-8">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      ) : prompts.length > 0 ? (
+        <ScrollArea className="h-[60vh]">
+          <div className="space-y-4 pr-4">
+            {prompts.map((prompt) => (
+              <Card key={prompt.id} className="p-4">
+                <CardHeader className="p-0">
+                  <CardTitle className="text-base">{prompt.short_description}</CardTitle>
+                  <CardDescription className="text-xs truncate">
+                    by {truncateAddress(prompt.wallet_address)}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0 mt-4">
+                  <p className="text-sm text-muted-foreground">{prompt.message}</p>
+                </CardContent>
+                <CardFooter className="p-0 mt-4">
+                  <Button 
+                    onClick={() => handleVote(prompt.prompt_id)} 
+                    disabled={isVoting || Number(BETTING_AMOUNT) > Number(ethers.utils.parseEther(tokenBalance))}
+                    className="w-full"
+                  >
+                    {isVoting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Voting...
+                      </>
+                    ) : Number(BETTING_AMOUNT) > Number(ethers.utils.parseEther(tokenBalance)) ? (
+                      'Insufficient Balance'
+                    ) : (
+                      <>
+                        <Vote className="mr-2 h-4 w-4" />
+                        Vote ({ethers.utils.formatEther(BETTING_AMOUNT)} FUZZ)
+                      </>
+                    )}
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        </ScrollArea>
+      ) : (
+        <div className="text-center py-8 text-muted-foreground">
+          No prompts available for voting
+        </div>
+      )}
+    </DialogContent>
   );
 } 

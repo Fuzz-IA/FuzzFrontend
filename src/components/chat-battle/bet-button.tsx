@@ -12,10 +12,10 @@ import { Slider } from "@/components/ui/slider";
 import { contractToast } from '@/lib/utils';
 
 interface BetButtonProps {
-  selectedChain: 'solana' | 'base' | 'info';
+  selectedChampion: 'trump' | 'xi';
 }
 
-export function BetButton({ selectedChain }: BetButtonProps) {
+export function BetButton({ selectedChampion }: BetButtonProps) {
   const [betAmount, setBetAmount] = useState('');
   const [showBetDialog, setShowBetDialog] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
@@ -101,14 +101,14 @@ export function BetButton({ selectedChain }: BetButtonProps) {
         setNeedsApproval(false);
       } else {
         setIsBetting(true);
-        contractToast.loading(`Placing bet of ${betAmount} FUZZ on ${selectedChain}...`);
+        contractToast.loading(`Placing bet of ${betAmount} FUZZ on ${selectedChampion}...`);
         
         const battleContract = new ethers.Contract(BATTLE_ADDRESS, BATTLE_ABI, signer);
         const amountInWei = ethers.utils.parseEther(betAmount);
-        const tx = await battleContract.betOnAgent(selectedChain === 'solana', amountInWei);
+        const tx = await battleContract.betOnAgent(selectedChampion === 'trump', amountInWei);
         await tx.wait();
         
-        contractToast.success(`Successfully bet ${betAmount} FUZZ on ${selectedChain}!`);
+        contractToast.success(`Successfully bet ${betAmount} FUZZ on ${selectedChampion}!`);
         setIsBetting(false);
         setShowBetDialog(false);
         setBetAmount('');
@@ -136,14 +136,14 @@ export function BetButton({ selectedChain }: BetButtonProps) {
         {!authenticated ? 'Connect Wallet' : 
          isApproving ? 'Approving...' : 
          isBetting ? 'Betting...' : 
-         needsApproval ? `Bet for ${selectedChain}`: 
-         `Bet for ${selectedChain}`}
+         needsApproval ? `Bet for ${selectedChampion}` : 
+         `Bet for ${selectedChampion}`}
       </Button>
 
       <Dialog open={showBetDialog} onOpenChange={setShowBetDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Place your bet for {selectedChain}</DialogTitle>
+            <DialogTitle>Place your bet for {selectedChampion}</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-6">
             <div className="space-y-4">
@@ -182,7 +182,7 @@ export function BetButton({ selectedChain }: BetButtonProps) {
                isBetting ? 'Betting...' : 
                needsApproval ? 'Approve Token' : 
                Number(betAmount) > Number(tokenBalance) ? 'Insufficient Balance' :
-               `Bet ${Number(betAmount).toFixed(2)} FUZZ for ${selectedChain}`}
+               `Bet ${Number(betAmount).toFixed(2)} FUZZ for ${selectedChampion}`}
             </Button>
           </div>
         </DialogContent>

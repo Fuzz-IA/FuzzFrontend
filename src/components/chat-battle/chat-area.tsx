@@ -45,19 +45,27 @@ const AGENTS_INFO = {
     [AGENT_IDS.AGENT1_ID]: {
         name: 'Donald Trump',
         color: 'bg-orange-500',
-        initials: 'DT'
+        initials: 'DT',
+        avatar: '/trump.png',
+        side: 'trump' as const
     },
     [AGENT_IDS.AGENT2_ID]: {
         name: 'Xi Jinping',
         color: 'bg-red-500',
-        initials: 'CN'
+        initials: 'CN',
+        avatar: '/xi.png',
+        side: 'xi' as const
     },
     user: {
         name: 'User',
         color: 'bg-blue-500',
-        initials: 'U'
+        initials: 'U',
+        avatar: null,
+        side: null
     }
 } as const;
+
+type AgentId = keyof typeof AGENTS_INFO;
 
 interface PromptBetEvent {
   event: string;
@@ -89,7 +97,7 @@ interface ChatState {
 }
 
 interface ChatAreaProps {
-  selectedChain: 'solana' | 'base' | 'info';
+  selectedChampion: 'trump' | 'xi' | 'info';
 }
 
 interface AnimatedStyles {
@@ -98,12 +106,12 @@ interface AnimatedStyles {
     scale: SpringValue<number>;
 }
 
-export function ChatArea({ selectedChain }: ChatAreaProps) {
+export function ChatArea({ selectedChampion }: ChatAreaProps) {
   return (
     <main className="flex-1 overflow-hidden bg-background relative">
       <div className="h-full flex flex-col">
-        <ChatMessages />
-        <ChatInput selectedChain={selectedChain} />
+        <ChatMessages selectedChampion={selectedChampion} />
+        <ChatInput selectedChampion={selectedChampion} />
       </div>
     </main>
   );
@@ -113,8 +121,16 @@ function MessageAvatar({ agentId }: { agentId: string }) {
     const agentInfo = AGENTS_INFO[agentId as keyof typeof AGENTS_INFO] || AGENTS_INFO.user;
     
     return (
-        <div className={`flex-shrink-0 w-8 h-8 rounded-full overflow-hidden ${agentInfo.color} text-white flex items-center justify-center font-medium text-sm border-2 border-primary/20`}>
-            {agentInfo.initials}
+        <div className={`flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden ${!agentInfo.avatar ? agentInfo.color : ''} text-white flex items-center justify-center font-medium text-sm border-2 border-primary/20`}>
+            {agentInfo.avatar ? (
+                <img 
+                    src={agentInfo.avatar} 
+                    alt={agentInfo.name}
+                    className="w-full h-full object-cover"
+                />
+            ) : (
+                agentInfo.initials
+            )}
         </div>
     );
 }
@@ -166,7 +182,7 @@ function TypewriterText({ text, animate = false }: { text: string; animate?: boo
     );
 }
 
-function ChatMessages() {
+function ChatMessages({ selectedChampion }: { selectedChampion: 'trump' | 'xi' | 'info' }) {
     const [isLoadingHistory, setIsLoadingHistory] = useState(true);
     const [chatState, setChatState] = useState<ChatState>({
         isTyping: false,
@@ -355,6 +371,7 @@ function ChatMessages() {
                         const AnimatedDiv = animated('div');
                         const agentInfo = AGENTS_INFO[message.fromAgent as keyof typeof AGENTS_INFO] || AGENTS_INFO.user;
                         const isLastMessage = message.id === lastMessageId;
+                        const isMyChampion = agentInfo.side === selectedChampion;
                         
                         return (
                             <AnimatedDiv
@@ -368,17 +385,19 @@ function ChatMessages() {
                                 <div
                                     key={message.id}
                                     className={`flex items-start gap-2 ${
-                                        message.user === "user" ? 'flex-row-reverse' : 'flex-row'
+                                        isMyChampion ? 'flex-row-reverse' : 'flex-row'
                                     }`}
                                 >
                                     <MessageAvatar agentId={message.fromAgent} />
                                     <div className={`flex flex-col ${
-                                        message.user === "user" ? 'items-end' : 'items-start'
+                                        isMyChampion ? 'items-end' : 'items-start'
                                     }`}>
                                         <div className={`rounded-lg p-4 max-w-[80%] ${
-                                            message.user === "user" ? 'bg-primary/20' : 'bg-primary/10'
+                                            isMyChampion ? 'bg-primary/20 border-2 border-primary/10' : 'bg-muted'
                                         }`}>
-                                            <p className="text-md font-medium text-primary">
+                                            <p className={`text-md font-medium ${
+                                                isMyChampion ? 'text-primary' : 'text-muted-foreground'
+                                            }`}>
                                                 {agentInfo.name}
                                             </p>
                                             <p className="text-[12px] text-muted-foreground">
@@ -398,11 +417,17 @@ function ChatMessages() {
                     })}
                     {chatState.isTyping && (
                         <div className={`flex items-start gap-2 ${
-                            chatState.typingAgent === AGENT_IDS.AGENT1_ID ? 'flex-row-reverse' : 'flex-row'
+                            chatState.typingAgent && 
+                            AGENTS_INFO[chatState.typingAgent as AgentId]?.side === selectedChampion 
+                                ? 'flex-row-reverse' 
+                                : 'flex-row'
                         }`}>
                             <MessageAvatar agentId={chatState.typingAgent || ''} />
                             <div className={`flex flex-col ${
-                                chatState.typingAgent === AGENT_IDS.AGENT1_ID ? 'items-end' : 'items-start'
+                                chatState.typingAgent && 
+                                AGENTS_INFO[chatState.typingAgent as AgentId]?.side === selectedChampion 
+                                    ? 'items-end' 
+                                    : 'items-start'
                             }`}>
                                 <div className="bg-primary/10 rounded-lg p-4">
                                     <TypingIndicator />
@@ -439,7 +464,7 @@ function ChatMessages() {
     );
 }
 
-function ChatInput({ selectedChain }: { selectedChain: 'solana' | 'base' | 'info' }) {
+function ChatInput({ selectedChampion }: { selectedChampion: 'trump' | 'xi' | 'info' }) {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isImproving, setIsImproving] = useState<boolean>(false);
@@ -490,7 +515,7 @@ function ChatInput({ selectedChain }: { selectedChain: 'solana' | 'base' | 'info
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading || selectedChain === 'info') return;
+    if (!input.trim() || isLoading || selectedChampion === 'info') return;
 
     if (!authenticated) {
       contractToast.wallet.notConnected();
@@ -557,7 +582,7 @@ function ChatInput({ selectedChain }: { selectedChain: 'solana' | 'base' | 'info
       contractToast.loading('Submitting prompt with bet...');
       const battleContract = new ethers.Contract(BATTLE_ADDRESS, BATTLE_ABI, signer);
       const tx = await battleContract.betWithPrompt(
-        selectedChain === 'solana', // true if Solana, false if Base
+        selectedChampion === 'trump', // true if Trump, false if Xi
         BETTING_AMOUNT
       );
 
@@ -577,7 +602,7 @@ function ChatInput({ selectedChain }: { selectedChain: 'solana' | 'base' | 'info
           wallet_address: userAddress,
           message: input,
           short_description: shortDesc,
-          is_agent_a: selectedChain === 'solana',
+          is_agent_a: selectedChampion === 'trump',
           prompt_id: Number(promptId)
         });
         contractToast.success('Prompt submitted successfully! 🎉');
@@ -603,8 +628,8 @@ function ChatInput({ selectedChain }: { selectedChain: 'solana' | 'base' | 'info
           type="text"
           value={input}
           onChange={handleInputChange}
-          placeholder={selectedChain === 'info' ? 'Select a chain first...' : 'Propose a prompt...'}
-          disabled={isLoading || selectedChain === 'info'}
+          placeholder={selectedChampion === 'info' ? 'Select your champion first...' : `Supporting ${selectedChampion === 'trump' ? 'Donald Trump' : 'Xi Jinping'}...`}
+          disabled={isLoading || selectedChampion === 'info'}
           className="flex-1 rounded-lg border bg-background px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
         />
         <Button
@@ -612,14 +637,14 @@ function ChatInput({ selectedChain }: { selectedChain: 'solana' | 'base' | 'info
           variant="outline"
           size="icon"
           onClick={handleImproveText}
-          disabled={!input.trim() || isImproving || isLoading || selectedChain === 'info'}
+          disabled={!input.trim() || isImproving || isLoading || selectedChampion === 'info'}
           className="px-3"
         >
           <Wand2 className={`h-4 w-4 ${isImproving ? 'animate-spin' : ''}`} />
         </Button>
         <Button 
           type="submit" 
-          disabled={!input.trim() || isLoading || selectedChain === 'info'}
+          disabled={!input.trim() || isLoading || selectedChampion === 'info'}
         >
           {isLoading ? (
             <div className="flex items-center gap-2">

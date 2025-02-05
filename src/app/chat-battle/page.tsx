@@ -7,18 +7,17 @@ import { ChatArea } from '@/components/chat-battle/chat-area';
 import { ThemeToggle } from '@/components/theme-toggle';
 
 export default function ChatBattlePage() {
-  const [selectedChain, setSelectedChain] = useState<'solana' | 'base' | 'info'>('info');
+  const [selectedChampion, setSelectedChampion] = useState<'trump' | 'xi' | 'info'>('info');
 
   return (
     <div className="flex h-[calc(100vh-72px)] bg-background">
       <SidebarProvider defaultOpen>
         <BattleSidebar 
-          selectedChain={selectedChain} 
-          onChainSelect={setSelectedChain} 
+          selectedChampion={selectedChampion} 
+          onChampionSelect={setSelectedChampion} 
         />
         <div className="flex flex-col flex-1">
-      
-          <ChatArea selectedChain={selectedChain} />
+          <ChatArea selectedChampion={selectedChampion} />
         </div>
       </SidebarProvider>
     </div>

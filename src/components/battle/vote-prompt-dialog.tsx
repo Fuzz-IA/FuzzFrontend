@@ -38,11 +38,11 @@ function truncateAddress(address: string) {
 }
 
 interface VotePromptDialogProps {
-  selectedChain: 'solana' | 'base' | 'info';
+  selectedChampion: 'trump' | 'xi';
   onClose: () => void;
 }
 
-export function VotePromptDialog({ selectedChain, onClose }: VotePromptDialogProps) {
+export function VotePromptDialog({ selectedChampion, onClose }: VotePromptDialogProps) {
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isVoting, setIsVoting] = useState(false);
@@ -52,13 +52,12 @@ export function VotePromptDialog({ selectedChain, onClose }: VotePromptDialogPro
   useEffect(() => {
     loadPrompts();
     checkBalance();
-  }, [selectedChain]);
+  }, []);
 
   const loadPrompts = async () => {
     try {
       setIsLoading(true);
-      const isAgentA = selectedChain === 'solana';
-      const promptsData = await getPrompts(isAgentA);
+      const promptsData = await getPrompts(selectedChampion === 'trump');
       setPrompts(promptsData);
     } catch (error) {
       console.error('Error loading prompts:', error);
@@ -162,7 +161,7 @@ export function VotePromptDialog({ selectedChain, onClose }: VotePromptDialogPro
   return (
     <DialogContent className="max-w-2xl">
       <DialogHeader>
-        <DialogTitle>Vote for {selectedChain} Prompts</DialogTitle>
+        <DialogTitle>Vote for {selectedChampion === 'trump' ? 'Donald Trump' : 'Xi Jinping'} Prompts</DialogTitle>
       </DialogHeader>
       <div className="text-sm text-muted-foreground mb-4">
         Available Balance: {Number(tokenBalance).toFixed(2)} FUZZ

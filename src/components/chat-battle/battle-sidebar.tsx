@@ -30,8 +30,8 @@ import { Loader2 } from "lucide-react";
 import { ThemeToggle } from '../theme-toggle';
 
 interface BattleSidebarProps {
-  selectedChain: 'solana' | 'base' | 'info';
-  onChainSelect: (chain: 'solana' | 'base' | 'info') => void;
+  selectedChampion: 'trump' | 'xi' | 'info';
+  onChampionSelect: (champion: 'trump' | 'xi' | 'info') => void;
 }
 
 function truncateAddress(address: string) {
@@ -39,7 +39,7 @@ function truncateAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-export function BattleSidebar({ selectedChain, onChainSelect }: BattleSidebarProps) {
+export function BattleSidebar({ selectedChampion, onChampionSelect }: BattleSidebarProps) {
   const { login, authenticated, user, logout } = usePrivy();
   const displayName = user?.email?.address || 
                      user?.wallet?.address && truncateAddress(user.wallet.address) || 
@@ -50,35 +50,35 @@ export function BattleSidebar({ selectedChain, onChainSelect }: BattleSidebarPro
       <SidebarHeader className="border-b pb-4 px-4">
         <div className="flex gap-2">
           <Button
-            variant={selectedChain === 'solana' ? 'default' : 'outline'}
+            variant={selectedChampion === 'trump' ? 'default' : 'outline'}
             className={`flex-1 ${
-              selectedChain === 'solana'
+              selectedChampion === 'trump'
                 ? 'bg-primary hover:bg-primary/90'
                 : ''
             }`}
-            onClick={() => onChainSelect('solana')}
+            onClick={() => onChampionSelect('trump')}
           >
-            Solana
+            Donald Trump
           </Button>
           <Button
-            variant={selectedChain === 'base' ? 'default' : 'outline'}
+            variant={selectedChampion === 'xi' ? 'default' : 'outline'}
             className={`flex-1 ${
-              selectedChain === 'base'
+              selectedChampion === 'xi'
                 ? 'bg-primary hover:bg-primary/90'
                 : ''
             }`}
-            onClick={() => onChainSelect('base')}
+            onClick={() => onChampionSelect('xi')}
           >
-            Base
+            Xi Jinping
           </Button>
           <Button
-            variant={selectedChain === 'info' ? 'default' : 'outline'}
+            variant={selectedChampion === 'info' ? 'default' : 'outline'}
             className={`w-10 px-0 ${
-              selectedChain === 'info'
+              selectedChampion === 'info'
                 ? 'bg-primary/10 hover:bg-primary/20 text-primary dark:bg-primary/20 dark:hover:bg-primary/30'
                 : 'hover:bg-primary/10 dark:border-primary/20 dark:hover:bg-primary/20'
             }`}
-            onClick={() => onChainSelect('info')}
+            onClick={() => onChampionSelect('info')}
           >
             <Info className="h-4 w-4" />
           </Button>
@@ -86,10 +86,10 @@ export function BattleSidebar({ selectedChain, onChainSelect }: BattleSidebarPro
         </div>
       </SidebarHeader>
       <SidebarContent className="px-4 flex-1">
-        {selectedChain === 'info' ? (
+        {selectedChampion === 'info' ? (
           <BattleInfo />
         ) : (
-          <BattleActions selectedChain={selectedChain} />
+          <BattleActions selectedChampion={selectedChampion} />
         )}
       </SidebarContent>
       <SidebarFooter className="border-t p-4 space-y-4">
@@ -195,7 +195,7 @@ function BattleInfo() {
 }
 
 interface BattleActionsProps {
-  selectedChain: 'solana' | 'base';
+  selectedChampion: 'trump' | 'xi';
 }
 
 interface AgentInfo {
@@ -204,7 +204,7 @@ interface AgentInfo {
   total: string;
 }
 
-function BattleActions({ selectedChain }: BattleActionsProps) {
+function BattleActions({ selectedChampion }: BattleActionsProps) {
   const [showVoteDialog, setShowVoteDialog] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [totalPool, setTotalPool] = useState<string>('0');
@@ -256,7 +256,7 @@ function BattleActions({ selectedChain }: BattleActionsProps) {
   }, []);
 
   // Solo mostrar el agente correspondiente según la cadena seleccionada
-  const selectedAgent = selectedChain === 'solana' ? agentA : agentB;
+  const selectedAgent = selectedChampion === 'trump' ? agentA : agentB;
 
   return (
     <>
@@ -312,7 +312,7 @@ function BattleActions({ selectedChain }: BattleActionsProps) {
       </SidebarGroup>
 
       <SidebarGroup className="space-y-4 mt-6">
-        <BetButton selectedChain={selectedChain} /> 
+        <BetButton selectedChampion={selectedChampion} /> 
         
         <Button 
           className="w-full mb-3" 
@@ -333,7 +333,7 @@ function BattleActions({ selectedChain }: BattleActionsProps) {
       <Dialog open={showVoteDialog} onOpenChange={setShowVoteDialog}>
         <DialogContent className="sm:max-w-[600px]">
           <VotePromptDialog 
-            selectedChain={selectedChain} 
+            selectedChampion={selectedChampion} 
             onClose={() => setShowVoteDialog(false)} 
           />
         </DialogContent>

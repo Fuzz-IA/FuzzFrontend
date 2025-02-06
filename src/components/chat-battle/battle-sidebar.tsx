@@ -24,10 +24,11 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { VotePromptDialog } from '@/components/battle/vote-prompt-dialog';
 import { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
-import { BATTLE_ABI, BATTLE_ADDRESS } from '@/lib/contracts/battle-abi';
+import { BATTLE_ABI, BATTLE_ADDRESS, TOKEN_ADDRESS, TOKEN_ABI } from '@/lib/contracts/battle-abi';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2 } from "lucide-react";
 import { ThemeToggle } from '../theme-toggle';
+import { contractToast } from '@/lib/utils';
 
 interface BattleSidebarProps {
   selectedChampion: 'trump' | 'xi' | 'info';
@@ -205,11 +206,33 @@ interface AgentInfo {
 }
 
 function BattleActions({ selectedChampion }: BattleActionsProps) {
+  const { login, authenticated, user, logout } = usePrivy();
   const [showVoteDialog, setShowVoteDialog] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [totalPool, setTotalPool] = useState<string>('0');
   const [agentA, setAgentA] = useState<AgentInfo>({ name: 'Solana', address: '', total: '0' });
   const [agentB, setAgentB] = useState<AgentInfo>({ name: 'Base', address: '', total: '0' });
+  const [isMinting, setIsMinting] = useState(false);
+  const [tokenBalance, setTokenBalance] = useState('0');
+
+  const checkBalance = async () => {
+    try {
+      if (typeof window.ethereum !== 'undefined' && authenticated) {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const tokenContract = new ethers.Contract(TOKEN_ADDRESS, [
+          'function balanceOf(address account) view returns (uint256)'
+        ], provider);
+        
+        const signer = provider.getSigner();
+        const userAddress = await signer.getAddress();
+        const balance = await tokenContract.balanceOf(userAddress);
+        const formattedBalance = ethers.utils.formatEther(balance);
+        setTokenBalance(formattedBalance);
+      }
+    } catch (error) {
+      console.error('Error checking balance:', error);
+    }
+  };
 
   useEffect(() => {
     async function fetchContractData() {
@@ -257,6 +280,39 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
 
   // Solo mostrar el agente correspondiente según la cadena seleccionada
   const selectedAgent = selectedChampion === 'trump' ? agentA : agentB;
+
+  const handleMint = async () => {
+    if (!authenticated) {
+      contractToast.wallet.notConnected();
+      login();
+      return;
+    }
+
+    setIsMinting(true);
+    try {
+      if (typeof window.ethereum === 'undefined') {
+        contractToast.wallet.notInstalled();
+        return;
+      }
+
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = provider.getSigner();
+      
+      contractToast.loading('Minting FUZZ tokens...');
+      const tokenContract = new ethers.Contract(TOKEN_ADDRESS, TOKEN_ABI, signer);
+      const tx = await tokenContract.mint();
+      await tx.wait();
+      
+      contractToast.success('Successfully minted FUZZ tokens! 🎉');
+      // Actualizar el balance después de mintear
+      checkBalance();
+    } catch (error) {
+      console.error('Error minting:', error);
+      contractToast.error(error);
+    } finally {
+      setIsMinting(false);
+    }
+  };
 
   return (
     <>
@@ -312,7 +368,26 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
       </SidebarGroup>
 
       <SidebarGroup className="space-y-4 mt-6">
-        <BetButton selectedChampion={selectedChampion} /> 
+        <Button
+          className="w-full mb-3"
+          variant="outline"
+          onClick={handleMint}
+          disabled={isMinting}
+        >
+          {isMinting ? (
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Minting...
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Wallet className="h-4 w-4" />
+              Mint FUZZ Tokens
+            </div>
+          )}
+        </Button>
+
+        <BetButton selectedChampion={selectedChampion} />
         
         <Button 
           className="w-full mb-3" 

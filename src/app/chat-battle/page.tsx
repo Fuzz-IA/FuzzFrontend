@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { BattleSidebar } from '@/components/chat-battle/battle-sidebar';
 import { ChatArea } from '@/components/chat-battle/chat-area';
-import { ThemeToggle } from '@/components/theme-toggle';
 
 export default function ChatBattlePage() {
   const [selectedChampion, setSelectedChampion] = useState<'trump' | 'xi' | 'info'>('info');

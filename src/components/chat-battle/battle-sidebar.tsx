@@ -29,6 +29,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2 } from "lucide-react";
 import { ThemeToggle } from '../theme-toggle';
 import { contractToast } from '@/lib/utils';
+import { useBattleParticipants} from '@/hooks/useBattleParticipants';
+import { useNetworkSwitch } from '@/hooks/useNetworkSwitch';
+import { useTokenBalance } from "@/hooks/useTokenBalance";
 
 interface BattleSidebarProps {
   selectedChampion: 'trump' | 'xi' | 'info';
@@ -83,7 +86,7 @@ export function BattleSidebar({ selectedChampion, onChampionSelect }: BattleSide
           >
             <Info className="h-4 w-4" />
           </Button>
-          
+
         </div>
       </SidebarHeader>
       <SidebarContent className="px-4 flex-1">
@@ -163,7 +166,7 @@ function BattleInfo() {
               <Shield className="h-5 w-5 text-primary mt-1 shrink-0" />
               <p><strong className="block mb-1">Mission:</strong> Welcome to the future of AI security - where elite agents battle it out in real-time combat scenarios! 🔥</p>
             </div>
-            
+
             <div className="flex items-start gap-4">
               <Brain className="h-5 w-5 text-primary mt-1 shrink-0" />
               <p><strong className="block mb-1">How it Works:</strong> Watch AI champions showcase their skills in epic battles, revealing their strategies, defenses, and tactical prowess.</p>
@@ -204,49 +207,44 @@ interface AgentInfo {
   address: string;
   total: string;
 }
-
 function BattleActions({ selectedChampion }: BattleActionsProps) {
-  const { login, authenticated, user, logout } = usePrivy();
+  const { login, authenticated } = usePrivy();
+  const { participants, isLoading: isLoadingParticipants } = useBattleParticipants();
+  const { switchToBaseSepolia } = useNetworkSwitch();
+  const { formattedBalance, isLoading: isLoadingBalance, refresh: refreshBalance } = useTokenBalance({
+    tokenAddress: TOKEN_ADDRESS,
+    enabled: authenticated
+  });
+
   const [showVoteDialog, setShowVoteDialog] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingPool, setIsLoadingPool] = useState(true);
+  const [isLoadingAgents, setIsLoadingAgents] = useState(true);
   const [totalPool, setTotalPool] = useState<string>('0');
   const [agentA, setAgentA] = useState<AgentInfo>({ name: 'Trump', address: '', total: '0' });
   const [agentB, setAgentB] = useState<AgentInfo>({ name: 'Xi', address: '', total: '0' });
   const [isMinting, setIsMinting] = useState(false);
-  const [tokenBalance, setTokenBalance] = useState('0');
-
-  const checkBalance = async () => {
-    try {
-      if (typeof window.ethereum !== 'undefined' && authenticated) {
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        const tokenContract = new ethers.Contract(TOKEN_ADDRESS, [
-          'function balanceOf(address account) view returns (uint256)'
-        ], provider);
-        
-        const signer = provider.getSigner();
-        const userAddress = await signer.getAddress();
-        const balance = await tokenContract.balanceOf(userAddress);
-        const formattedBalance = ethers.utils.formatEther(balance);
-        setTokenBalance(formattedBalance);
-      }
-    } catch (error) {
-      console.error('Error checking balance:', error);
-    }
-  };
+  const [lastUpdate, setLastUpdate] = useState(0);
 
   useEffect(() => {
     async function fetchContractData() {
-      setIsLoading(true);
+      const now = Date.now();
+      if (now - lastUpdate < 5000) return;
+
+      setIsLoadingPool(true);
+      setIsLoadingAgents(true);
+
       try {
         if (typeof window.ethereum !== 'undefined') {
+          const isCorrectNetwork = await switchToBaseSepolia();
+          if (!isCorrectNetwork) return;
+
           const provider = new ethers.providers.Web3Provider(window.ethereum);
           const contract = new ethers.Contract(BATTLE_ADDRESS, BATTLE_ABI, provider);
-          
-          // Fetch total accumulated
+
           const total = await contract.getTotalAcumulated();
           setTotalPool(ethers.utils.formatEther(total));
-          
-          // Fetch agent addresses and totals
+          setIsLoadingPool(false);
+
           const [agentAAddress, agentBAddress, totalA, totalB] = await Promise.all([
             contract.agentA(),
             contract.agentB(),
@@ -259,27 +257,27 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
             address: agentAAddress,
             total: ethers.utils.formatEther(totalA)
           }));
-
           setAgentB(prev => ({
             ...prev,
             address: agentBAddress,
             total: ethers.utils.formatEther(totalB)
           }));
+
+          setLastUpdate(now);
         }
       } catch (error) {
         console.error('Error fetching contract data:', error);
+        contractToast.error(error);
       } finally {
-        setIsLoading(false);
+        setIsLoadingPool(false);
+        setIsLoadingAgents(false);
       }
     }
 
     fetchContractData();
-    const interval = setInterval(fetchContractData, 30000); // Refresh every 30s
+    const interval = setInterval(fetchContractData, 60000);
     return () => clearInterval(interval);
-  }, []);
-
-  // Solo mostrar el agente correspondiente según la cadena seleccionada
-  const selectedAgent = selectedChampion === 'trump' ? agentA : agentB;
+  }, [switchToBaseSepolia, lastUpdate]);
 
   const handleMint = async () => {
     if (!authenticated) {
@@ -290,22 +288,22 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
 
     setIsMinting(true);
     try {
-      if (typeof window.ethereum === 'undefined') {
-        contractToast.wallet.notInstalled();
+      const isCorrectNetwork = await switchToBaseSepolia();
+      if (!isCorrectNetwork) {
+        setIsMinting(false);
         return;
       }
 
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const signer = provider.getSigner();
-      
+
       contractToast.loading('Minting FUZZ tokens...');
       const tokenContract = new ethers.Contract(TOKEN_ADDRESS, TOKEN_ABI, signer);
       const tx = await tokenContract.mint();
       await tx.wait();
-      
+
       contractToast.success('Successfully minted FUZZ tokens! 🎉');
-      // Actualizar el balance después de mintear
-      checkBalance();
+      await refreshBalance();
     } catch (error) {
       console.error('Error minting:', error);
       contractToast.error(error);
@@ -314,7 +312,7 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
     }
   };
 
-  // Add the ScoreBars component here
+  // ScoreBars component
   function ScoreBars({ scores }: { scores: { trump: number; xi: number } }) {
     const currentScore = selectedChampion === 'trump' ? scores.trump : scores.xi;
     const currentImage = selectedChampion === 'trump' ? '/trump.png' : '/xi.png';
@@ -336,7 +334,7 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
     );
   }
 
-  // Parse scores from Cesar's messages (add this function)
+  // Parse scores function
   const parseScores = (text: string): { trump: number; xi: number } | null => {
     const match = text.match(/\[Trump (\d+) \| Xi (\d+)\]/);
     if (match) {
@@ -348,16 +346,19 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
     return null;
   };
 
+  // Selected agent logic
+  const selectedAgent = selectedChampion === 'trump' ? agentA : agentB;
+
   return (
     <>
       <SidebarGroup className="space-y-4">
         <SidebarGroupLabel className="text-sm font-medium">Battle Status</SidebarGroupLabel>
-        {!isLoading && <ScoreBars scores={{ trump: 3, xi: 10 }} />}
-        
+        {!isLoadingAgents && <ScoreBars scores={{ trump: 3, xi: 10 }} />}
+
         <Card className="bg-card p-6">
           <div className="flex items-center gap-3 text-xl font-bold">
             <Trophy className="h-6 w-6 text-yellow-500" />
-            {isLoading ? (
+            {isLoadingPool ? (
               <div className="flex items-center gap-2">
                 <Skeleton className="h-8 w-24" />
                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -366,10 +367,24 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
               <span>{totalPool} FUZZ</span>
             )}
           </div>
+
+          {authenticated && (
+            <div className="mt-4 text-sm">
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Your Balance:</span>
+                {isLoadingBalance ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <span className="font-mono">{formattedBalance} FUZZ</span>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="mt-4 space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Agent {selectedAgent.name} Total:</span>
-              {isLoading ? (
+              {isLoadingAgents ? (
                 <div className="flex items-center gap-2">
                   <Skeleton className="h-4 w-16" />
                   <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
@@ -382,7 +397,7 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
           <div className="mt-4 space-y-2 text-xs">
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Agent {selectedAgent.name}:</span>
-              {isLoading ? (
+              {isLoadingAgents ? (
                 <div className="flex items-center gap-2">
                   <Skeleton className="h-4 w-24" />
                   <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
@@ -397,6 +412,62 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
                   {truncateAddress(selectedAgent.address)}
                   <ExternalLink className="inline ml-1 h-3 w-3" />
                 </a>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-6 space-y-2">
+            <div className="flex justify-between items-center text-sm font-medium">
+              <span>Participants for {selectedAgent.name}</span>
+              <span className="text-xs text-muted-foreground">
+                {participants.filter(p => 
+                  selectedChampion === 'trump' 
+                    ? Number(p.contributionA) > 0 
+                    : Number(p.contributionB) > 0
+                ).length} total
+              </span>
+            </div>
+
+            <div className="max-h-[200px] overflow-y-auto space-y-2">
+              {isLoadingParticipants ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                </div>
+              ) : participants.length > 0 ? (
+                participants
+                  .filter(p => 
+                    selectedChampion === 'trump' 
+                      ? Number(p.contributionA) > 0 
+                      : Number(p.contributionB) > 0
+                  )
+                  .map((participant) => (
+                    <div 
+                      key={participant.address}
+                      className="text-xs p-2 bg-muted/50 rounded-lg space-y-1"
+                    >
+                      <div className="flex items-center justify-between">
+                        <a
+                          href={`https://sepolia.basescan.org/address/${participant.address}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline flex items-center"
+                        >
+                          {truncateAddress(participant.address)}
+                          <ExternalLink className="h-3 w-3 ml-1" />
+                        </a>
+                        <span className="text-muted-foreground">
+                          {Number(selectedChampion === 'trump' 
+                            ? participant.contributionA 
+                            : participant.contributionB
+                          ).toFixed(2)} FUZZ
+                        </span>
+                      </div>
+                    </div>
+                  ))
+              ) : (
+                <div className="text-center text-sm text-muted-foreground py-4">
+                  No participants yet for {selectedAgent.name}
+                </div>
               )}
             </div>
           </div>
@@ -424,15 +495,15 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
         </Button>
 
         <BetButton selectedChampion={selectedChampion} />
-        
+
         <Button 
           className="w-full mb-3" 
           variant="secondary" 
           size="lg"
           onClick={() => setShowVoteDialog(true)}
-          disabled={isLoading}
+          disabled={isLoadingPool || isLoadingAgents}
         >
-          {isLoading ? (
+          {isLoadingPool || isLoadingAgents ? (
             <Loader2 className="h-4 w-4 animate-spin mr-2" />
           ) : (
             <Vote className="mr-2 h-5 w-5" />
@@ -451,4 +522,4 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
       </Dialog>
     </>
   );
-} 
+}

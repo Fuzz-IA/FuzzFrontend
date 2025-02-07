@@ -22,7 +22,9 @@ export function CharacterProfileView({ characterId }: CharacterProfileViewProps)
     async function fetchData() {
       try {
         setIsLoading(true);
+
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/agents/${characterId}`);
+
         const data = await response.json();
         setCharacter(data.character);
         

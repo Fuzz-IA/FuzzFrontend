@@ -1,4 +1,4 @@
-const BASE_URL = 'https://api.fuzzai.fun';
+const BASE_URL = 'https://c99689e91cc8.ngrok.app';
 
 const fetcher = async ({
     url,

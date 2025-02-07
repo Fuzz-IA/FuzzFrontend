@@ -6,12 +6,14 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useTransition, animated } from '@react-spring/web';
 import { SpringValue } from '@react-spring/web';
 import { ChatInput } from "./chat-input";
+import { ClickableAgentAvatar } from "@/components/character/clickable-agent-avatar";
 
 
 // Hardcoded agent IDs
 const AGENT_IDS = {
     AGENT1_ID: 'e0e10e6f-ff2b-0d4c-8011-1fc1eee7cb32', // trump
-    AGENT2_ID: '94bfebec-fb1a-02b3-a54d-a1f15b5668a5'  // china
+    AGENT2_ID: '94bfebec-fb1a-02b3-a54d-a1f15b5668a5',  // china
+    AGENT3_ID: 'd1c10fb0-e672-079e-b9cf-a1c8cdc32b96'  // CESAR
 } as const;
 
 // Modificar las constantes de los agentes para incluir más información
@@ -30,12 +32,12 @@ const AGENTS_INFO = {
         avatar: '/xi.png',
         side: 'xi' as const
     },
-    user: {
-        name: 'User',
+    [AGENT_IDS.AGENT3_ID]: {
+        name: 'Cesar',
         color: 'bg-blue-500',
-        initials: 'U',
-        avatar: null,
-        side: null
+        initials: 'C',
+        avatar: '/cesar.png',
+        side: 'cesar' as const
     }
 } as const;
 
@@ -80,22 +82,21 @@ export function ChatArea({ selectedChampion }: ChatAreaProps) {
     </main>
   );
 }
-
 function MessageAvatar({ agentId }: { agentId: string }) {
-    const agentInfo = AGENTS_INFO[agentId as keyof typeof AGENTS_INFO] || AGENTS_INFO.user;
+    const agentInfo = AGENTS_INFO[agentId as keyof typeof AGENTS_INFO];
+    
+    if (!agentInfo) {
+        return null;
+    }
     
     return (
-        <div className={`flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden ${!agentInfo.avatar ? agentInfo.color : ''} text-white flex items-center justify-center font-medium text-sm border-2 border-primary/20`}>
-            {agentInfo.avatar ? (
-                <img 
-                    src={agentInfo.avatar} 
-                    alt={agentInfo.name}
-                    className="w-full h-full object-cover"
-                />
-            ) : (
-                agentInfo.initials
-            )}
-        </div>
+        <ClickableAgentAvatar
+            agentId={agentId}
+            avatar={agentInfo.avatar}
+            name={agentInfo.name}
+            color={agentInfo.color}
+            initials={agentInfo.initials}
+        />
     );
 }
 
@@ -333,9 +334,9 @@ function ChatMessages({ selectedChampion }: { selectedChampion: 'trump' | 'xi' |
                 <div className="space-y-4 max-w-3xl mx-auto py-4">
                     {transitions((style, message) => {
                         const AnimatedDiv = animated('div');
-                        const agentInfo = AGENTS_INFO[message.fromAgent as keyof typeof AGENTS_INFO] || AGENTS_INFO.user;
+                        const agentInfo = AGENTS_INFO[message.fromAgent as keyof typeof AGENTS_INFO];
                         const isLastMessage = message.id === lastMessageId;
-                        const isMyChampion = agentInfo.side === selectedChampion;
+                        const isMyChampion = agentInfo?.side === selectedChampion;
                         
                         return (
                             <AnimatedDiv

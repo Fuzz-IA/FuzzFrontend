@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import { fontFamily } from "tailwindcss/defaultTheme";
 
 export default {
     darkMode: ["class"],
@@ -6,9 +7,53 @@ export default {
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/**/*.{ts,tsx}",
   ],
   theme: {
   	extend: {
+  		container: {
+  			center: true,
+  			padding: "2rem",
+  			screens: {
+  				"2xl": "1400px",
+  			},
+  		},
+  		typography: {
+  			DEFAULT: {
+  				css: {
+  					maxWidth: 'none',
+  					color: 'hsl(var(--foreground))',
+  					hr: {
+  						borderColor: 'hsl(var(--border))',
+  						marginTop: '3em',
+  						marginBottom: '3em'
+  					},
+  					'h1, h2, h3, h4': {
+  						color: 'hsl(var(--foreground))',
+  						fontWeight: '700'
+  					},
+  					blockquote: {
+  						borderLeftColor: 'hsl(var(--primary))',
+  						color: 'hsl(var(--foreground))'
+  					},
+  					'ul > li::marker': {
+  						color: 'hsl(var(--foreground))'
+  					},
+  					'a': {
+  						color: 'hsl(var(--primary))',
+  						'&:hover': {
+  							color: 'hsl(var(--primary))'
+  						}
+  					},
+  					code: {
+  						color: 'hsl(var(--primary))'
+  					},
+  					'pre code': {
+  						color: 'inherit'
+  					}
+  				}
+  			}
+  		},
   		colors: {
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
@@ -66,6 +111,9 @@ export default {
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)'
   		},
+  		fontFamily: {
+  			sans: ["var(--font-sans)", ...fontFamily.sans],
+  		},
   		keyframes: {
   			"accordion-down": {
   				from: { height: "0" },
@@ -93,5 +141,5 @@ export default {
   		},
   	}
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")],
 } satisfies Config;

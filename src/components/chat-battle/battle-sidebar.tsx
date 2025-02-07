@@ -210,8 +210,8 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
   const [showVoteDialog, setShowVoteDialog] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [totalPool, setTotalPool] = useState<string>('0');
-  const [agentA, setAgentA] = useState<AgentInfo>({ name: 'Solana', address: '', total: '0' });
-  const [agentB, setAgentB] = useState<AgentInfo>({ name: 'Base', address: '', total: '0' });
+  const [agentA, setAgentA] = useState<AgentInfo>({ name: 'Trump', address: '', total: '0' });
+  const [agentB, setAgentB] = useState<AgentInfo>({ name: 'Xi', address: '', total: '0' });
   const [isMinting, setIsMinting] = useState(false);
   const [tokenBalance, setTokenBalance] = useState('0');
 

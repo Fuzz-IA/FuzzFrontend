@@ -22,7 +22,9 @@ export function CharacterProfileView({ characterId }: CharacterProfileViewProps)
     async function fetchData() {
       try {
         setIsLoading(true);
-        const response = await fetch(`https://0eb5880c10fb.ngrok.app/agents/${characterId}`);
+
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/agents/${characterId}`);
+
         const data = await response.json();
         setCharacter(data.character);
         

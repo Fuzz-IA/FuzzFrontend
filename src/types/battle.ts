@@ -46,3 +46,9 @@ export interface VotePromptDialogProps {
   selectedChampion: 'trump' | 'xi';
   onClose: () => void;
 }
+
+export interface Participant {
+  address: string;
+  contributionA: string;
+  contributionB: string;
+}

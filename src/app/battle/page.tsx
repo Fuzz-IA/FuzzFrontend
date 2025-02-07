@@ -19,6 +19,8 @@ import { PlayerAttributes, BattleData } from "@/types/battle"
 import { CountdownTimer } from "@/components/battle/countdown-timer"
 import { ethers } from 'ethers'
 import { BATTLE_ADDRESS, BATTLE_ABI } from '@/lib/contracts/battle-abi'
+import { BattleSidebar } from '@/components/chat-battle/battle-sidebar'
+import { ChatArea } from '@/components/chat-battle/chat-area'
 
 // Mock data - this would come from your API
 const battleData: BattleData = {
@@ -326,44 +328,15 @@ function PlayerCard({ player, title, isAgentA }: { player: PlayerAttributes, tit
 }
 
 export default function BattlePage() {
+  const [selectedChampion, setSelectedChampion] = useState<'trump' | 'xi' | 'info'>('info');
+
   return (
-    <>
-      <Header />
-      <main className="relative min-h-screen overflow-hidden bg-black pt-20">
-        {/* Background gradients */}
-        <div className="pointer-events-none absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80">
-          <div className="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-30 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]" />
-        </div>
-        
-        <div className="pointer-events-none absolute inset-x-0 top-[calc(100%-13rem)] -z-10 transform-gpu overflow-hidden blur-3xl sm:top-[calc(100%-30rem)]">
-          <div className="relative left-[calc(50%+3rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-30 sm:left-[calc(50%+36rem)] sm:w-[72.1875rem]" />
-        </div>
-
-        <div className="container flex min-h-screen flex-col items-center justify-center gap-8 py-8">
-          <div className="space-y-4 text-center">
-            <h1 className="bg-gradient-to-r from-orange-500 via-purple-500 to-blue-500 bg-clip-text text-5xl font-bold tracking-tight text-transparent sm:text-6xl">
-              Battle Arena
-            </h1>
-            <CountdownTimer />
-            <p className="text-lg text-muted-foreground">
-              Face off against other players in epic AI battles
-            </p>
-          </div>
-          
-          <div className="flex w-full flex-col items-center justify-center gap-8 lg:flex-row">
-            <PlayerCard player={battleData.playerOne} title="Ethereum" isAgentA={true} />
-
-            <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-black/40 backdrop-blur-xl border-2 border-white/20">
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-red-500/20 rounded-full blur-sm" />
-              <span className="relative text-2xl font-bold bg-gradient-to-r from-blue-400 to-red-400 bg-clip-text text-transparent">
-                VS
-              </span>
-            </div>
-
-            <PlayerCard player={battleData.playerTwo} title="Solana" isAgentA={false} />
-          </div>
-        </div>
-      </main>
-    </>
-  )
+    <div className="flex h-screen">
+      <BattleSidebar 
+        selectedChampion={selectedChampion}
+        onChampionSelect={setSelectedChampion}
+      />
+      <ChatArea selectedChampion={selectedChampion} />
+    </div>
+  );
 }

@@ -54,6 +54,10 @@ interface Message {
     createdAt: number;
     text?: string;
     isTyping?: boolean;
+    scores?: {
+        trump: number;
+        xi: number;
+    };
 }
 
 interface ChatState {
@@ -82,6 +86,7 @@ export function ChatArea({ selectedChampion }: ChatAreaProps) {
     </main>
   );
 }
+
 function MessageAvatar({ agentId }: { agentId: string }) {
     const agentInfo = AGENTS_INFO[agentId as keyof typeof AGENTS_INFO];
     

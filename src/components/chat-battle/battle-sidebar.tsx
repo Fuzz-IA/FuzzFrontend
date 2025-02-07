@@ -314,10 +314,46 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
     }
   };
 
+  // Add the ScoreBars component here
+  function ScoreBars({ scores }: { scores: { trump: number; xi: number } }) {
+    const currentScore = selectedChampion === 'trump' ? scores.trump : scores.xi;
+    const currentImage = selectedChampion === 'trump' ? '/trump.png' : '/xi.png';
+    const barColor = selectedChampion === 'trump' ? 'bg-orange-500' : 'bg-red-500';
+
+    return (
+      <div className="flex items-center gap-2 w-full bg-card p-4 rounded-lg mb-4">
+        <img src={currentImage} alt={selectedChampion} className="w-8 h-8 rounded-full" />
+        <div className="w-full">
+          <div className="h-2 bg-muted rounded-full overflow-hidden">
+            <div 
+              className={`h-full ${barColor} rounded-full transition-all duration-1000`}
+              style={{ width: `${Math.max(0, Math.min(100, (currentScore / 10) * 100))}%` }}
+            />
+          </div>
+          <span className="text-xs text-muted-foreground mt-1 block">{currentScore}/10 Live Score</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Parse scores from Cesar's messages (add this function)
+  const parseScores = (text: string): { trump: number; xi: number } | null => {
+    const match = text.match(/\[Trump (\d+) \| Xi (\d+)\]/);
+    if (match) {
+      return {
+        trump: parseInt(match[1]),
+        xi: parseInt(match[2])
+      };
+    }
+    return null;
+  };
+
   return (
     <>
       <SidebarGroup className="space-y-4">
-        <SidebarGroupLabel className="text-sm font-medium">Prize Pool</SidebarGroupLabel>
+        <SidebarGroupLabel className="text-sm font-medium">Battle Status</SidebarGroupLabel>
+        {!isLoading && <ScoreBars scores={{ trump: 3, xi: 10 }} />}
+        
         <Card className="bg-card p-6">
           <div className="flex items-center gap-3 text-xl font-bold">
             <Trophy className="h-6 w-6 text-yellow-500" />

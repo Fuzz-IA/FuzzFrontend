@@ -21,6 +21,7 @@ import { ethers } from 'ethers'
 import { BATTLE_ADDRESS, BATTLE_ABI } from '@/lib/contracts/battle-abi'
 import { BattleSidebar } from '@/components/chat-battle/battle-sidebar'
 import { ChatArea } from '@/components/chat-battle/chat-area'
+import { SidebarProvider } from '@/components/ui/sidebar'
 
 // Mock data - this would come from your API
 const battleData: BattleData = {
@@ -331,12 +332,14 @@ export default function BattlePage() {
   const [selectedChampion, setSelectedChampion] = useState<'trump' | 'xi' | 'info'>('info');
 
   return (
-    <div className="flex h-screen">
-      <BattleSidebar 
-        selectedChampion={selectedChampion}
-        onChampionSelect={setSelectedChampion}
-      />
-      <ChatArea selectedChampion={selectedChampion} />
-    </div>
+    <SidebarProvider>
+      <div className="flex h-screen">
+        <BattleSidebar 
+          selectedChampion={selectedChampion}
+          onChampionSelect={setSelectedChampion}
+        />
+        <ChatArea selectedChampion={selectedChampion} />
+      </div>
+    </SidebarProvider>
   );
 }

@@ -1,4 +1,4 @@
-const BASE_URL = 'https://c99689e91cc8.ngrok.app';
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL
 
 const fetcher = async ({
     url,

@@ -1,4 +1,4 @@
-'use client';
+'use client'; 
 
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
@@ -11,47 +11,37 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Loader2, Vote } from "lucide-react";
 import { contractToast } from '@/lib/utils';
-
-// Base Sepolia configuration
-const BASE_SEPOLIA_CONFIG = {
-  chainId: "0x14A34",
-  chainName: "Base Sepolia",
-  nativeCurrency: {
-    name: "ETH",
-    symbol: "ETH",
-    decimals: 18
-  },
-  rpcUrls: ["https://sepolia.base.org"],
-  blockExplorerUrls: ["https://sepolia.basescan.org"]
-};
-
-const BASE_SEPOLIA_CHAIN_ID = 0x14A34;
-
-// Token ABI - solo necesitamos la función approve
-const TOKEN_ABI = [
-  "function approve(address spender, uint256 amount) public returns (bool)"
-] as const;
+import { VotePromptDialogProps} from "@/types/battle"
+import { useTokenAllowance } from "@/hooks/useTokenAllowance";
+import { useNetworkSwitch } from "@/hooks/useNetworkSwitch";
+import { useTokenBalance } from "@/hooks/useTokenBalance";
 
 function truncateAddress(address: string) {
   if (!address) return '';
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-interface VotePromptDialogProps {
-  selectedChampion: 'trump' | 'xi';
-  onClose: () => void;
-}
-
 export function VotePromptDialog({ selectedChampion, onClose }: VotePromptDialogProps) {
+  const { switchToBaseSepolia } = useNetworkSwitch();
+  const { 
+    formattedBalance: tokenBalance, 
+    refresh: refreshBalance 
+  } = useTokenBalance({ 
+    tokenAddress: TOKEN_ADDRESS 
+  });
+
+  const { checkAndApproveAllowance, isCheckingAllowance } = useTokenAllowance({
+    spenderAddress: BATTLE_ADDRESS,
+    requiredAmount: BETTING_AMOUNT
+  });
+
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isVoting, setIsVoting] = useState(false);
-  const [tokenBalance, setTokenBalance] = useState('0');
   const { login, authenticated } = usePrivy();
 
   useEffect(() => {
     loadPrompts();
-    checkBalance();
   }, []);
 
   const loadPrompts = async () => {
@@ -66,25 +56,6 @@ export function VotePromptDialog({ selectedChampion, onClose }: VotePromptDialog
     }
   };
 
-  async function checkBalance() {
-    try {
-      if (typeof window.ethereum !== 'undefined' && authenticated) {
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        const signer = provider.getSigner();
-        const tokenContract = new ethers.Contract(TOKEN_ADDRESS, [
-          'function balanceOf(address account) view returns (uint256)'
-        ], provider);
-        
-        const userAddress = await signer.getAddress();
-        const balance = await tokenContract.balanceOf(userAddress);
-        const formattedBalance = ethers.utils.formatEther(balance);
-        setTokenBalance(formattedBalance);
-      }
-    } catch (error) {
-      console.error('Error checking balance:', error);
-    }
-  }
-
   const handleVote = async (promptId: number) => {
     if (!authenticated) {
       contractToast.wallet.notConnected();
@@ -95,60 +66,21 @@ export function VotePromptDialog({ selectedChampion, onClose }: VotePromptDialog
     setIsVoting(true);
 
     try {
-      if (typeof window.ethereum === 'undefined') {
-        contractToast.wallet.notInstalled();
-        return;
-      }
+      const networkSwitched = await switchToBaseSepolia();
+      if (!networkSwitched) return;
 
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      await provider.send("eth_requestAccounts", []);
+      const allowanceApproved = await checkAndApproveAllowance();
+      if (!allowanceApproved) return;
 
-      // Switch to Base Sepolia
-      try {
-        await window.ethereum.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: BASE_SEPOLIA_CONFIG.chainId }],
-        });
-      } catch (switchError: any) {
-        if (switchError.code === 4902) {
-          try {
-            await window.ethereum.request({
-              method: 'wallet_addEthereumChain',
-              params: [BASE_SEPOLIA_CONFIG],
-            });
-          } catch (addError) {
-            console.error('Error adding the chain:', addError);
-            contractToast.error(addError);
-            throw addError;
-          }
-        } else {
-          contractToast.error(switchError);
-          throw switchError;
-        }
-      }
-
-      const network = await provider.getNetwork();
-      if (network.chainId !== BASE_SEPOLIA_CHAIN_ID) {
-        contractToast.wallet.wrongNetwork('Base Sepolia');
-        throw new Error(`Please switch to Base Sepolia network. Current chain ID: ${network.chainId}`);
-      }
-
-      const signer = provider.getSigner();
-
-      // First approve token spending
-      contractToast.loading('Approving token spending...');
-      const tokenContract = new ethers.Contract(TOKEN_ADDRESS, TOKEN_ABI, signer);
-      const approveTx = await tokenContract.approve(BATTLE_ADDRESS, BETTING_AMOUNT);
-      await approveTx.wait();
-      contractToast.success('Token approval successful!');
-
-      // Then vote for the prompt
       contractToast.loading('Submitting vote...');
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = provider.getSigner();
       const battleContract = new ethers.Contract(BATTLE_ADDRESS, BATTLE_ABI, signer);
       const tx = await battleContract.voteForPrompt(promptId, BETTING_AMOUNT);
       await tx.wait();
       contractToast.success('Vote submitted successfully! 🎉');
 
+      await refreshBalance();
       onClose();
     } catch (error) {
       console.error('Error voting:', error);

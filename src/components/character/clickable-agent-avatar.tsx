@@ -29,7 +29,7 @@ export function ClickableAgentAvatar({ agentId, avatar, name, color, initials }:
       
       // Solo cargar los datos si no se han cargado antes
       if (!character) {
-        const response = await fetch(`https://c99689e91cc8.ngrok.app/agents/${agentId}`);
+        const response = await fetch(`https://0eb5880c10fb.ngrok.app/agents/${agentId}`);
         const data = await response.json();
         setCharacter(data.character);
         

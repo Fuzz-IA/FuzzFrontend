@@ -4,61 +4,21 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useState } from "react"
 import { Send, Wand2 } from "lucide-react"
-import { PlayerAttributes } from "@/types/battle"
 import { usePrivy } from '@privy-io/react-auth';
 import { ethers } from 'ethers';
 import { BATTLE_ADDRESS, TOKEN_ADDRESS, BATTLE_ABI, BETTING_AMOUNT } from '@/lib/contracts/battle-abi';
 import { savePromptSubmission } from '@/lib/supabase';
 import { improveText, generateShortDescription } from '@/lib/openai';
+import { Message, PromptBetEvent , ProposePromptDialogProps} from "@/types/battle"
+import { useTokenAllowance } from "@/hooks/useTokenAllowance";
+import { useTokenBalance } from "@/hooks/useTokenBalance";
+import { useNetworkSwitch } from "@/hooks/useNetworkSwitch";
 
-// Base Sepolia configuration
-const BASE_SEPOLIA_CONFIG = {
-  chainId: "0x14A34",
-  chainName: "Base Sepolia",
-  nativeCurrency: {
-    name: "ETH",
-    symbol: "ETH",
-    decimals: 18
-  },
-  rpcUrls: ["https://sepolia.base.org"],
-  blockExplorerUrls: ["https://sepolia.basescan.org"]
-};
-
-// Decimal chain ID for comparison
-const BASE_SEPOLIA_CHAIN_ID = 0x14A34;
 
 declare global {
   interface Window {
     ethereum?: any;
   }
-}
-
-// Token ABI - solo necesitamos la función approve
-const TOKEN_ABI = [
-  "function approve(address spender, uint256 amount) public returns (bool)"
-] as const;
-
-interface Message {
-  role: 'user' | 'assistant'
-  content: string
-}
-
-interface PromptBetEvent {
-  event: string;
-  args: {
-    promptId: ethers.BigNumber;
-    user: string;
-    isAgentA: boolean;
-    amount: ethers.BigNumber;
-    gameId: ethers.BigNumber;
-  };
-}
-
-interface ProposePromptDialogProps {
-  player: PlayerAttributes
-  onSubmit: (prompt: string) => Promise<void>
-  selectedChain: 'solana' | 'base' | 'info'
-  isSupport?: boolean
 }
 
 export function ProposePromptDialog({ player, onSubmit, selectedChain, isSupport = false }: ProposePromptDialogProps) {
@@ -67,6 +27,23 @@ export function ProposePromptDialog({ player, onSubmit, selectedChain, isSupport
   const [isLoading, setIsLoading] = useState(false)
   const [isImproving, setIsImproving] = useState(false)
   const { user, authenticated, login, ready } = usePrivy();
+  const { switchToBaseSepolia } = useNetworkSwitch();
+  
+  const {
+    checkAndApproveAllowance,
+    isCheckingAllowance
+  } = useTokenAllowance({
+    spenderAddress: BATTLE_ADDRESS,
+    requiredAmount: BETTING_AMOUNT
+  });
+  
+  const {
+    formattedBalance: tokenBalance,
+    refresh: refreshBalance
+  } = useTokenBalance({
+    tokenAddress: TOKEN_ADDRESS
+  });
+  
 
   const handleImproveText = async () => {
     if (!input.trim() || isImproving) return;
@@ -113,91 +90,37 @@ export function ProposePromptDialog({ player, onSubmit, selectedChain, isSupport
     try {
       if (!ready) throw new Error('Privy is not ready');
       if (!user?.wallet) throw new Error('No wallet found');
+      
+      const networkSwitched = await switchToBaseSepolia();
+      if (!networkSwitched) return;
+      
+      setMessages(prev => [...prev, {
+              role: 'assistant',
+              content: 'Checking token allowance...'
+            }]);
+      
+      const allowanceApproved = await checkAndApproveAllowance();
+      if (!allowanceApproved) return;
+      
+      setMessages(prev => [...prev, { 
+              role: 'assistant', 
+              content: 'Submitting prompt with bet...' 
+            }]);
 
       const provider = new ethers.providers.Web3Provider(window.ethereum);
-      await provider.send("eth_requestAccounts", []);
-
-      // Try to switch to Base Sepolia first
-      try {
-        await window.ethereum.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: BASE_SEPOLIA_CONFIG.chainId }],
-        });
-      } catch (switchError: any) {
-        // Only add the chain if error code 4902 (chain not added)
-        if (switchError.code === 4902) {
-          try {
-            await window.ethereum.request({
-              method: 'wallet_addEthereumChain',
-              params: [BASE_SEPOLIA_CONFIG],
-            });
-          } catch (addError) {
-            console.error('Error adding the chain:', addError);
-            throw addError;
-          }
-        } else {
-          throw switchError;
-        }
-      }
-
-      // Verify we're on the correct network
-      const network = await provider.getNetwork();
-      if (network.chainId !== BASE_SEPOLIA_CHAIN_ID) {
-        throw new Error(`Please switch to Base Sepolia network. Current chain ID: ${network.chainId}`);
-      }
-
-      const updatedProvider = new ethers.providers.Web3Provider(window.ethereum, {
-        chainId: BASE_SEPOLIA_CHAIN_ID,
-        name: "Base Sepolia"
-      });
-      const signer = updatedProvider.getSigner();
-      if (!signer) throw new Error('Signer not found');
-
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: 'Approving token spending...' 
-      }]);
-
-      // Create contracts
-      const tokenContract = new ethers.Contract(
-        TOKEN_ADDRESS, 
-        TOKEN_ABI, 
-        signer
-      );
-      
-      // Approve token spending
-      const approveTx = await tokenContract.approve(BATTLE_ADDRESS, BETTING_AMOUNT);
-      
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: 'Waiting for approval confirmation...' 
-      }]);
-      
-      await approveTx.wait();
-
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: 'Submitting prompt with bet...' 
-      }]);
-
-      // Create battle contract
-      const battleContract = new ethers.Contract(
-        BATTLE_ADDRESS, 
-        BATTLE_ABI, 
-        signer
-      );
-      
-      // Call betWithPrompt instead of assignTokensToAgent
+      const signer = provider.getSigner();
+      const battleContract = new ethers.Contract(BATTLE_ADDRESS, BATTLE_ABI, signer);
+    
       const tx = await battleContract.betWithPrompt(
         selectedChain === 'solana', // true if Solana, false otherwise
         BETTING_AMOUNT
       );
-      
+
       setMessages(prev => [...prev, { 
         role: 'assistant', 
         content: 'Waiting for transaction confirmation...' 
       }]);
-      
+
       const receipt = await tx.wait();
       const event = receipt.events?.find((e: PromptBetEvent) => e.event === 'PromptBet');
       const promptId = event?.args?.promptId.toString();
@@ -222,7 +145,7 @@ export function ProposePromptDialog({ player, onSubmit, selectedChain, isSupport
           console.error('Error saving to Supabase:', error);
         }
       }
-      
+
       setMessages(prev => [...prev, { 
         role: 'assistant', 
         content: 'Prompt submitted and bet placed successfully! 🎉' 

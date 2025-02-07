@@ -1,3 +1,5 @@
+import { ethers} from 'ethers'
+
 export interface PlayerAttributes {
   tokenCA: string
   walletAddress: string
@@ -15,4 +17,32 @@ export interface PlayerAttributes {
 export interface BattleData {
   playerOne: PlayerAttributes
   playerTwo: PlayerAttributes
-} 
+}
+
+export interface Message {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+export interface PromptBetEvent {
+  event: string;
+  args: {
+    promptId: ethers.BigNumber;
+    user: string;
+    isAgentA: boolean;
+    amount: ethers.BigNumber;
+    gameId: ethers.BigNumber;
+  }
+}
+
+export interface ProposePromptDialogProps {
+  player: PlayerAttributes
+  onSubmit: (prompt: string) => Promise<void>
+  selectedChain: 'solana' | 'base' | 'info'
+  isSupport?: boolean
+}
+
+export interface VotePromptDialogProps {
+  selectedChampion: 'trump' | 'xi';
+  onClose: () => void;
+}

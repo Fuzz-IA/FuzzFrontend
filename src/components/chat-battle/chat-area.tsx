@@ -1,38 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
-import { usePrivy } from '@privy-io/react-auth';
-import { ethers } from 'ethers';
-import { BATTLE_ABI, BATTLE_ADDRESS, TOKEN_ADDRESS, BETTING_AMOUNT } from '@/lib/contracts/battle-abi';
-import { savePromptSubmission } from '@/lib/supabase';
-import { generateShortDescription, improveText } from '@/lib/openai';
-import { Send, Wand2 } from "lucide-react";
+import { useState, useEffect, useRef } from 'react';
 import { apiClient } from '@/lib/api';
-import { useQueryClient, useMutation } from '@tanstack/react-query';
-import { contractToast } from '@/lib/utils';
-import { useTransition, animated, AnimatedProps } from '@react-spring/web';
+import { useQueryClient } from '@tanstack/react-query';
+import { useTransition, animated } from '@react-spring/web';
 import { SpringValue } from '@react-spring/web';
+import { ChatInput } from "./chat-input";
 
-// Base Sepolia configuration
-const BASE_SEPOLIA_CONFIG = {
-  chainId: "0x14A34",
-  chainName: "Base Sepolia",
-  nativeCurrency: {
-    name: "ETH",
-    symbol: "ETH",
-    decimals: 18
-  },
-  rpcUrls: ["https://sepolia.base.org"],
-  blockExplorerUrls: ["https://sepolia.basescan.org"]
-};
-
-const BASE_SEPOLIA_CHAIN_ID = 0x14A34;
-
-// Token ABI - solo necesitamos la función approve
-const TOKEN_ABI = [
-  "function approve(address spender, uint256 amount) public returns (bool)"
-] as const;
 
 // Hardcoded agent IDs
 const AGENT_IDS = {
@@ -67,16 +41,6 @@ const AGENTS_INFO = {
 
 type AgentId = keyof typeof AGENTS_INFO;
 
-interface PromptBetEvent {
-  event: string;
-  args: {
-    promptId: ethers.BigNumber;
-    user: string;
-    isAgentA: boolean;
-    amount: ethers.BigNumber;
-    gameId: ethers.BigNumber;
-  };
-}
 
 interface Message {
     id: string;
@@ -464,206 +428,6 @@ function ChatMessages({ selectedChampion }: { selectedChampion: 'trump' | 'xi' |
     );
 }
 
-function ChatInput({ selectedChampion }: { selectedChampion: 'trump' | 'xi' | 'info' }) {
-  const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isImproving, setIsImproving] = useState<boolean>(false);
-  const [isTyping, setIsTyping] = useState<boolean>(false);
-  const typingTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
-  const { login, authenticated } = usePrivy();
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInput(e.target.value);
-    
-    // Clear existing timeout
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-
-    // Set typing state
-    setIsTyping(true);
-
-    // Set timeout to clear typing state after 1 second of no input
-    typingTimeoutRef.current = setTimeout(() => {
-      setIsTyping(false);
-    }, 1000);
-  };
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  const handleImproveText = async () => {
-    if (!input.trim() || isImproving) return;
-
-    setIsImproving(true);
-    try {
-      const improvedText = await improveText(input);
-      setInput(improvedText);
-    } catch (error) {
-      console.error('Error improving text:', error);
-      alert('Failed to improve text. Please try again.');
-    } finally {
-      setIsImproving(false);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading || selectedChampion === 'info') return;
-
-    if (!authenticated) {
-      contractToast.wallet.notConnected();
-      login();
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      // Simular un pequeño delay antes de enviar el mensaje
-      await new Promise<void>((resolve) => setTimeout(resolve, 500));
-
-      if (typeof window.ethereum === 'undefined') {
-        contractToast.wallet.notInstalled();
-        return;
-      }
-
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      await provider.send("eth_requestAccounts", []);
-
-      // Try to switch to Base Sepolia first
-      try {
-        await window.ethereum.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: BASE_SEPOLIA_CONFIG.chainId }],
-        });
-      } catch (switchError: any) {
-        if (switchError.code === 4902) {
-          try {
-            await window.ethereum.request({
-              method: 'wallet_addEthereumChain',
-              params: [BASE_SEPOLIA_CONFIG],
-            });
-          } catch (addError) {
-            console.error('Error adding the chain:', addError);
-            contractToast.error(addError);
-            throw addError;
-          }
-        } else {
-          contractToast.error(switchError);
-          throw switchError;
-        }
-      }
-
-      // Verify network
-      const network = await provider.getNetwork();
-      if (network.chainId !== BASE_SEPOLIA_CHAIN_ID) {
-        contractToast.wallet.wrongNetwork('Base Sepolia');
-        throw new Error(`Please switch to Base Sepolia network. Current chain ID: ${network.chainId}`);
-      }
-
-      const signer = provider.getSigner();
-      const userAddress = await signer.getAddress();
-
-      // First approve token spending
-      contractToast.loading('Approving token spending...');
-      const tokenContract = new ethers.Contract(TOKEN_ADDRESS, TOKEN_ABI, signer);
-      const approveTx = await tokenContract.approve(BATTLE_ADDRESS, BETTING_AMOUNT);
-      await approveTx.wait();
-      contractToast.success('Token approval successful!');
-
-      // Then submit prompt with bet
-      contractToast.loading('Submitting prompt with bet...');
-      const battleContract = new ethers.Contract(BATTLE_ADDRESS, BATTLE_ABI, signer);
-      const tx = await battleContract.betWithPrompt(
-        selectedChampion === 'trump', // true if Trump, false if Xi
-        BETTING_AMOUNT
-      );
-
-      // Wait for transaction and get the prompt ID from the event
-      const receipt = await tx.wait();
-      const event = receipt.events?.find((e: PromptBetEvent) => e.event === 'PromptBet');
-      const promptId = event?.args?.promptId.toString();
-
-      if (!promptId) {
-        throw new Error('Failed to get prompt ID from transaction');
-      }
-
-      // Generate short description and save to Supabase
-      try {
-        const shortDesc = await generateShortDescription(input);
-        await savePromptSubmission({
-          wallet_address: userAddress,
-          message: input,
-          short_description: shortDesc,
-          is_agent_a: selectedChampion === 'trump',
-          prompt_id: Number(promptId)
-        });
-        contractToast.success('Prompt submitted successfully! 🎉');
-      } catch (error) {
-        console.error('Error saving to Supabase:', error);
-        contractToast.error(error);
-        // Don't throw here as the blockchain transaction was successful
-      }
-
-      setInput('');
-    } catch (error) {
-      console.error('Error:', error);
-      contractToast.error(error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <div className="border-t bg-muted/50 p-3">
-      <form onSubmit={handleSubmit} className="flex gap-2 max-w-3xl mx-auto">
-        <input
-          type="text"
-          value={input}
-          onChange={handleInputChange}
-          placeholder={selectedChampion === 'info' ? 'Select your champion first...' : `Supporting ${selectedChampion === 'trump' ? 'Donald Trump' : 'Xi Jinping'}...`}
-          disabled={isLoading || selectedChampion === 'info'}
-          className="flex-1 rounded-lg border bg-background px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
-        />
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          onClick={handleImproveText}
-          disabled={!input.trim() || isImproving || isLoading || selectedChampion === 'info'}
-          className="px-3"
-        >
-          <Wand2 className={`h-4 w-4 ${isImproving ? 'animate-spin' : ''}`} />
-        </Button>
-        <Button 
-          type="submit" 
-          disabled={!input.trim() || isLoading || selectedChampion === 'info'}
-        >
-          {isLoading ? (
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              Processing...
-            </div>
-          ) : (
-            <Send className="h-4 w-4" />
-          )}
-        </Button>
-      </form>
-      {isTyping && (
-        <div className="text-sm text-muted-foreground text-center mt-1">
-          You are typing...
-        </div>
-      )}
-    </div>
-  );
-}
 
 function LoadingSpinner() {
     return (

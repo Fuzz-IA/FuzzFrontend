@@ -14,6 +14,7 @@ export interface PromptSubmission {
   short_description: string
   is_agent_a: boolean
   prompt_id: number
+  votes_count?: number
 }
 
 export interface Prompt {
@@ -24,15 +25,24 @@ export interface Prompt {
   is_agent_a: boolean
   created_at: string
   prompt_id: number
+  votes_count: number
 }
 
 export async function savePromptSubmission(data: PromptSubmission) {
   const { error } = await supabase
     .from('prompt_submissions')
-    .insert([data])
+    .insert([{ ...data, votes_count: 0 }])
   
   if (error) throw error
   return true
+}
+
+export async function incrementVoteCount(promptId: number) {
+  const { data, error } = await supabase
+    .rpc('increment_votes_count', { row_id: promptId })
+  
+  if (error) throw error
+  return data
 }
 
 export async function getPrompts(isAgentA: boolean): Promise<Prompt[]> {

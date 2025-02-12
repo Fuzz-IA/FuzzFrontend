@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { usePrivy } from '@privy-io/react-auth';
 import { ethers } from 'ethers';
 import { BATTLE_ABI, BATTLE_ADDRESS, TOKEN_ADDRESS, BETTING_AMOUNT } from '@/lib/contracts/battle-abi';
-import { getPrompts, Prompt } from '@/lib/supabase';
+import { getPrompts, Prompt, incrementVoteCount } from '@/lib/supabase';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -78,6 +78,10 @@ export function VotePromptDialog({ selectedChampion, onClose }: VotePromptDialog
       const battleContract = new ethers.Contract(BATTLE_ADDRESS, BATTLE_ABI, signer);
       const tx = await battleContract.voteForPrompt(promptId, BETTING_AMOUNT);
       await tx.wait();
+      
+      // Increment vote count in Supabase
+      await incrementVoteCount(promptId);
+      
       contractToast.success('Vote submitted successfully! 🎉');
 
       await refreshBalance();

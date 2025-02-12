@@ -267,7 +267,6 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
         }
       } catch (error) {
         console.error('Error fetching contract data:', error);
-        contractToast.error(error);
       } finally {
         setIsLoadingPool(false);
         setIsLoadingAgents(false);

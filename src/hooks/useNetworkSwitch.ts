@@ -6,14 +6,27 @@ import {
 } from '@/config';
 
 export const useNetworkSwitch = () => {
+  let lastSwitchAttempt = 0;
+  const SWITCH_COOLDOWN = 5000; // 5 seconds cooldown
+
   const switchToBaseSepolia = async () => {
     try {
+      const now = Date.now();
+      if (now - lastSwitchAttempt < SWITCH_COOLDOWN) {
+        return true;
+      }
+      lastSwitchAttempt = now;
+
       if (typeof window.ethereum === 'undefined') {
-        contractToast.wallet.notInstalled();
         return false;
       }
 
       const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const network = await provider.getNetwork();
+      
+      if (network.chainId === BASE_SEPOLIA_CHAIN_ID) {
+        return true;
+      }
 
       try {
         await window.ethereum.request({
@@ -29,25 +42,25 @@ export const useNetworkSwitch = () => {
             });
           } catch (addError) {
             console.error('Error adding the chain:', addError);
-            contractToast.error(addError);
             return false;
           }
         } else {
-          contractToast.error(switchError);
+          // Solo log el error, no mostrar toast
+          console.error('Error switching chain:', switchError);
           return false;
         }
       }
 
-      const network = await provider.getNetwork();
-      if (network.chainId !== BASE_SEPOLIA_CHAIN_ID) {
-        contractToast.wallet.wrongNetwork('Base Sepolia');
-        throw new Error(`Please switch to Base Sepolia network. Current chain ID: ${network.chainId}`);
+      // Verificar el cambio de red silenciosamente
+      const updatedNetwork = await provider.getNetwork();
+      if (updatedNetwork.chainId !== BASE_SEPOLIA_CHAIN_ID) {
+        return false;
       }
 
       return true;
     } catch (error) {
-      console.error('Error switching network:', error);
-      contractToast.error(error);
+      // Solo log el error, no mostrar toast
+      console.error('Error in network switch:', error);
       return false;
     }
   };

@@ -40,6 +40,7 @@ export async function getPrompts(isAgentA: boolean): Promise<Prompt[]> {
     .from('prompt_submissions')
     .select('*')
     .eq('is_agent_a', isAgentA)
+    .eq('available', true)
     .order('created_at', { ascending: false })
   
   if (error) throw error

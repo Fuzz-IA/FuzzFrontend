@@ -67,6 +67,7 @@ export const useBattleParticipants = () => {
         }
       } catch (err) {
         setError(err as Error);
+        // Solo log el error, no mostrar toast para operaciones de lectura
         console.error('Error fetching participants:', err);
       } finally {
         setIsLoading(false);

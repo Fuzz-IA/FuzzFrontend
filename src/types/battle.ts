@@ -20,8 +20,20 @@ export interface BattleData {
 }
 
 export interface Message {
-  role: 'user' | 'assistant'
-  content: string
+  id: string;
+  fromAgent: string;
+  toAgent: string;
+  content: string;
+  timestamp: number;
+  user?: string;
+  createdAt: number;
+  text?: string;
+  isTyping?: boolean;
+  scores?: {
+    trump: number;
+    xi: number;
+  };
+  role: 'user' | 'assistant';
 }
 
 export interface PromptBetEvent {

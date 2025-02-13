@@ -14,7 +14,7 @@ import { useTokenAllowance } from '@/hooks/useTokenAllowance';
 import { useNetworkSwitch } from '@/hooks/useNetworkSwitch';
 
 interface BetButtonProps {
-  selectedChampion: 'trump' | 'xi';
+  selectedChampion: 'Trump' | 'Xi';
 }
 
 export function BetButton({ selectedChampion }: BetButtonProps) {
@@ -67,7 +67,7 @@ export function BetButton({ selectedChampion }: BetButtonProps) {
     const battleContract = new ethers.Contract(BATTLE_ADDRESS, BATTLE_ABI, signer);
     const amountInWei = ethers.utils.parseEther(betAmount);
     
-    const tx = await battleContract.betOnAgent(selectedChampion === 'trump', amountInWei);
+    const tx = await battleContract.betOnAgent(selectedChampion === 'Trump', amountInWei);
     await tx.wait();
     
     contractToast.success(`Successfully bet ${betAmount} FUZZ on ${selectedChampion}!`);

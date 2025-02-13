@@ -32,6 +32,8 @@ import { contractToast } from '@/lib/utils';
 import { useBattleParticipants} from '@/hooks/useBattleParticipants';
 import { useNetworkSwitch } from '@/hooks/useNetworkSwitch';
 import { useTokenBalance } from "@/hooks/useTokenBalance";
+import { useQueryClient } from '@tanstack/react-query';
+import { Message } from '@/types/battle';
 
 interface BattleSidebarProps {
   selectedChampion: 'trump' | 'xi' | 'info';
@@ -215,6 +217,7 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
     tokenAddress: TOKEN_ADDRESS,
     enabled: authenticated
   });
+  const queryClient = useQueryClient();
 
   const [showVoteDialog, setShowVoteDialog] = useState(false);
   const [isLoadingPool, setIsLoadingPool] = useState(true);
@@ -224,6 +227,24 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
   const [agentB, setAgentB] = useState<AgentInfo>({ name: 'Xi', address: '', total: '0' });
   const [isMinting, setIsMinting] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(0);
+
+  // Parse scores function
+  const parseScores = (text: string): { trump: number; xi: number } | null => {
+    const match = text.match(/\[Trump (\d+) \| Xi (\d+)\]/);
+    if (match) {
+      return {
+        trump: parseInt(match[1]),
+        xi: parseInt(match[2])
+      };
+    }
+    return null;
+  };
+
+  // Get the latest scores from messages by parsing the text
+  const messages = queryClient.getQueryData<Message[]>(["messages"]) || [];
+  const latestMessage = messages[messages.length - 1];
+  const parsedScores = latestMessage?.text ? parseScores(latestMessage.text) : null;
+  const currentScores = parsedScores || { trump: 3, xi: 3 }; // Default to full lives
 
   useEffect(() => {
     async function fetchContractData() {
@@ -316,34 +337,30 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
     const currentScore = selectedChampion === 'trump' ? scores.trump : scores.xi;
     const currentImage = selectedChampion === 'trump' ? '/trump.png' : '/xi.png';
     const barColor = selectedChampion === 'trump' ? 'bg-orange-500' : 'bg-red-500';
+    const isGameOver = currentScore === 0;
 
     return (
-      <div className="flex items-center gap-2 w-full bg-card p-4 rounded-lg mb-4">
-        <img src={currentImage} alt={selectedChampion} className="w-8 h-8 rounded-full" />
-        <div className="w-full">
-          <div className="h-2 bg-muted rounded-full overflow-hidden">
-            <div 
-              className={`h-full ${barColor} rounded-full transition-all duration-1000`}
-              style={{ width: `${Math.max(0, Math.min(100, (currentScore / 10) * 100))}%` }}
-            />
+      <div className="flex flex-col w-full">
+        <div className="flex items-center gap-2 w-full bg-card p-4 rounded-lg mb-2">
+          <img src={currentImage} alt={selectedChampion} className="w-8 h-8 rounded-full" />
+          <div className="w-full">
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
+              <div 
+                className={`h-full ${barColor} rounded-full transition-all duration-1000`}
+                style={{ width: `${Math.max(0, Math.min(100, (currentScore / 3) * 100))}%` }}
+              />
+            </div>
+            <span className="text-xs text-muted-foreground mt-1 block">{currentScore}/3 Lives</span>
           </div>
-          <span className="text-xs text-muted-foreground mt-1 block">{currentScore}/10 Live Score</span>
         </div>
+        {isGameOver && (
+          <div className="text-sm text-red-500 font-medium text-center mb-2">
+            Game Over - {selectedChampion === 'trump' ? 'Trump' : 'Xi'} has lost!
+          </div>
+        )}
       </div>
     );
   }
-
-  // Parse scores function
-  const parseScores = (text: string): { trump: number; xi: number } | null => {
-    const match = text.match(/\[Trump (\d+) \| Xi (\d+)\]/);
-    if (match) {
-      return {
-        trump: parseInt(match[1]),
-        xi: parseInt(match[2])
-      };
-    }
-    return null;
-  };
 
   // Selected agent logic
   const selectedAgent = selectedChampion === 'trump' ? agentA : agentB;
@@ -352,7 +369,7 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
     <>
       <SidebarGroup className="space-y-4">
         <SidebarGroupLabel className="text-sm font-medium">Battle Status</SidebarGroupLabel>
-        {!isLoadingAgents && <ScoreBars scores={{ trump: 3, xi: 10 }} />}
+        {!isLoadingAgents && <ScoreBars scores={currentScores} />}
 
         <Card className="bg-card p-6">
           <div className="flex items-center gap-3 text-xl font-bold">

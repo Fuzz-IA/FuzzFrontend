@@ -5,5 +5,6 @@ create table prompt_submissions (
   short_description text not null,
   is_agent_a boolean not null,
   prompt_id bigint not null,
+  game_id bigint not null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 ); 

@@ -14,6 +14,7 @@ export interface PromptSubmission {
   short_description: string
   is_agent_a: boolean
   prompt_id: number
+  game_id: number
   votes_count?: number
 }
 
@@ -25,13 +26,27 @@ export interface Prompt {
   is_agent_a: boolean
   created_at: string
   prompt_id: number
+  game_id: number
   votes_count: number
 }
 
+export async function disableAllPrompts() {
+  const { data, error } = await supabase
+    .rpc('disable_all_prompts')
+  
+  if (error) throw error
+  return true
+}
+
 export async function savePromptSubmission(data: PromptSubmission) {
+  const currentGameId = await getCurrentGameId()
   const { error } = await supabase
     .from('prompt_submissions')
-    .insert([{ ...data, votes_count: 0 }])
+    .insert([{ 
+      ...data, 
+      votes_count: 0,
+      game_id: currentGameId
+    }])
   
   if (error) throw error
   return true
@@ -45,12 +60,28 @@ export async function incrementVoteCount(promptId: number) {
   return data
 }
 
+export async function getCurrentGameId(): Promise<number> {
+  const { data, error } = await supabase
+    .from('prompt_submissions')
+    .select('game_id')
+    .order('game_id', { ascending: false })
+    .limit(1)
+  
+  if (error) throw error
+  if (!data || data.length === 0) return 1 // Default to game 1 if no prompts exist
+  
+  return data[0].game_id
+}
+
 export async function getPrompts(isAgentA: boolean): Promise<Prompt[]> {
+  const currentGameId = await getCurrentGameId()
+
   const { data, error } = await supabase
     .from('prompt_submissions')
     .select('*')
     .eq('is_agent_a', isAgentA)
     .eq('available', true)
+    .eq('game_id', currentGameId)
     .order('created_at', { ascending: false })
   
   if (error) throw error

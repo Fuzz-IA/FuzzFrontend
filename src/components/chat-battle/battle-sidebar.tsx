@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -380,7 +381,7 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
               </div>
             ) : (
-              <span>{totalPool} FUZZ</span>
+              <span>{Number(totalPool).toFixed(2)} FUZZ</span>
             )}
           </div>
 

@@ -14,8 +14,8 @@ export interface PromptSubmission {
   short_description: string
   is_agent_a: boolean
   prompt_id: number
-  game_id: number
   votes_count?: number
+  game_id?: number
 }
 
 export interface Prompt {
@@ -38,7 +38,7 @@ export async function disableAllPrompts() {
   return true
 }
 
-export async function savePromptSubmission(data: PromptSubmission) {
+export async function savePromptSubmission(data: Omit<PromptSubmission, 'game_id' | 'votes_count'>) {
   const currentGameId = await getCurrentGameId()
   const { error } = await supabase
     .from('prompt_submissions')

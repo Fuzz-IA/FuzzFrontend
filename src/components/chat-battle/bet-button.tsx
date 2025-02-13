@@ -14,7 +14,7 @@ import { useTokenAllowance } from '@/hooks/useTokenAllowance';
 import { useNetworkSwitch } from '@/hooks/useNetworkSwitch';
 
 interface BetButtonProps {
-  selectedChampion: 'Trump' | 'Xi';
+  selectedChampion: 'trump' | 'xi';
 }
 
 export function BetButton({ selectedChampion }: BetButtonProps) {
@@ -23,6 +23,9 @@ export function BetButton({ selectedChampion }: BetButtonProps) {
   const [isBetting, setIsBetting] = useState(false);
   const { login, authenticated } = usePrivy();
   const { switchToBaseSepolia } = useNetworkSwitch();
+
+  // Helper function to capitalize champion name
+  const displayName = selectedChampion === 'trump' ? 'Trump' : 'Xi';
 
   const {
       formattedBalance: tokenBalance,
@@ -60,17 +63,17 @@ export function BetButton({ selectedChampion }: BetButtonProps) {
     if (!allowanceApproved) return;
     
     setIsBetting(true);
-    contractToast.loading(`Placing bet of ${betAmount} FUZZ on ${selectedChampion}...`);
+    contractToast.loading(`Placing bet of ${betAmount} FUZZ on ${displayName}...`);
     
     const provider = new ethers.providers.Web3Provider(window.ethereum);
     const signer = provider.getSigner();
     const battleContract = new ethers.Contract(BATTLE_ADDRESS, BATTLE_ABI, signer);
     const amountInWei = ethers.utils.parseEther(betAmount);
     
-    const tx = await battleContract.betOnAgent(selectedChampion === 'Trump', amountInWei);
+    const tx = await battleContract.betOnAgent(selectedChampion === 'trump', amountInWei);
     await tx.wait();
     
-    contractToast.success(`Successfully bet ${betAmount} FUZZ on ${selectedChampion}!`);
+    contractToast.success(`Successfully bet ${betAmount} FUZZ on ${displayName}!`);
     await refreshBalance();
     setShowBetDialog(false);
     setBetAmount('');
@@ -98,13 +101,13 @@ export function BetButton({ selectedChampion }: BetButtonProps) {
         {!authenticated ? 'Connect Wallet' : 
                  isCheckingAllowance ? 'Checking Allowance...' : 
                  isBetting ? 'Betting...' : 
-                 `Bet for ${selectedChampion}`}
+                 `Bet for ${displayName}`}
       </Button>
 
       <Dialog open={showBetDialog} onOpenChange={setShowBetDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Place your bet for {selectedChampion}</DialogTitle>
+            <DialogTitle>Place your bet for {displayName}</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-6">
             <div className="space-y-4">
@@ -147,7 +150,7 @@ export function BetButton({ selectedChampion }: BetButtonProps) {
                                          isCheckingAllowance ? 'Checking Allowance...' : 
                                          isBetting ? 'Betting...' : 
                                          Number(betAmount) > Number(tokenBalance) ? 'Insufficient Balance' :
-                                         `Bet ${Number(betAmount).toFixed(2)} FUZZ for ${selectedChampion}`}
+                                         `Bet ${Number(betAmount).toFixed(2)} FUZZ for ${displayName}`}
             </Button>
           </div>
         </DialogContent>

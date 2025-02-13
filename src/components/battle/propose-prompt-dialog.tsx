@@ -52,15 +52,27 @@ export function ProposePromptDialog({ player, onSubmit, selectedChain, isSupport
     try {
       const improvedText = await improveText(input);
       setInput(improvedText);
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: '✨ Text improved!' 
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        fromAgent: 'assistant',
+        toAgent: 'user',
+        content: '✨ Text improved!',
+        timestamp: Date.now(),
+        createdAt: Date.now(),
+        role: 'assistant',
+        text: '✨ Text improved!'
       }]);
     } catch (error) {
       console.error('Error improving text:', error);
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: 'Failed to improve text. Please try again.' 
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        fromAgent: 'assistant',
+        toAgent: 'user',
+        content: 'Failed to improve text. Please try again.',
+        timestamp: Date.now(),
+        createdAt: Date.now(),
+        role: 'assistant',
+        text: 'Failed to improve text. Please try again.'
       }]);
     } finally {
       setIsImproving(false);
@@ -72,9 +84,15 @@ export function ProposePromptDialog({ player, onSubmit, selectedChain, isSupport
     if ((!input.trim() && !isSupport) || isLoading || selectedChain === 'info') return
 
     if (!authenticated || !user?.wallet) {
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: 'Please connect your wallet first' 
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        fromAgent: 'assistant',
+        toAgent: 'user',
+        content: 'Please connect your wallet first',
+        timestamp: Date.now(),
+        createdAt: Date.now(),
+        role: 'assistant',
+        text: 'Please connect your wallet first'
       }]);
       login();
       return;
@@ -82,7 +100,16 @@ export function ProposePromptDialog({ player, onSubmit, selectedChain, isSupport
 
     setIsLoading(true)
     if (!isSupport) {
-      const newMessage: Message = { role: 'user', content: input }
+      const newMessage: Message = {
+        id: Date.now().toString(),
+        fromAgent: 'user',
+        toAgent: 'assistant',
+        content: input,
+        timestamp: Date.now(),
+        createdAt: Date.now(),
+        role: 'user',
+        text: input
+      };
       setMessages(prev => [...prev, newMessage])
     }
     setInput('')
@@ -95,17 +122,29 @@ export function ProposePromptDialog({ player, onSubmit, selectedChain, isSupport
       if (!networkSwitched) return;
       
       setMessages(prev => [...prev, {
-              role: 'assistant',
-              content: 'Checking token allowance...'
-            }]);
+        id: Date.now().toString(),
+        fromAgent: 'assistant',
+        toAgent: 'user',
+        content: 'Checking token allowance...',
+        timestamp: Date.now(),
+        createdAt: Date.now(),
+        role: 'assistant',
+        text: 'Checking token allowance...'
+      }]);
       
       const allowanceApproved = await checkAndApproveAllowance();
       if (!allowanceApproved) return;
       
-      setMessages(prev => [...prev, { 
-              role: 'assistant', 
-              content: 'Submitting prompt with bet...' 
-            }]);
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        fromAgent: 'assistant',
+        toAgent: 'user',
+        content: 'Submitting prompt with bet...',
+        timestamp: Date.now(),
+        createdAt: Date.now(),
+        role: 'assistant',
+        text: 'Submitting prompt with bet...'
+      }]);
 
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const signer = provider.getSigner();
@@ -116,9 +155,15 @@ export function ProposePromptDialog({ player, onSubmit, selectedChain, isSupport
         BETTING_AMOUNT
       );
 
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: 'Waiting for transaction confirmation...' 
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        fromAgent: 'assistant',
+        toAgent: 'user',
+        content: 'Waiting for transaction confirmation...',
+        timestamp: Date.now(),
+        createdAt: Date.now(),
+        role: 'assistant',
+        text: 'Waiting for transaction confirmation...'
       }]);
 
       const receipt = await tx.wait();
@@ -146,16 +191,28 @@ export function ProposePromptDialog({ player, onSubmit, selectedChain, isSupport
         }
       }
 
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: 'Prompt submitted and bet placed successfully! 🎉' 
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        fromAgent: 'assistant',
+        toAgent: 'user',
+        content: 'Prompt submitted and bet placed successfully! 🎉',
+        timestamp: Date.now(),
+        createdAt: Date.now(),
+        role: 'assistant',
+        text: 'Prompt submitted and bet placed successfully! 🎉'
       }]);
     } catch (error: any) {
       console.error('Contract interaction error:', error);
       const errorMessage = error.reason || error.message || 'Unknown error occurred';
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: `Error: ${errorMessage}` 
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        fromAgent: 'assistant',
+        toAgent: 'user',
+        content: `Error: ${errorMessage}`,
+        timestamp: Date.now(),
+        createdAt: Date.now(),
+        role: 'assistant',
+        text: `Error: ${errorMessage}`
       }]);
     } finally {
       setIsLoading(false);

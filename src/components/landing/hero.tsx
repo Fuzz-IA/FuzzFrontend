@@ -17,7 +17,7 @@ export function Hero() {
 
       {/* Content Overlay */}
       <div className="relative z-10 flex h-full flex-col items-center justify-center">
-        <h1 className="font-minecraft text-3xl text-white mb-[-40px]">
+        <h1 className="hidden md:block font-minecraft text-3xl text-white mb-[-40px]">
           Advancing AI Agent Security Research
         </h1>
         <Image

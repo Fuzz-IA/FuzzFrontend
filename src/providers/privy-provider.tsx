@@ -8,15 +8,6 @@ function PrivyWrapper({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { ready, authenticated } = usePrivy();
 
-  useEffect(() => {
-    if (ready && authenticated) {
-      const currentPath = window.location.pathname;
-      if (currentPath === '/') {
-        router.push('/chat-battle');
-      }
-    }
-  }, [ready, authenticated, router]);
-
   return children;
 }
 

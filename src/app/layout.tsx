@@ -5,6 +5,12 @@ import PrivyClientProvider from "@/providers/privy-provider";
 import QueryProvider from "@/providers/query-provider";
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster";
+import localFont from 'next/font/local';
+
+const minecraft = localFont({
+  src: 'Minecraft.ttf',
+  variable: '--font-minecraft',
+});
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,7 +39,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head />
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black`}
+        className={`${geistSans.variable} ${geistMono.variable} ${minecraft.variable} antialiased bg-black`}
       >
                 <Toaster />
 

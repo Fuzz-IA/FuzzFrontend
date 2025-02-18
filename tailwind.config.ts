@@ -113,6 +113,8 @@ export default {
   		},
   		fontFamily: {
   			sans: ["var(--font-sans)", ...fontFamily.sans],
+  			minecraft: ['var(--font-minecraft)'],
+  			mono: ['var(--font-geist-mono)'],
   		},
   		keyframes: {
   			"accordion-down": {

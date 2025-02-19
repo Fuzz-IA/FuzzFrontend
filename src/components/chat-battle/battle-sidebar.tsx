@@ -35,6 +35,7 @@ import { useNetworkSwitch } from '@/hooks/useNetworkSwitch';
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { useQueryClient } from '@tanstack/react-query';
 import { Message } from '@/types/battle';
+import Image from 'next/image';
 
 interface BattleSidebarProps {
   selectedChampion: 'trump' | 'xi' | 'info';
@@ -53,43 +54,52 @@ export function BattleSidebar({ selectedChampion, onChampionSelect }: BattleSide
                      'Connected';
 
   return (
-    <Sidebar className="w-[300px] border-r flex flex-col">
-      <SidebarHeader className="border-b pb-4 px-4">
-        <div className="flex gap-2">
+    <Sidebar className="w-[280px] flex flex-col">
+      <SidebarHeader className="border-none px-4 pt-6 pb-4">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <Image
+              src="/Fuzz_logo.svg"
+              alt="FUZZ"
+              width={100}
+              height={40}
+              className="h-8"
+              priority
+            />
+            <button
+              onClick={() => onChampionSelect('info')}
+              className={`text-[#F3642E] text-lg pt-1 hover:text-[#F3642E]/80 transition-colors ${
+                selectedChampion === 'info' ? 'text-[#F3642E]' : 'text-[#F3642E]/60'
+              }`}
+            >
+              ⓘ
+            </button>
+          </div>
+          <ThemeToggle />
+        </div>
+        <div className="flex gap-3">
           <Button
             variant={selectedChampion === 'trump' ? 'default' : 'outline'}
-            className={`flex-1 ${
+            className={`flex-1 font-minecraft text-base h-[64px] whitespace-pre-line ${
               selectedChampion === 'trump'
-                ? 'bg-primary hover:bg-primary/90'
-                : ''
+                ? 'bg-[#F3642E] hover:bg-[#F3642E]/90 text-white'
+                : 'bg-black border-[#F3642E] hover:bg-[#F3642E]/10 text-white'
             }`}
             onClick={() => onChampionSelect('trump')}
           >
-            Donald Trump
+            Donald{'\n'}Trump
           </Button>
           <Button
             variant={selectedChampion === 'xi' ? 'default' : 'outline'}
-            className={`flex-1 ${
+            className={`flex-1 font-minecraft text-base h-[64px] whitespace-pre-line ${
               selectedChampion === 'xi'
-                ? 'bg-primary hover:bg-primary/90'
-                : ''
+                ? 'bg-[#F3642E] hover:bg-[#F3642E]/90 text-white'
+                : 'bg-black border-[#F3642E] hover:bg-[#F3642E]/10 text-white'
             }`}
             onClick={() => onChampionSelect('xi')}
           >
-            Xi Jinping
+            Xi{'\n'}Jinping
           </Button>
-          <Button
-            variant={selectedChampion === 'info' ? 'default' : 'outline'}
-            className={`w-10 px-0 ${
-              selectedChampion === 'info'
-                ? 'bg-primary/10 hover:bg-primary/20 text-primary dark:bg-primary/20 dark:hover:bg-primary/30'
-                : 'hover:bg-primary/10 dark:border-primary/20 dark:hover:bg-primary/20'
-            }`}
-            onClick={() => onChampionSelect('info')}
-          >
-            <Info className="h-4 w-4" />
-          </Button>
-
         </div>
       </SidebarHeader>
       <SidebarContent className="px-4 flex-1">
@@ -99,7 +109,7 @@ export function BattleSidebar({ selectedChampion, onChampionSelect }: BattleSide
           <BattleActions selectedChampion={selectedChampion} />
         )}
       </SidebarContent>
-      <SidebarFooter className="border-t p-4 space-y-4">
+      {/* <SidebarFooter className="border-t p-4 space-y-4">
         <div className="flex gap-2">
           <Button
             variant="outline"
@@ -149,7 +159,7 @@ export function BattleSidebar({ selectedChampion, onChampionSelect }: BattleSide
             Connect Wallet
           </Button>
         )}
-      </SidebarFooter>
+      </SidebarFooter> */}
     </Sidebar>
   );
 }
@@ -159,41 +169,41 @@ function BattleInfo() {
     <>
       <SidebarGroup className="space-y-4">
         <div className="flex justify-between items-center">
-          <SidebarGroupLabel className="text-sm font-medium">About Fuzz AI</SidebarGroupLabel>
-          <ThemeToggle />
+          <SidebarGroupLabel className="text-md font-minecraft text-[#F3642E]">About Fuzz AI</SidebarGroupLabel>
+          {/* <ThemeToggle /> */}
         </div>
-        <Card className="bg-card p-6">
-          <h3 className="text-lg font-semibold mb-4">The Ultimate AI Combat Arena</h3>
-          <div className="space-y-6 text-sm text-muted-foreground">
+        <Card className="bg-black/40 border-[#F3642E] p-6">
+          <h3 className="text-lg font-minecraft text-[#F3642E] mb-4">The Ultimate AI Combat Arena</h3>
+          <div className="space-y-6 text-sm text-white/80">
             <div className="flex items-start gap-4">
-              <Shield className="h-5 w-5 text-primary mt-1 shrink-0" />
-              <p><strong className="block mb-1">Mission:</strong> Welcome to the future of AI security - where elite agents battle it out in real-time combat scenarios! 🔥</p>
+              <Shield className="h-5 w-5 text-[#F3642E] mt-1 shrink-0" />
+              <p><strong className="block mb-1 ">Mission:</strong> Welcome to the future of AI security - where elite agents battle it out in real-time combat scenarios! 🔥</p>
             </div>
 
             <div className="flex items-start gap-4">
-              <Brain className="h-5 w-5 text-primary mt-1 shrink-0" />
-              <p><strong className="block mb-1">How it Works:</strong> Watch AI champions showcase their skills in epic battles, revealing their strategies, defenses, and tactical prowess.</p>
+              <Brain className="h-5 w-5 text-[#F3642E] mt-1 shrink-0" />
+              <p><strong className="block mb-1 ">How it Works:</strong> Watch AI champions showcase their skills in epic battles, revealing their strategies, defenses, and tactical prowess.</p>
             </div>
 
             <div className="flex items-start gap-4">
-              <Target className="h-5 w-5 text-primary mt-1 shrink-0" />
-              <p><strong className="block mb-1">Purpose:</strong> Every battle provides crucial insights into AI capabilities, pushing the boundaries of what's possible in AI security.</p>
+              <Target className="h-5 w-5 text-[#F3642E] mt-1 shrink-0" />
+              <p><strong className="block mb-1 ">Purpose:</strong> Every battle provides crucial insights into AI capabilities, pushing the boundaries of what's possible in AI security.</p>
             </div>
           </div>
         </Card>
       </SidebarGroup>
 
       <SidebarGroup className="space-y-4">
-        <SidebarGroupLabel className="text-sm font-medium">How to Participate</SidebarGroupLabel>
-        <Card className="bg-card p-6">
-          <div className="space-y-4 text-sm text-muted-foreground">
-            <p className="text-base font-medium">🎮 Battle Mechanics</p>
+        <SidebarGroupLabel className="text-sm font-minecraft text-[#F3642E]">How to Participate</SidebarGroupLabel>
+        <Card className="bg-black/40 border-[#F3642E] p-6">
+          <div className="space-y-4 text-sm text-white/80">
+            <p className="text-base font-minecraft text-[#F3642E]">🎮 Battle Mechanics</p>
             <ul className="list-disc pl-5 space-y-3">
-              <li><strong>Place Your Bets:</strong> Back your favorite AI agent! Choose wisely - if your agent wins, you'll get a share of the prize pool proportional to your bet. 💰</li>
-              <li><strong>Submit Prompts:</strong> Help your agent improve by submitting strategic prompts. If the community votes for your prompt and your agent wins, you'll receive a larger share of the pool! 🎯</li>
-              <li><strong>Vote & Earn:</strong> Vote for the best prompts in the community. Supporting winning strategies pays off - if your chosen prompt is selected and your agent wins, you'll earn bonus rewards! 🗳️</li>
+              <li><strong className="">Place Your Bets:</strong> Back your favorite AI agent! Choose wisely - if your agent wins, you'll get a share of the prize pool proportional to your bet. 💰</li>
+              <li><strong className="">Submit Prompts:</strong> Help your agent improve by submitting strategic prompts. If the community votes for your prompt and your agent wins, you'll receive a larger share of the pool! 🎯</li>
+              <li><strong className="">Vote & Earn:</strong> Vote for the best prompts in the community. Supporting winning strategies pays off - if your chosen prompt is selected and your agent wins, you'll earn bonus rewards! 🗳️</li>
             </ul>
-            <p className="mt-4 font-large font-bold text-primary">🏆 Strategy is key - Bet, Submit, Vote, and multiply your winnings!</p>
+            <p className="mt-4 text-[#F3642E]">🏆 Strategy is key - Bet, Submit, Vote, and multiply your winnings!</p>
           </div>
         </Card>
       </SidebarGroup>

@@ -154,8 +154,8 @@ export function ChatInput({ selectedChampion, onMessageSent }: ChatInputProps) {
     isCheckingAllowance;
 
   return (
-    <div className="border-t bg-muted/50 p-3">
-      <form onSubmit={handleSubmit} className="flex gap-2 max-w-3xl mx-auto">
+    <div className="border-t border-[#F3642E]/20 bg-black/50 p-4 pbes-12">
+      <form onSubmit={handleSubmit} className="flex gap-3 max-w-3xl mx-auto">
         <input
           type="text"
           value={input}
@@ -166,7 +166,7 @@ export function ChatInput({ selectedChampion, onMessageSent }: ChatInputProps) {
               : `Supporting ${selectedChampion === 'trump' ? 'Donald Trump' : 'Xi Jinping'}...`
           }
           disabled={isLoading || selectedChampion === 'info'}
-          className="flex-1 rounded-lg border bg-background px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+          className="flex-1 rounded-lg border border-[#F3642E]/20 bg-black/50 px-4 py-3 text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#F3642E] focus:border-transparent transition-all"
         />
         <Button
           type="button"
@@ -174,13 +174,14 @@ export function ChatInput({ selectedChampion, onMessageSent }: ChatInputProps) {
           size="icon"
           onClick={handleImproveText}
           disabled={!input.trim() || isImproving || isLoading || selectedChampion === 'info'}
-          className="px-3"
+          className="px-3 border-[#F3642E]/20 bg-black/50 hover:bg-[#F3642E]/10 hover:text-[#F3642E]"
         >
-          <Wand2 className={`h-4 w-4 ${isImproving ? 'animate-spin' : ''}`} />
+          <Wand2 className={`h-5 w-5 ${isImproving ? 'animate-spin' : ''}`} />
         </Button>
         <Button 
           type="submit" 
           disabled={isSubmitDisabled}
+          className="bg-[#F3642E] hover:bg-[#F3642E]/90 text-white px-6"
         >
           {isLoading || isCheckingAllowance ? (
             <div className="flex items-center gap-2">
@@ -188,12 +189,12 @@ export function ChatInput({ selectedChampion, onMessageSent }: ChatInputProps) {
               {isCheckingAllowance ? 'Checking...' : 'Processing...'}
             </div>
           ) : (
-            <Send className="h-4 w-4" />
+            <Send className="h-5 w-5" />
           )}
         </Button>
       </form>
       {isTyping && (
-        <div className="text-sm text-muted-foreground text-center mt-1">
+        <div className="text-sm text-[#F3642E]/60 text-center mt-2">
           You are typing...
         </div>
       )}

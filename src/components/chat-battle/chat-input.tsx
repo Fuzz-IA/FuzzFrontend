@@ -163,7 +163,7 @@ export function ChatInput({ selectedChampion, onMessageSent }: ChatInputProps) {
           placeholder={
             selectedChampion === 'info' 
               ? 'Select your champion first...' 
-              : `Supporting ${selectedChampion === 'trump' ? 'Donald Trump' : 'Xi Jinping'}...`
+              : `Submit a prompt for ${selectedChampion === 'trump' ? 'Donald Trump' : 'Xi Jinping'}...`
           }
           disabled={isLoading || selectedChampion === 'info'}
           className="flex-1 rounded-lg border border-[#F3642E]/20 bg-black/50 px-4 py-3 text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#F3642E] focus:border-transparent transition-all"

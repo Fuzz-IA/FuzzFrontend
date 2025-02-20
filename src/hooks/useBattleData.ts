@@ -10,6 +10,7 @@ import {
 } from '@/types/battle';
 import { contractToast } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
+import { fetchDynamicBetAmounts } from './useDynamicBetAmount';
 
 async function fetchBattleData(): Promise<BattleContractData> {
   if (typeof window.ethereum === 'undefined') {
@@ -25,17 +26,19 @@ async function fetchBattleData(): Promise<BattleContractData> {
     agentBAddress,
     totalA,
     totalB,
-    trumpScore,
-    xiScore
+    gameEnded,
+    currentGameId
   ] = await Promise.all([
     contract.getTotalAcumulated(),
     contract.agentA(),
     contract.agentB(),
     contract.totalAgentA(),
     contract.totalAgentB(),
-    contract.getAgentAScore(),
-    contract.getAgentBScore()
+    contract.gameEnded(),
+    contract.currentGameId()
   ]);
+
+  const marketInfo = await fetchDynamicBetAmounts();
 
   return {
     totalPool: ethers.utils.formatEther(total),
@@ -49,9 +52,12 @@ async function fetchBattleData(): Promise<BattleContractData> {
       address: agentBAddress,
       total: ethers.utils.formatEther(totalB)
     },
+    gameEnded,
+    currentGameId: Number(currentGameId),
+    marketInfo,
     scores: {
-      trump: Number(trumpScore),
-      xi: Number(xiScore)
+      trump: 3,
+      xi: 3
     }
   };
 }
@@ -109,7 +115,7 @@ export function useMintTokens(): MintTokensHookResult {
       contractToast.loading('Minting FUZZ tokens...');
       const tx = await tokenContract.mint();
       await tx.wait();
-      
+
       contractToast.success('Successfully minted FUZZ tokens! 🎉');
     },
     onSuccess: () => {

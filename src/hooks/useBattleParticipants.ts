@@ -17,7 +17,7 @@ export const useBattleParticipants = () => {
 
       const currentGameId = await contract.currentGameId();
       const currentBlock = await provider.getBlockNumber();
-      const fromBlock = Math.max(currentBlock - 10000, 0);
+      const fromBlock = Math.max(currentBlock - 10000000, 0);
 
       const eventFilter = {
         address: BATTLE_ADDRESS,

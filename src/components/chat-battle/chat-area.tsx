@@ -6,6 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useTransition, animated } from '@react-spring/web';
 import { SpringValue } from '@react-spring/web';
 import { ChatInput } from "./chat-input";
+import { ChatHeader } from "./chat-header";
 import { ClickableAgentAvatar } from "@/components/character/clickable-agent-avatar";
 
 
@@ -78,12 +79,15 @@ interface AnimatedStyles {
 
 export function ChatArea({ selectedChampion }: ChatAreaProps) {
   return (
-    <main className="flex-1 overflow-hidden bg-background relative">
-      <div className="h-full flex flex-col">
-        <ChatMessages selectedChampion={selectedChampion} />
-        <ChatInput selectedChampion={selectedChampion} />
-      </div>
-    </main>
+    <>
+      <ChatHeader />
+      <main className="flex-1 overflow-hidden relative mx-4 ml-20 my-6 mt-4 rounded-lg border bg-background shadow-md border-[#F3642E] h-[calc(100vh-10rem)]">
+        <div className="h-full flex flex-col">
+          <ChatMessages selectedChampion={selectedChampion} />
+          <ChatInput selectedChampion={selectedChampion} />
+        </div>
+      </main>
+    </>
   );
 }
 
@@ -330,9 +334,9 @@ function ChatMessages({ selectedChampion }: { selectedChampion: 'trump' | 'xi' |
     }
 
     return (
-        <div className="flex flex-col w-full h-[calc(100dvh-4rem)] pb-0">
+        <div className="flex-1 overflow-y-auto">
             <div 
-                className="flex-1 overflow-y-auto scroll-smooth px-4" 
+                className="h-full overflow-y-auto scroll-smooth px-4" 
                 ref={messagesContainerRef}
                 onScroll={handleScroll}
             >

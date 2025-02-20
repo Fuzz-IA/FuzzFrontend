@@ -24,13 +24,17 @@ async function fetchBattleData(): Promise<BattleContractData> {
     agentAAddress,
     agentBAddress,
     totalA,
-    totalB
+    totalB,
+    trumpScore,
+    xiScore
   ] = await Promise.all([
     contract.getTotalAcumulated(),
     contract.agentA(),
     contract.agentB(),
     contract.totalAgentA(),
-    contract.totalAgentB()
+    contract.totalAgentB(),
+    contract.getAgentAScore(),
+    contract.getAgentBScore()
   ]);
 
   return {
@@ -44,6 +48,10 @@ async function fetchBattleData(): Promise<BattleContractData> {
       name: 'Xi',
       address: agentBAddress,
       total: ethers.utils.formatEther(totalB)
+    },
+    scores: {
+      trump: Number(trumpScore),
+      xi: Number(xiScore)
     }
   };
 }
@@ -85,7 +93,7 @@ export function useMintTokens(): MintTokensHookResult {
 
   const { 
     mutateAsync, 
-    isLoading, 
+    isPending: isLoading, 
     error 
   } = useMutation({
     mutationFn: async () => {

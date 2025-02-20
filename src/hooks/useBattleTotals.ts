@@ -7,7 +7,7 @@ export function useBattleTotals(isAgentA: boolean) {
   return useQuery({
     queryKey: [...queryKeys.battle.totals,isAgentA],
     queryFn: async () => {
-      if (typeof window.ethereum === 'undefinded') {
+      if (typeof window.ethereum === 'undefined') {
         throw new Error('No ethereum provider found');
       }
       

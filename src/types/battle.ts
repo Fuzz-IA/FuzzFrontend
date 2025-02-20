@@ -80,19 +80,12 @@ export interface BattleContractData {
   totalPool: string;
   agentA: AgentInfo;
   agentB: AgentInfo;
+  scores: BattleScores;
 }
 
 export interface BattleScores {
   trump: number;
   xi: number;
-}
-
-export interface BattleContractData {
-  totalPool: string;
-  isLoading: boolean;
-  scores: BattleScores;
-  agentA: AgentInfo;
-  agentB: AgentInfo;
 }
 
 export interface MintTokensHookResult {

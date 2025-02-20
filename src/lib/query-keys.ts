@@ -4,4 +4,7 @@ export const queryKeys = {
     participants: ['battle', 'participants'],
     gameInfo: ['battle', 'gameInfo'],
   },
+  user: {
+    balance: 'userBalance',
+  },
 } as const;

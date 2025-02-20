@@ -223,7 +223,7 @@ interface AgentInfo {
   total: string;
 }
 function BattleActions({ selectedChampion }: BattleActionsProps) {
-  const { login, authenticated } = usePrivy();
+  const { login, authenticated, user } = usePrivy();
   const { data: battleData, isLoading: isLoadingBattleData } = useBattleData();
   const { mint, isLoading: isMinting } = useMintTokens();
   const { 
@@ -231,9 +231,14 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
     isLoading: isLoadingParticipants,
     isFetching: isFetchingParticipants 
   } = useBattleParticipants();
-  const { formattedBalance, isLoading: isLoadingBalance } = useTokenBalance({
+
+  const { 
+    formattedBalance, 
+    isLoading: isLoadingBalance,
+    refresh: refreshBalance 
+  } = useTokenBalance({ 
     tokenAddress: TOKEN_ADDRESS,
-    enabled: authenticated
+    enabled: authenticated && !!user?.wallet?.address
   });
 
   const [showVoteDialog, setShowVoteDialog] = useState(false);
@@ -251,12 +256,12 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
 
     try {
       await mint();
+      refreshBalance();
     } catch (error) {
       console.error('Error minting:', error);
     }
   };
 
-  // ScoreBars component
   function ScoreBars({ scores }: { scores: { trump: number; xi: number } }) {
     const currentScore = selectedChampion === 'trump' ? scores.trump : scores.xi;
     const currentImage = selectedChampion === 'trump' ? '/trump.png' : '/xi.png';
@@ -380,7 +385,6 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
               ) : participantsData?.participants?.length ? (
                 participantsData.participants
                   .filter(p => {
-                    console.log('Filtering participant:', p);
                     return selectedChampion === 'trump' 
                       ? Number(p.contributionA) > 0 
                       : Number(p.contributionB) > 0;

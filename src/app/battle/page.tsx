@@ -22,6 +22,7 @@ import { BATTLE_ADDRESS, BATTLE_ABI } from '@/lib/contracts/battle-abi'
 import { BattleSidebar } from '@/components/chat-battle/battle-sidebar'
 import { ChatArea } from '@/components/chat-battle/chat-area'
 import { SidebarProvider } from '@/components/ui/sidebar'
+import { useBattleTotals } from '@/hooks/useBattleTotals'
 
 // Mock data - this would come from your API
 const battleData: BattleData = {
@@ -56,41 +57,32 @@ const battleData: BattleData = {
 type DialogContent = 'propose' | 'vote' | 'support' | null;
 
 function AgentTotals({ isAgentA, player }: { isAgentA: boolean, player: PlayerAttributes }) {
-  const [total, setTotal] = useState<string>('0')
+  const { data: total, isLoading, error } = useBattleTotals(isAgentA);
 
-  useEffect(() => {
-    async function fetchTotal() {
-      try {
-        if (typeof window.ethereum !== 'undefined') {
-          const provider = new ethers.providers.Web3Provider(window.ethereum)
-          const contract = new ethers.Contract(BATTLE_ADDRESS, BATTLE_ABI, provider)
-          
-          // Call the appropriate contract function based on agent
-          const total = isAgentA 
-            ? await contract.totalAgentA()
-            : await contract.totalAgentB()
-            
-          // Convert from wei to ETH and format to 1 decimal place
-          const formattedTotal = ethers.utils.formatEther(total)
-          setTotal(Number(formattedTotal).toFixed(1))
-        }
-      } catch (error) {
-        console.error('Error fetching total:', error)
-      }
-    }
+  if (isLoading) {
+    return (
+      <div className="flex justify-between">
+        <span className={player.style.lightTextColor}>TOTAL POOL</span>
+        <span className={`font-mono ${player.style.textColor}`}>Loading...</span>
+      </div>
+    );
+  }
 
-    fetchTotal()
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchTotal, 30000)
-    return () => clearInterval(interval)
-  }, [isAgentA])
+  if (error) {
+    return (
+      <div className="flex justify-between">
+        <span className={player.style.lightTextColor}>TOTAL POOL</span>
+        <span className={`font-mono text-red-500`}>Error loading total</span>
+      </div>
+    );
+  }
 
   return (
     <div className="flex justify-between">
       <span className={player.style.lightTextColor}>TOTAL POOL</span>
       <span className={`font-mono ${player.style.textColor}`}>{total} FUZZ</span>
     </div>
-  )
+  );
 }
 
 function UserContributions({ isAgentA, player }: { isAgentA: boolean, player: PlayerAttributes }) {

@@ -59,8 +59,59 @@ export interface VotePromptDialogProps {
   onClose: () => void;
 }
 
+export interface ParticipantData {
+  participants: Participant[];
+  total: number;
+}
+
 export interface Participant {
   address: string;
   contributionA: string;
   contributionB: string;
+}
+
+export interface AgentInfo {
+  name: string;
+  address: string;
+  total: string;
+}
+
+export interface BattleContractData {
+  totalPool: string;
+  agentA: AgentInfo;
+  agentB: AgentInfo;
+}
+
+export interface BattleScores {
+  trump: number;
+  xi: number;
+}
+
+export interface BattleContractData {
+  totalPool: string;
+  isLoading: boolean;
+  scores: BattleScores;
+  agentA: AgentInfo;
+  agentB: AgentInfo;
+}
+
+export interface MintTokensHookResult {
+  mint: () => Promise<void>;
+  isLoading: boolean;
+  error: Error | null;
+}
+
+export interface BattleSidebarProps {
+  selectedChampion: ChampionType;
+  onChampionSelect: (champion: ChampionType) => void;
+}
+
+export type ChampionType = 'trump' | 'xi' | 'info';
+
+export interface BattleActionsProps {
+  selectedChampion: Exclude<ChampionType, 'info'>;
+}
+
+export interface ScoreBarsProps {
+  scores: BattleScores;
 }

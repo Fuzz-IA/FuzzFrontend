@@ -36,6 +36,8 @@ import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { useQueryClient } from '@tanstack/react-query';
 import { Message } from '@/types/battle';
 import Image from 'next/image';
+import { useBattleData } from '@/hooks/useBattleData';
+import { useMintTokens}from '@/hooks/useBattleData';
 
 interface BattleSidebarProps {
   selectedChampion: 'trump' | 'xi' | 'info';
@@ -109,7 +111,7 @@ export function BattleSidebar({ selectedChampion, onChampionSelect }: BattleSide
           <BattleActions selectedChampion={selectedChampion} />
         )}
       </SidebarContent>
-      {/* <SidebarFooter className="border-t p-4 space-y-4">
+      <SidebarFooter className="border-t p-4 space-y-4">
         <div className="flex gap-2">
           <Button
             variant="outline"
@@ -159,7 +161,7 @@ export function BattleSidebar({ selectedChampion, onChampionSelect }: BattleSide
             Connect Wallet
           </Button>
         )}
-      </SidebarFooter> */}
+      </SidebarFooter>
     </Sidebar>
   );
 }
@@ -221,94 +223,29 @@ interface AgentInfo {
   total: string;
 }
 function BattleActions({ selectedChampion }: BattleActionsProps) {
-  const { login, authenticated } = usePrivy();
-  const { participants, isLoading: isLoadingParticipants } = useBattleParticipants();
-  const { switchToBaseSepolia } = useNetworkSwitch();
-  const { formattedBalance, isLoading: isLoadingBalance, refresh: refreshBalance } = useTokenBalance({
+  const { login, authenticated, user } = usePrivy();
+  const { data: battleData, isLoading: isLoadingBattleData } = useBattleData();
+  const { mint, isLoading: isMinting } = useMintTokens();
+  const { 
+    data: participantsData, 
+    isLoading: isLoadingParticipants,
+    isFetching: isFetchingParticipants 
+  } = useBattleParticipants();
+
+  const { 
+    formattedBalance, 
+    isLoading: isLoadingBalance,
+    refresh: refreshBalance 
+  } = useTokenBalance({ 
     tokenAddress: TOKEN_ADDRESS,
-    enabled: authenticated
+    enabled: authenticated && !!user?.wallet?.address
   });
-  const queryClient = useQueryClient();
 
   const [showVoteDialog, setShowVoteDialog] = useState(false);
-  const [isLoadingPool, setIsLoadingPool] = useState(true);
-  const [isLoadingAgents, setIsLoadingAgents] = useState(true);
-  const [totalPool, setTotalPool] = useState<string>('0');
-  const [agentA, setAgentA] = useState<AgentInfo>({ name: 'Trump', address: '', total: '0' });
-  const [agentB, setAgentB] = useState<AgentInfo>({ name: 'Xi', address: '', total: '0' });
-  const [isMinting, setIsMinting] = useState(false);
-  const [lastUpdate, setLastUpdate] = useState(0);
 
-  // Parse scores function
-  const parseScores = (text: string): { trump: number; xi: number } | null => {
-    const match = text.match(/\[Trump (\d+) \| Xi (\d+)\]/);
-    if (match) {
-      return {
-        trump: parseInt(match[1]),
-        xi: parseInt(match[2])
-      };
-    }
-    return null;
-  };
-
-  // Get the latest scores from messages by parsing the text
-  const messages = queryClient.getQueryData<Message[]>(["messages"]) || [];
-  const latestMessage = messages[messages.length - 1];
-  const parsedScores = latestMessage?.text ? parseScores(latestMessage.text) : null;
-  const currentScores = parsedScores || { trump: 3, xi: 3 }; // Default to full lives
-
-  useEffect(() => {
-    async function fetchContractData() {
-      const now = Date.now();
-      if (now - lastUpdate < 5000) return;
-
-      setIsLoadingPool(true);
-      setIsLoadingAgents(true);
-
-      try {
-        if (typeof window.ethereum !== 'undefined') {
-          const isCorrectNetwork = await switchToBaseSepolia();
-          if (!isCorrectNetwork) return;
-
-          const provider = new ethers.providers.Web3Provider(window.ethereum);
-          const contract = new ethers.Contract(BATTLE_ADDRESS, BATTLE_ABI, provider);
-
-          const total = await contract.getTotalAcumulated();
-          setTotalPool(ethers.utils.formatEther(total));
-          setIsLoadingPool(false);
-
-          const [agentAAddress, agentBAddress, totalA, totalB] = await Promise.all([
-            contract.agentA(),
-            contract.agentB(),
-            contract.totalAgentA(),
-            contract.totalAgentB()
-          ]);
-
-          setAgentA(prev => ({
-            ...prev,
-            address: agentAAddress,
-            total: ethers.utils.formatEther(totalA)
-          }));
-          setAgentB(prev => ({
-            ...prev,
-            address: agentBAddress,
-            total: ethers.utils.formatEther(totalB)
-          }));
-
-          setLastUpdate(now);
-        }
-      } catch (error) {
-        console.error('Error fetching contract data:', error);
-      } finally {
-        setIsLoadingPool(false);
-        setIsLoadingAgents(false);
-      }
-    }
-
-    fetchContractData();
-    const interval = setInterval(fetchContractData, 60000);
-    return () => clearInterval(interval);
-  }, [switchToBaseSepolia, lastUpdate]);
+  const selectedAgent = selectedChampion === 'trump' 
+    ? battleData?.agentA 
+    : battleData?.agentB;
 
   const handleMint = async () => {
     if (!authenticated) {
@@ -317,33 +254,14 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
       return;
     }
 
-    setIsMinting(true);
     try {
-      const isCorrectNetwork = await switchToBaseSepolia();
-      if (!isCorrectNetwork) {
-        setIsMinting(false);
-        return;
-      }
-
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      const signer = provider.getSigner();
-
-      contractToast.loading('Minting FUZZ tokens...');
-      const tokenContract = new ethers.Contract(TOKEN_ADDRESS, TOKEN_ABI, signer);
-      const tx = await tokenContract.mint();
-      await tx.wait();
-
-      contractToast.success('Successfully minted FUZZ tokens! 🎉');
-      await refreshBalance();
+      await mint();
+      refreshBalance();
     } catch (error) {
       console.error('Error minting:', error);
-      contractToast.error(error);
-    } finally {
-      setIsMinting(false);
     }
   };
 
-  // ScoreBars component
   function ScoreBars({ scores }: { scores: { trump: number; xi: number } }) {
     const currentScore = selectedChampion === 'trump' ? scores.trump : scores.xi;
     const currentImage = selectedChampion === 'trump' ? '/trump.png' : '/xi.png';
@@ -373,25 +291,24 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
     );
   }
 
-  // Selected agent logic
-  const selectedAgent = selectedChampion === 'trump' ? agentA : agentB;
-
   return (
     <>
       <SidebarGroup className="space-y-4">
         <SidebarGroupLabel className="text-sm font-medium">Battle Status</SidebarGroupLabel>
-        {!isLoadingAgents && <ScoreBars scores={currentScores} />}
+        {!isLoadingBattleData && battleData?.scores && (
+          <ScoreBars scores={battleData.scores} />
+        )}
 
         <Card className="bg-card p-6">
           <div className="flex items-center gap-3 text-xl font-bold">
             <Trophy className="h-6 w-6 text-yellow-500" />
-            {isLoadingPool ? (
+            {isLoadingBattleData ? (
               <div className="flex items-center gap-2">
                 <Skeleton className="h-8 w-24" />
                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
               </div>
             ) : (
-              <span>{Number(totalPool).toFixed(2)} FUZZ</span>
+              <span>{Number(battleData?.totalPool || 0).toFixed(2)} FUZZ</span>
             )}
           </div>
 
@@ -410,33 +327,33 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
 
           <div className="mt-4 space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Agent {selectedAgent.name} Total:</span>
-              {isLoadingAgents ? (
+              <span className="text-muted-foreground">Agent {selectedAgent?.name} Total:</span>
+              {isLoadingBattleData ? (
                 <div className="flex items-center gap-2">
                   <Skeleton className="h-4 w-16" />
                   <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
                 </div>
               ) : (
-                <span className="font-mono">{selectedAgent.total} FUZZ</span>
+                <span className="font-mono">{selectedAgent?.total} FUZZ</span>
               )}
             </div>
           </div>
           <div className="mt-4 space-y-2 text-xs">
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Agent {selectedAgent.name}:</span>
-              {isLoadingAgents ? (
+              <span className="text-muted-foreground">Agent {selectedAgent?.name}:</span>
+              {isLoadingBattleData ? (
                 <div className="flex items-center gap-2">
                   <Skeleton className="h-4 w-24" />
                   <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
                 </div>
               ) : (
                 <a 
-                  href={`https://sepolia.basescan.org/address/${selectedAgent.address}`}
+                  href={`https://sepolia.basescan.org/address/${selectedAgent?.address}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-mono text-primary hover:underline"
                 >
-                  {truncateAddress(selectedAgent.address)}
+                  {truncateAddress(selectedAgent?.address || '')}
                   <ExternalLink className="inline ml-1 h-3 w-3" />
                 </a>
               )}
@@ -445,28 +362,33 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
 
           <div className="mt-6 space-y-2">
             <div className="flex justify-between items-center text-sm font-medium">
-              <span>Participants for {selectedAgent.name}</span>
+              <span>Participants for {selectedAgent?.name}</span>
               <span className="text-xs text-muted-foreground">
-                {participants.filter(p => 
+                {participantsData?.participants?.filter(p => 
                   selectedChampion === 'trump' 
                     ? Number(p.contributionA) > 0 
                     : Number(p.contributionB) > 0
-                ).length} total
+                )?.length || 0} total
               </span>
             </div>
 
-            <div className="max-h-[200px] overflow-y-auto space-y-2">
+            <div className="max-h-[200px] overflow-y-auto space-y-2 relative">
+              {isFetchingParticipants && (
+                <div className="absolute top-2 right-2">
+                  <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                </div>
+              )}
               {isLoadingParticipants ? (
                 <div className="flex items-center justify-center py-4">
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                 </div>
-              ) : participants.length > 0 ? (
-                participants
-                  .filter(p => 
-                    selectedChampion === 'trump' 
+              ) : participantsData?.participants?.length ? (
+                participantsData.participants
+                  .filter(p => {
+                    return selectedChampion === 'trump' 
                       ? Number(p.contributionA) > 0 
-                      : Number(p.contributionB) > 0
-                  )
+                      : Number(p.contributionB) > 0;
+                  })
                   .map((participant) => (
                     <div 
                       key={participant.address}
@@ -493,7 +415,7 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
                   ))
               ) : (
                 <div className="text-center text-sm text-muted-foreground py-4">
-                  No participants yet for {selectedAgent.name}
+                  No participants yet for {selectedAgent?.name}
                 </div>
               )}
             </div>
@@ -528,9 +450,9 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
           variant="secondary" 
           size="lg"
           onClick={() => setShowVoteDialog(true)}
-          disabled={isLoadingPool || isLoadingAgents}
+          disabled={isLoadingBattleData}
         >
-          {isLoadingPool || isLoadingAgents ? (
+          {isLoadingBattleData ? (
             <Loader2 className="h-4 w-4 animate-spin mr-2" />
           ) : (
             <Vote className="mr-2 h-5 w-5" />

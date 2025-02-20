@@ -1,57 +1,51 @@
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { ethers } from 'ethers';
 import { usePrivy } from '@privy-io/react-auth';
+import { queryKeys } from '@/lib/query-keys';
 
 interface UseTokenBalanceProps {
   tokenAddress: string;
-  enabled?: boolean; 
+  enabled?: boolean;
+}
+
+async function fetchTokenBalance(tokenAddress: string, userAddress: string) {
+  const provider = new ethers.providers.Web3Provider(window.ethereum);
+  const tokenContract = new ethers.Contract(
+    tokenAddress,
+    ['function balanceOf(address account) view returns (uint256)'],
+    provider
+  );
+  
+  const balance = await tokenContract.balanceOf(userAddress);
+  return ethers.utils.formatEther(balance);
 }
 
 export const useTokenBalance = ({ tokenAddress, enabled = true }: UseTokenBalanceProps) => {
-  const [balance, setBalance] = useState('0');
-  const [isLoading, setIsLoading] = useState(false);
-  const { authenticated } = usePrivy();
+  const { authenticated, user } = usePrivy();
+  const walletAddress = user?.wallet?.address;
 
-  const checkBalance = async () => {
-    setIsLoading(true);
-    try {
-      if (typeof window.ethereum !== 'undefined' && authenticated) {
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        const signer = provider.getSigner();
-        const tokenContract = new ethers.Contract(
-          tokenAddress,
-          ['function balanceOf(address account) view returns (uint256)'],
-          provider
-        );
-        
-        const userAddress = await signer.getAddress();
-        const balance = await tokenContract.balanceOf(userAddress);
-        const formattedBalance = ethers.utils.formatEther(balance);
-        setBalance(formattedBalance);
-        return formattedBalance;
-      }
-      return '0';
-    } catch (error) {
-      console.error('Error checking balance:', error);
-      return '0';
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (enabled && authenticated) {
-      checkBalance();
-    }
-  }, [enabled, authenticated, tokenAddress]);
+  const { 
+    data: balance = '0', 
+    isLoading,
+    refetch 
+  } = useQuery({
+    queryKey: [queryKeys.user.balance, tokenAddress, walletAddress],
+    queryFn: async () => {
+      if (!walletAddress) return '0';
+      return fetchTokenBalance(tokenAddress, walletAddress);
+    },
+    enabled: enabled && authenticated && !!walletAddress && typeof window !== 'undefined',
+    staleTime: 30000, 
+    refetchInterval: 60000, 
+    retry: 2
+  });
 
   const formattedBalance = Number(balance).toFixed(2);
 
-  return { 
-    balance, 
+  return {
+    balance,
     formattedBalance,
-    isLoading, 
-    checkBalance,
-    refresh: checkBalance 
+    isLoading,
+    refresh: refetch
   };
 };

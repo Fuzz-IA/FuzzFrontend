@@ -62,7 +62,7 @@ export function usePromptSubmission(): UsePromptSubmissionResult {
       contractToast.loading('Submitting prompt with bet...');
       const tx = await battleContract.betWithPrompt(
         selectedChampion === 'trump',
-        BETTING_AMOUNT
+        2000
       );
 
       contractToast.loading('Waiting for confirmation...');

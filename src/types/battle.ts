@@ -115,3 +115,10 @@ export interface BattleActionsProps {
 export interface ScoreBarsProps {
   scores: BattleScores;
 }
+
+export interface BattleDataHookResult {
+  data: BattleContractData | undefined;
+  isLoading: boolean;
+  error: Error | null;
+  refetch: () => Promise<void>;
+}

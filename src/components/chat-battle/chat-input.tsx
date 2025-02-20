@@ -13,7 +13,7 @@ interface ChatInputProps {
 export function ChatInput({ selectedChampion, onMessageSent }: ChatInputProps) {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const typingTimeoutRef = useRef<NodeJS.Timeout>();
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { submitPrompt, isLoading, isImproving, improveText } = usePromptSubmission();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {

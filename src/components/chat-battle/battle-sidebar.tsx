@@ -235,8 +235,8 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
     : battleData?.agentB;
 
   const currentRatio = selectedChampion === 'trump' 
-    ? battleData?.marketInfo.sideARatio 
-    : battleData?.marketInfo.sideBRatio;
+      ? battleData?.marketInfo.sideARatio ?? 0
+      : battleData?.marketInfo.sideBRatio ?? 0;
 
   const baseBetAmount = 2000; 
   const dynamicBetAmount = selectedChampion === 'trump'

@@ -76,12 +76,6 @@ export interface AgentInfo {
   total: string;
 }
 
-export interface BattleContractData {
-  totalPool: string;
-  agentA: AgentInfo;
-  agentB: AgentInfo;
-  scores: BattleScores;
-}
 
 export interface BattleScores {
   trump: number;
@@ -114,4 +108,39 @@ export interface BattleDataHookResult {
   isLoading: boolean;
   error: Error | null;
   refetch: () => Promise<void>;
+}
+
+export interface PromptSubmission {
+  message: string;
+  selectedChampion: ChampionType;
+}
+
+export interface UsePromptSubmissionResult {
+  submitPrompt: (data: PromptSubmission) => Promise<void>;
+  isLoading: boolean;
+  isImproving: boolean;
+  improveText: (text: string) => Promise<string>;
+}
+
+export interface BattleContractData {
+  totalPool: string;
+  agentA: AgentInfo;
+  agentB: AgentInfo;
+  gameEnded: boolean;
+  currentGameId: number;
+  marketInfo: DynamicBetAmounts;
+  scores: BattleScores;
+}
+
+export interface AgentInfo {
+  name: string;
+  address: string;
+  total: string;
+}
+
+export interface DynamicBetAmounts {
+  sideARatio: number;
+  sideBRatio: number;
+  costForSideA: string;
+  costForSideB: string;
 }

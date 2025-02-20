@@ -1,4 +1,3 @@
-'use client';
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
@@ -11,7 +10,7 @@ import {
   SidebarGroupLabel,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { Trophy, Vote, MessageSquarePlus, Info, Shield, Brain, Target, ChevronDown, Wallet, LogOut, ExternalLink } from 'lucide-react';
+import { Trophy, MessageSquarePlus, Info, Shield, Brain, Target, ChevronDown, Wallet, LogOut, ExternalLink } from 'lucide-react';
 import { XIcon, TelegramIcon } from '@/components/icons';
 import { usePrivy } from '@privy-io/react-auth';
 import {
@@ -21,20 +20,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { BetButton } from './bet-button';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { VotePromptDialog } from '@/components/battle/vote-prompt-dialog';
-import { useState, useEffect } from 'react';
-import { ethers } from 'ethers';
-import { BATTLE_ABI, BATTLE_ADDRESS, TOKEN_ADDRESS, TOKEN_ABI } from '@/lib/contracts/battle-abi';
+import {  TOKEN_ADDRESS } from '@/lib/contracts/battle-abi';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2 } from "lucide-react";
 import { ThemeToggle } from '../theme-toggle';
 import { contractToast } from '@/lib/utils';
 import { useBattleParticipants} from '@/hooks/useBattleParticipants';
-import { useNetworkSwitch } from '@/hooks/useNetworkSwitch';
 import { useTokenBalance } from "@/hooks/useTokenBalance";
-import { useQueryClient } from '@tanstack/react-query';
-import { Message } from '@/types/battle';
+
 import Image from 'next/image';
 import { useBattleData } from '@/hooks/useBattleData';
 import { useMintTokens}from '@/hooks/useBattleData';
@@ -172,7 +165,6 @@ function BattleInfo() {
       <SidebarGroup className="space-y-4">
         <div className="flex justify-between items-center">
           <SidebarGroupLabel className="text-md font-minecraft text-[#F3642E]">About Fuzz AI</SidebarGroupLabel>
-          {/* <ThemeToggle /> */}
         </div>
         <Card className="bg-black/40 border-[#F3642E] p-6">
           <h3 className="text-lg font-minecraft text-[#F3642E] mb-4">The Ultimate AI Combat Arena</h3>
@@ -217,11 +209,8 @@ interface BattleActionsProps {
   selectedChampion: 'trump' | 'xi';
 }
 
-interface AgentInfo {
-  name: string;
-  address: string;
-  total: string;
-}
+
+
 function BattleActions({ selectedChampion }: BattleActionsProps) {
   const { login, authenticated, user } = usePrivy();
   const { data: battleData, isLoading: isLoadingBattleData } = useBattleData();
@@ -241,11 +230,18 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
     enabled: authenticated && !!user?.wallet?.address
   });
 
-  const [showVoteDialog, setShowVoteDialog] = useState(false);
-
   const selectedAgent = selectedChampion === 'trump' 
     ? battleData?.agentA 
     : battleData?.agentB;
+
+  const currentRatio = selectedChampion === 'trump' 
+      ? battleData?.marketInfo.sideARatio ?? 0
+      : battleData?.marketInfo.sideBRatio ?? 0;
+
+  const baseBetAmount = 2000; 
+  const dynamicBetAmount = selectedChampion === 'trump'
+    ? Number(battleData?.marketInfo.costForSideA || baseBetAmount)
+    : Number(battleData?.marketInfo.costForSideB || baseBetAmount);
 
   const handleMint = async () => {
     if (!authenticated) {
@@ -271,7 +267,13 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
     return (
       <div className="flex flex-col w-full">
         <div className="flex items-center gap-2 w-full bg-card p-4 rounded-lg mb-2">
-          <img src={currentImage} alt={selectedChampion} className="w-8 h-8 rounded-full" />
+          <Image 
+            src={currentImage} 
+            alt={selectedChampion}
+            width={32}
+            height={32}
+            className="rounded-full"
+          />
           <div className="w-full">
             <div className="h-2 bg-muted rounded-full overflow-hidden">
               <div 
@@ -338,6 +340,29 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
               )}
             </div>
           </div>
+
+          <div className="mt-4 space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Market Ratio:</span>
+              <span className="font-mono">{(currentRatio || 0).toFixed(2)}%</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Base Bet Amount:</span>
+              <span className="font-mono">{baseBetAmount} FUZZ</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Dynamic Bet Amount:</span>
+              <span className="font-mono">{dynamicBetAmount.toFixed(2)} FUZZ</span>
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">
+              {currentRatio > 50 ? (
+                `Higher ratio increases required bet amount`
+              ) : (
+                `Lower ratio decreases required bet amount`
+              )}
+            </div>
+          </div>
+
           <div className="mt-4 space-y-2 text-xs">
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Agent {selectedAgent?.name}:</span>
@@ -444,31 +469,7 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
         </Button>
 
         <BetButton selectedChampion={selectedChampion} />
-
-        <Button 
-          className="w-full mb-3" 
-          variant="secondary" 
-          size="lg"
-          onClick={() => setShowVoteDialog(true)}
-          disabled={isLoadingBattleData}
-        >
-          {isLoadingBattleData ? (
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-          ) : (
-            <Vote className="mr-2 h-5 w-5" />
-          )}
-          Vote for next prompt
-        </Button>
       </SidebarGroup>
-
-      <Dialog open={showVoteDialog} onOpenChange={setShowVoteDialog}>
-        <DialogContent className="sm:max-w-[600px]">
-          <VotePromptDialog 
-            selectedChampion={selectedChampion} 
-            onClose={() => setShowVoteDialog(false)} 
-          />
-        </DialogContent>
-      </Dialog>
     </>
   );
 }

@@ -3,6 +3,7 @@ export const queryKeys = {
     totals: ['battle', 'totals'],
     participants: ['battle', 'participants'],
     gameInfo: ['battle', 'gameInfo'],
+    dynamicBets: ['battle', 'dynamicBets']
   },
   user: {
     balance: 'userBalance',

@@ -41,9 +41,8 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${minecraft.variable} antialiased bg-black`}
       >
-                <Toaster />
-
-        <ThemeProvider defaultTheme="system">
+        <Toaster />
+        <ThemeProvider>
           <QueryProvider>
             <PrivyClientProvider>{children}</PrivyClientProvider>
           </QueryProvider>

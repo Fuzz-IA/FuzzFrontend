@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -70,7 +69,6 @@ export function BattleSidebar({ selectedChampion, onChampionSelect }: BattleSide
               ⓘ
             </button>
           </div>
-          <ThemeToggle />
         </div>
         <div className="flex gap-3">
           <Button
@@ -208,8 +206,6 @@ function BattleInfo() {
 interface BattleActionsProps {
   selectedChampion: 'trump' | 'xi';
 }
-
-
 
 function BattleActions({ selectedChampion }: BattleActionsProps) {
   const { login, authenticated, user } = usePrivy();

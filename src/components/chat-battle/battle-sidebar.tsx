@@ -7,24 +7,16 @@ import {
   SidebarHeader,
   SidebarGroup,
   SidebarGroupLabel,
-  SidebarFooter,
 } from '@/components/ui/sidebar';
 import { Trophy, MessageSquarePlus, Info, Shield, Brain, Target, ChevronDown, Wallet, LogOut, ExternalLink } from 'lucide-react';
-import { XIcon, TelegramIcon } from '@/components/icons';
 import { usePrivy } from '@privy-io/react-auth';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+
 import { BetButton } from './bet-button';
 import {  TOKEN_ADDRESS } from '@/lib/contracts/battle-abi';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2 } from "lucide-react";
 import { ThemeToggle } from '../theme-toggle';
 import { contractToast } from '@/lib/utils';
-import { useBattleParticipants} from '@/hooks/useBattleParticipants';
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 
 import Image from 'next/image';
@@ -102,57 +94,6 @@ export function BattleSidebar({ selectedChampion, onChampionSelect }: BattleSide
           <BattleActions selectedChampion={selectedChampion} />
         )}
       </SidebarContent>
-      {/* <SidebarFooter className="border-t p-4 space-y-4">
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            className="flex-1 bg-primary/10 hover:bg-primary/20 text-primary dark:bg-primary/20 dark:hover:bg-primary/30"
-            onClick={() => window.open('https://twitter.com/fuzzai_xyz', '_blank')}
-            aria-label="Twitter"
-          >
-            <XIcon className="h-5 w-5" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className="flex-1 bg-primary/10 hover:bg-primary/20 text-primary dark:bg-primary/20 dark:hover:bg-primary/30"
-            onClick={() => window.open('https://t.me/fuzzai_xyz', '_blank')}
-            aria-label="Telegram"
-          >
-            <TelegramIcon className="h-5 w-5" />
-          </Button>
-        </div>
-        {authenticated ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger className="flex items-center justify-center gap-2 w-full px-4 py-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary dark:bg-primary/20 dark:hover:bg-primary/30 transition-colors font-medium">
-              {displayName}
-              <ChevronDown className="h-4 w-4" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-[264px]">
-              {user?.wallet?.address && (
-                <DropdownMenuItem className="cursor-pointer" onClick={() => window.open(`https://etherscan.io/address/${user?.wallet?.address}`, '_blank')}>
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  <span>View on Etherscan</span>
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuItem onClick={logout} className="cursor-pointer text-red-500 focus:text-red-500">
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Disconnect</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : (
-          <Button 
-            onClick={() => login()} 
-            className="w-full bg-primary/10 hover:bg-primary/20 text-primary dark:bg-primary/20 dark:hover:bg-primary/30"
-            size="lg"
-          >
-            <Wallet className="mr-2 h-5 w-5" />
-            Connect Wallet
-          </Button>
-        )}
-      </SidebarFooter> */}
     </Sidebar>
   );
 }
@@ -211,11 +152,6 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
   const { login, authenticated, user } = usePrivy();
   const { data: battleData, isLoading: isLoadingBattleData } = useBattleData();
   const { mint, isLoading: isMinting } = useMintTokens();
-  const { 
-    data: participantsData, 
-    isLoading: isLoadingParticipants,
-    isFetching: isFetchingParticipants 
-  } = useBattleParticipants();
 
   const { 
     formattedBalance, 
@@ -234,7 +170,7 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
       ? battleData?.marketInfo.sideARatio ?? 0
       : battleData?.marketInfo.sideBRatio ?? 0;
 
-  const baseBetAmount = 2000; 
+  const baseBetAmount = 2000;
   const dynamicBetAmount = selectedChampion === 'trump'
     ? Number(battleData?.marketInfo.costForSideA || baseBetAmount)
     : Number(battleData?.marketInfo.costForSideB || baseBetAmount);
@@ -368,67 +304,6 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
               )}
             </div>
           </div>
-
-          {/* <div className="mt-6 space-y-2">
-            <div className="flex justify-between items-center text-sm font-medium">
-              <span className=" text-xs">Participants for {selectedAgent?.name}</span>
-              <span className="text-xs text-muted-foreground">
-                {participantsData?.participants?.filter(p => 
-                  selectedChampion === 'trump' 
-                    ? Number(p.contributionA) > 0 
-                    : Number(p.contributionB) > 0
-                )?.length || 0} total
-              </span>
-            </div>
-
-            <div className="max-h-[200px] overflow-y-auto space-y-2 relative">
-              {isFetchingParticipants && (
-                <div className="absolute top-2 right-2">
-                  <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-                </div>
-              )}
-              {isLoadingParticipants ? (
-                <div className="flex items-center justify-center py-4">
-                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                </div>
-              ) : participantsData?.participants?.length ? (
-                participantsData.participants
-                  .filter(p => {
-                    return selectedChampion === 'trump' 
-                      ? Number(p.contributionA) > 0 
-                      : Number(p.contributionB) > 0;
-                  })
-                  .map((participant) => (
-                    <div 
-                      key={participant.address}
-                      className="text-xs p-2 bg-muted/50 rounded-lg space-y-1"
-                    >
-                      <div className="flex items-center justify-between">
-                        <a
-                          href={`https://sepolia.basescan.org/address/${participant.address}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary hover:underline flex items-center"
-                        >
-                          {truncateAddress(participant.address)}
-                          <ExternalLink className="h-3 w-3 ml-1" />
-                        </a>
-                        <span className="text-muted-foreground">
-                          {Number(selectedChampion === 'trump' 
-                            ? participant.contributionA 
-                            : participant.contributionB
-                          ).toFixed(2)} FUZZ
-                        </span>
-                      </div>
-                    </div>
-                  ))
-              ) : (
-                <div className="text-center text-sm text-muted-foreground py-4">
-                  No participants yet for {selectedAgent?.name}
-                </div>
-              )}
-            </div>
-          </div> */}
         </Card>
       </SidebarGroup>
 

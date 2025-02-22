@@ -51,7 +51,7 @@ export function ClickableAgentAvatar({ agentId, avatar, name, color, initials }:
       {/* Avatar clickeable */}
       <button
         onClick={handleClick}
-        className={`flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden ${!avatar ? color : ''} text-white flex items-center justify-center font-medium text-sm border-2 border-primary/20 transition-all hover:scale-105 hover:border-primary/40`}
+        className={`flex-shrink-0 w-12 h-12 rounded-full overflow-hidden ${!avatar ? color : ''} text-white flex items-center justify-center font-medium text-sm border-2 border-primary/20 transition-all hover:scale-105 hover:border-primary/40`}
       >
         {avatar ? (
           <img 

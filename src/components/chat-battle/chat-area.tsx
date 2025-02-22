@@ -23,21 +23,21 @@ const AGENTS_INFO = {
         name: 'Donald Trump',
         color: 'bg-orange-500',
         initials: 'DT',
-        avatar: '/trump.png',
+        avatar: '/trumpProfile.svg',
         side: 'trump' as const
     },
     [AGENT_IDS.AGENT2_ID]: {
         name: 'Xi Jinping',
         color: 'bg-red-500',
         initials: 'CN',
-        avatar: '/xi.png',
+        avatar: '/xiProfile.svg',
         side: 'xi' as const
     },
     [AGENT_IDS.AGENT3_ID]: {
         name: 'Fuzz',
         color: 'bg-blue-500',
         initials: 'FZ',
-        avatar: '/fuzz.jpg',
+        avatar: '/fuzzProfile.svg',
         side: 'fuzz' as const
     }
 } as const;

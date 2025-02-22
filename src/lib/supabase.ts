@@ -30,6 +30,13 @@ export interface Prompt {
   votes_count: number
 }
 
+export interface BetSubmission {
+  wallet_address: string
+  amount: number
+  is_agent_a: boolean
+}
+
+
 export async function disableAllPrompts() {
   const { data, error } = await supabase
     .rpc('disable_all_prompts')
@@ -86,4 +93,18 @@ export async function getPrompts(isAgentA: boolean): Promise<Prompt[]> {
   
   if (error) throw error
   return data || []
+} 
+
+export async function saveBet(data: BetSubmission) {
+  const currentGameId = await getCurrentGameId()
+  const { error } = await supabase
+    .from('bets')
+    .insert([{ 
+      ...data, 
+      game_id: currentGameId,
+      bet_time: new Date().toISOString()
+    }])
+  
+  if (error) throw error
+  return true
 } 

@@ -8,6 +8,8 @@ import { BATTLE_ADDRESS, BATTLE_ABI, TOKEN_ADDRESS, BETTING_AMOUNT } from '@/lib
 import { improveText as improveTextAPI, generateShortDescription } from '@/lib/openai';
 import { savePromptSubmission } from '@/lib/supabase';
 import { contractToast } from '@/lib/utils';
+import {useInvalidations} from './useInvalidations'
+
 import type { PromptSubmission, UsePromptSubmissionResult } from '@/types/battle';
 
 export function usePromptSubmission(): UsePromptSubmissionResult {
@@ -15,13 +17,14 @@ export function usePromptSubmission(): UsePromptSubmissionResult {
   const [isImproving, setIsImproving] = useState(false);
   const { login, authenticated, user } = usePrivy();
   const { switchToBaseSepolia } = useNetworkSwitch();
+  const { invalidateAll } = useInvalidations();
 
   const { checkAndApproveAllowance, isCheckingAllowance } = useTokenAllowance({
     spenderAddress: BATTLE_ADDRESS,
     requiredAmount: BETTING_AMOUNT
   });
 
-  const { formattedBalance: tokenBalance, refresh: refreshBalance } = useTokenBalance({
+  const { formattedBalance: tokenBalance } = useTokenBalance({
     tokenAddress: TOKEN_ADDRESS
   });
 
@@ -81,7 +84,7 @@ export function usePromptSubmission(): UsePromptSubmissionResult {
         prompt_id: Number(promptId)
       });
 
-      await refreshBalance();
+      invalidateAll();
       contractToast.success('Prompt submitted successfully! 🎉');
       return promptId;
     } catch (error) {

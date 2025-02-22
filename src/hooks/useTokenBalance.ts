@@ -1,12 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query'; // Añadimos useQueryClient
 import { ethers } from 'ethers';
 import { usePrivy } from '@privy-io/react-auth';
 import { queryKeys } from '@/lib/query-keys';
-
-interface UseTokenBalanceProps {
-  tokenAddress: string;
-  enabled?: boolean;
-}
+import { UseTokenBalanceProps } from '@/types/battle';
 
 async function fetchTokenBalance(tokenAddress: string, userAddress: string) {
   const provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -23,13 +19,15 @@ async function fetchTokenBalance(tokenAddress: string, userAddress: string) {
 export const useTokenBalance = ({ tokenAddress, enabled = true }: UseTokenBalanceProps) => {
   const { authenticated, user } = usePrivy();
   const walletAddress = user?.wallet?.address;
+  const queryClient = useQueryClient(); 
+
+  const queryKey = [...queryKeys.user.balance, tokenAddress, walletAddress] as const;
 
   const { 
     data: balance = '0', 
     isLoading,
-    refetch 
   } = useQuery({
-    queryKey: [queryKeys.user.balance, tokenAddress, walletAddress],
+    queryKey,
     queryFn: async () => {
       if (!walletAddress) return '0';
       return fetchTokenBalance(tokenAddress, walletAddress);
@@ -42,10 +40,16 @@ export const useTokenBalance = ({ tokenAddress, enabled = true }: UseTokenBalanc
 
   const formattedBalance = Number(balance).toFixed(2);
 
+  const invalidateBalance = () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKey
+      });
+    };
+
   return {
     balance,
     formattedBalance,
     isLoading,
-    refresh: refetch
+    invalidateBalance 
   };
 };

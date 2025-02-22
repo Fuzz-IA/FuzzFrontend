@@ -144,3 +144,8 @@ export interface DynamicBetAmounts {
   costForSideA: string;
   costForSideB: string;
 }
+
+export interface UseTokenBalanceProps {
+  tokenAddress: string;
+  enabled?: boolean;
+}

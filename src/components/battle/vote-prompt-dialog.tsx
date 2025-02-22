@@ -15,6 +15,7 @@ import { VotePromptDialogProps} from "@/types/battle"
 import { useTokenAllowance } from "@/hooks/useTokenAllowance";
 import { useNetworkSwitch } from "@/hooks/useNetworkSwitch";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
+import { useInvalidations } from '@/hooks/useInvalidations';
 
 function truncateAddress(address: string) {
   if (!address) return '';
@@ -23,9 +24,9 @@ function truncateAddress(address: string) {
 
 export function VotePromptDialog({ selectedChampion, onClose }: VotePromptDialogProps) {
   const { switchToBaseSepolia } = useNetworkSwitch();
+  const { invalidateAll } = useInvalidations();
   const { 
-    formattedBalance: tokenBalance, 
-    refresh: refreshBalance 
+    formattedBalance: tokenBalance 
   } = useTokenBalance({ 
     tokenAddress: TOKEN_ADDRESS 
   });
@@ -78,13 +79,13 @@ export function VotePromptDialog({ selectedChampion, onClose }: VotePromptDialog
       const battleContract = new ethers.Contract(BATTLE_ADDRESS, BATTLE_ABI, signer);
       const tx = await battleContract.voteForPrompt(promptId, BETTING_AMOUNT);
       await tx.wait();
-      
+
       // Increment vote count in Supabase
       await incrementVoteCount(promptId);
-      
+
       contractToast.success('Vote submitted successfully! 🎉');
 
-      await refreshBalance();
+      invalidateAll();
       onClose();
     } catch (error) {
       console.error('Error voting:', error);
@@ -152,4 +153,4 @@ export function VotePromptDialog({ selectedChampion, onClose }: VotePromptDialog
       )}
     </DialogContent>
   );
-} 
+}

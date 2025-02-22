@@ -18,7 +18,7 @@ import { Loader2 } from "lucide-react";
 import { ThemeToggle } from '../theme-toggle';
 import { contractToast } from '@/lib/utils';
 import { useTokenBalance } from "@/hooks/useTokenBalance";
-
+import { useInvalidations } from '@/hooks/useInvalidations'; 
 import Image from 'next/image';
 import { useBattleData } from '@/hooks/useBattleData';
 import { useMintTokens}from '@/hooks/useBattleData';
@@ -152,6 +152,9 @@ interface BattleActionsProps {
 function BattleActions({ selectedChampion }: BattleActionsProps) {
   const { login, authenticated, user } = usePrivy();
   const { data: battleData, isLoading: isLoadingBattleData } = useBattleData();
+  const { mint, isLoading: isMinting } = useMintTokens();
+  const { invalidateAll } = useInvalidations();
+
   const { 
     formattedBalance, 
     isLoading: isLoadingBalance,
@@ -163,6 +166,21 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
   const selectedAgent = selectedChampion === 'trump' 
     ? battleData?.agentA 
     : battleData?.agentB;
+
+  const handleMint = async () => {
+    if (!authenticated) {
+      contractToast.wallet.notConnected();
+      login();
+      return;
+    }
+
+    try {
+      await mint();
+      invalidateAll();
+    } catch (error) {
+      console.error('Error minting:', error);
+    }
+  };
 
   function ScoreBars({ scores }: { scores: { trump: number; xi: number } }) {
     const currentScore = selectedChampion === 'trump' ? scores.trump : scores.xi;

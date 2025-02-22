@@ -11,6 +11,7 @@ import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { useTokenAllowance } from '@/hooks/useTokenAllowance';
 import { useNetworkSwitch } from '@/hooks/useNetworkSwitch';
 import { useDynamicBetAmount } from '@/hooks/useDynamicBetAmount';
+import { useInvalidations } from '@/hooks/useInvalidations';
 import { X } from 'lucide-react';
 import { saveBet } from '@/lib/supabase';
 
@@ -20,8 +21,18 @@ interface BetButtonProps {
 
 export function BetButton({ selectedChampion: initialChampion }: BetButtonProps) {
   const { data: dynamicData, isLoading: isLoadingDynamicAmount } = useDynamicBetAmount();
+  const { invalidateAll } = useInvalidations();
   const [selectedChampion, setSelectedChampion] = useState<'trump' | 'xi'>(initialChampion);
   const [gameEnded, setGameEnded] = useState(false);
+
+  const minBetAmount = useMemo(() => {
+    if (!dynamicData) return '0';
+    const baseAmount = selectedChampion === 'trump' 
+      ? dynamicData.costForSideA 
+      : dynamicData.costForSideB;
+    return baseAmount;
+  }, [dynamicData, selectedChampion]);
+
   const [betAmount, setBetAmount] = useState('');
   const [showBetDialog, setShowBetDialog] = useState(false);
   const [isBetting, setIsBetting] = useState(false);
@@ -30,12 +41,9 @@ export function BetButton({ selectedChampion: initialChampion }: BetButtonProps)
 
   const displayName = selectedChampion === 'trump' ? 'Trump' : 'Xi';
 
-  const minBetAmount = useMemo(() => {
-    if (!dynamicData) return '0';
-    return selectedChampion === 'trump' ? dynamicData.costForSideA : dynamicData.costForSideB;
-  }, [dynamicData, selectedChampion]);
-
-  const { formattedBalance: tokenBalance, refresh: refreshBalance } = useTokenBalance({
+  const {
+    formattedBalance: tokenBalance
+  } = useTokenBalance({
     tokenAddress: TOKEN_ADDRESS
   });
 
@@ -82,33 +90,30 @@ export function BetButton({ selectedChampion: initialChampion }: BetButtonProps)
       const signer = provider.getSigner();
       const battleContract = new ethers.Contract(BATTLE_ADDRESS, BATTLE_ABI, signer);
 
-      try {
-        const tx = await battleContract.betOnAgent(selectedChampion === 'trump', betAmountInWei);
-        await tx.wait();
+      const tx = await battleContract.betOnAgent(selectedChampion === 'trump', betAmountInWei);
+      await tx.wait();
 
-        const walletAddress = await signer.getAddress();
-        await saveBet({
-          wallet_address: walletAddress,
-          amount: Number(betAmount),
-          is_agent_a: selectedChampion === 'trump'
-        });
+      const walletAddress = await signer.getAddress();
+      await saveBet({
+        wallet_address: walletAddress,
+        amount: Number(betAmount),
+        is_agent_a: selectedChampion === 'trump'
+      });
 
-        contractToast.success(`Successfully bet ${betAmount} FUZZ on ${displayName}!`);
-        await refreshBalance();
-        setShowBetDialog(false);
-        setBetAmount('');
-      } catch (error: any) {
-        if (error?.error?.body?.includes('Game has ended')) {
-          setGameEnded(true);
-          contractToast.error('This game has ended. Please wait for the next round.');
-        } else {
-          console.error('Error:', error);
-          contractToast.error(error);
-        }
+      contractToast.success(`Successfully bet ${betAmount} FUZZ on ${displayName}!`);
+
+      invalidateAll();
+
+      setShowBetDialog(false);
+      setBetAmount('');
+    } catch (error: any) {
+      if (error?.error?.body?.includes('Game has ended')) {
+        setGameEnded(true);
+        contractToast.error('This game has ended. Please wait for the next round.');
+      } else {
+        console.error('Error:', error);
+        contractToast.error(error);
       }
-    } catch (error) {
-      console.error('Error:', error);
-      contractToast.error(error);
     } finally {
       setIsBetting(false);
     }
@@ -178,7 +183,7 @@ export function BetButton({ selectedChampion: initialChampion }: BetButtonProps)
               <span className="text-xl font-minecraft">Amount</span>
               <span className="text-sm opacity-80">Minimum: {minBetAmount} FUZZ</span>
             </div>
-            
+
             <div className="relative mt-4">
               <div className="absolute left-0 top-1/2 -translate-y-1/2 text-4xl font-minecraft text-[#F3642E]">$</div>
               <input

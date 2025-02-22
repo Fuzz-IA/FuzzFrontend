@@ -1,4 +1,4 @@
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation,useQueryClient } from '@tanstack/react-query';
 import { ethers } from 'ethers';
 import { BATTLE_ABI, BATTLE_ADDRESS, TOKEN_ABI, TOKEN_ADDRESS } from '@/lib/contracts/battle-abi';
 import { useNetworkSwitch } from '@/hooks/useNetworkSwitch';
@@ -9,7 +9,6 @@ import {
   MintTokensHookResult 
 } from '@/types/battle';
 import { contractToast } from '@/lib/utils';
-import { useQueryClient } from '@tanstack/react-query';
 import { fetchDynamicBetAmounts } from './useDynamicBetAmount';
 
 async function fetchBattleData(): Promise<BattleContractData> {

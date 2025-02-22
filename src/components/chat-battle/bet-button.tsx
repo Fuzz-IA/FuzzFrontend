@@ -13,6 +13,7 @@ import { useTokenAllowance } from '@/hooks/useTokenAllowance';
 import { useNetworkSwitch } from '@/hooks/useNetworkSwitch';
 import { useDynamicBetAmount } from '@/hooks/useDynamicBetAmount';
 import { useMemo } from 'react';
+import { useInvalidations } from '@/hooks/useInvalidations';
 
 interface BetButtonProps {
   selectedChampion: 'trump' | 'xi';
@@ -20,6 +21,7 @@ interface BetButtonProps {
 
 export function BetButton({ selectedChampion }: BetButtonProps) {
   const { data: dynamicData, isLoading: isLoadingDynamicAmount } = useDynamicBetAmount();
+  const { invalidateAll } = useInvalidations();
 
   const minBetAmount = useMemo(() => {
     if (!dynamicData) return '0';
@@ -38,8 +40,7 @@ export function BetButton({ selectedChampion }: BetButtonProps) {
   const displayName = selectedChampion === 'trump' ? 'Trump' : 'Xi';
 
   const {
-    formattedBalance: tokenBalance,
-    refresh: refreshBalance
+    formattedBalance: tokenBalance
   } = useTokenBalance({
     tokenAddress: TOKEN_ADDRESS
   });
@@ -104,7 +105,9 @@ export function BetButton({ selectedChampion }: BetButtonProps) {
       await tx.wait();
 
       contractToast.success(`Successfully bet ${betAmount} FUZZ on ${displayName}!`);
-      await refreshBalance();
+
+      invalidateAll();
+
       setShowBetDialog(false);
       setBetAmount('');
     } catch (error) {

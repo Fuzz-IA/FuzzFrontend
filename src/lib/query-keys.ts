@@ -6,6 +6,6 @@ export const queryKeys = {
     dynamicBets: ['battle', 'dynamicBets']
   },
   user: {
-    balance: 'userBalance',
+    balance: ['userBalance','balance']
   },
 } as const;

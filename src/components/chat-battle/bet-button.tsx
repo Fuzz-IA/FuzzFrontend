@@ -13,13 +13,15 @@ import { useTokenAllowance } from '@/hooks/useTokenAllowance';
 import { useNetworkSwitch } from '@/hooks/useNetworkSwitch';
 import { useDynamicBetAmount } from '@/hooks/useDynamicBetAmount';
 import { useMemo } from 'react';
+import { X } from 'lucide-react';
 
 interface BetButtonProps {
   selectedChampion: 'trump' | 'xi';
 }
 
-export function BetButton({ selectedChampion }: BetButtonProps) {
+export function BetButton({ selectedChampion: initialChampion }: BetButtonProps) {
   const { data: dynamicData, isLoading: isLoadingDynamicAmount } = useDynamicBetAmount();
+  const [selectedChampion, setSelectedChampion] = useState<'trump' | 'xi'>(initialChampion);
 
   const minBetAmount = useMemo(() => {
     if (!dynamicData) return '0';
@@ -120,83 +122,115 @@ export function BetButton({ selectedChampion }: BetButtonProps) {
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 mt-4">
       <Button 
         onClick={() => authenticated ? setShowBetDialog(true) : login()}
         disabled={isCheckingAllowance || isBetting}
         variant="outline"
-        className="w-full"
+        className="w-full bg-[#F3642E] text-black font-minecraft hover:bg-[#E88B5D]/90 hover:text-black text-lg"
       >
         {!authenticated ? 'Connect Wallet' : 
                  isCheckingAllowance ? 'Checking Allowance...' : 
                  isBetting ? 'Betting...' : 
-                 `Bet for ${displayName}`}
+                 `Bet for ${displayName} Agent`}
       </Button>
 
       <Dialog open={showBetDialog} onOpenChange={setShowBetDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Place your bet for {displayName}</DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col gap-6">
-            <div className="space-y-4">
-              <div className="text-xs text-muted-foreground">
-                <pre>
-                  {JSON.stringify({
-                    dynamicData,
-                    minBetAmount,
-                    betAmount,
-                    isLoading: isLoadingDynamicAmount
-                  }, null, 2)}
-                </pre>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Available Balance:</span>
-                <span className="font-mono text-sm">{Number(tokenBalance).toFixed(2)} FUZZ</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Bet Amount:</span>
-                <span className="font-mono text-sm">{Number(betAmount || '0').toFixed(2)} FUZZ</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Minimum Bet:</span>
-                <span className="font-mono text-sm">
-                  {isLoadingDynamicAmount 
-                    ? 'Loading...' 
-                    : `${minBetAmount} FUZZ`}
-                </span>
-              </div>
-              {dynamicData && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Market Ratio:</span>
-                  <span className="font-mono text-sm">
-                    {(selectedChampion === 'trump' 
-                      ? dynamicData.sideARatio 
-                      : dynamicData.sideBRatio).toFixed(2)}%
-                  </span>
-                </div>
-              )}
+        <DialogContent className="bg-black text-[#F3642E] p-6 rounded-lg">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-minecraft">Bet</h2>
+            <button onClick={() => setShowBetDialog(false)} className="text-[#F3642E] hover:opacity-80">
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+
+          <div className="flex gap-4 mt-6">
+            <button 
+              onClick={() => {
+                setSelectedChampion('trump');
+                setBetAmount(dynamicData?.costForSideA || '0');
+              }}
+              className={`flex-1 py-4 rounded-lg font-minecraft ${
+                selectedChampion === 'trump' 
+                  ? 'bg-[#F3642E] text-black' 
+                  : 'bg-black text-[#F3642E]'
+              }`}
+            >
+              Trump
+            </button>
+            <button 
+              onClick={() => {
+                setSelectedChampion('xi');
+                setBetAmount(dynamicData?.costForSideB || '0');
+              }}
+              className={`flex-1 py-4 rounded-lg font-minecraft ${
+                selectedChampion === 'xi' 
+                  ? 'bg-[#F3642E] text-black' 
+                  : 'bg-black text-[#F3642E]'
+              }`}
+            >
+              Xi Jinping
+            </button>
+          </div>
+
+          <div className="mt-8">
+            <div className="flex justify-between items-center">
+              <span className="text-xl font-minecraft">Amount</span>
+              <span className="text-sm opacity-80">Minimum: {minBetAmount} FUZZ</span>
+            </div>
+            
+            <div className="relative mt-4">
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 text-4xl font-minecraft text-[#F3642E]">$</div>
+              <input
+                type="number"
+                value={isLoadingDynamicAmount ? '' : (betAmount || minBetAmount || '0')}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === '') {
+                    setBetAmount(minBetAmount || '0');
+                  } else {
+                    setBetAmount(value);
+                  }
+                }}
+                className="w-full bg-transparent text-4xl font-minecraft pl-8 focus:outline-none text-[#F3642E]"
+                placeholder={isLoadingDynamicAmount ? 'Loading...' : '0'}
+                min={minBetAmount || '0'}
+              />
             </div>
 
-            <div className="space-y-4">
-              <Slider
-                defaultValue={[Number(minBetAmount || 0)]}
-                min={Number(minBetAmount || 0)}
-                max={Number(tokenBalance)}
-                step={0.1}
-                value={[Number(betAmount || 0)]}
-                onValueChange={handleSliderChange}
-                className="w-full"
-                disabled={isLoadingDynamicAmount}
-              />
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>{minBetAmount} FUZZ</span>
-                <span>{Number(tokenBalance).toFixed(2)} FUZZ</span>
-              </div>
+            <div className="flex gap-2 mt-6">
+              <Button 
+                onClick={() => setBetAmount((prev) => (Number(prev) + 100).toString())}
+                variant="outline" 
+                className="flex-1 bg-black text-[#F3642E] hover:bg-[#F3642E] hover:text-black border-none"
+              >
+                +$100
+              </Button>
+              <Button 
+                onClick={() => setBetAmount((prev) => (Number(prev) + 8347).toString())}
+                variant="outline" 
+                className="flex-1 bg-black text-[#F3642E] hover:bg-[#F3642E] hover:text-black border-none"
+              >
+                +$8347
+              </Button>
+              <Button 
+                onClick={() => setBetAmount((prev) => (Number(prev) + 9747).toString())}
+                variant="outline" 
+                className="flex-1 bg-black text-[#F3642E] hover:bg-[#F3642E] hover:text-black border-none"
+              >
+                +$9747
+              </Button>
+              <Button 
+                onClick={() => setBetAmount((prev) => (Number(prev) + 10000).toString())}
+                variant="outline" 
+                className="flex-1 bg-black text-[#F3642E] hover:bg-[#F3642E] hover:text-black border-none"
+              >
+                +$10000
+              </Button>
             </div>
 
             <Button 
-              onClick={handleBet} 
+              onClick={handleBet}
               disabled={
                 !betAmount || 
                 !minBetAmount ||
@@ -205,15 +239,9 @@ export function BetButton({ selectedChampion }: BetButtonProps) {
                 Number(betAmount) > Number(tokenBalance) ||
                 Number(betAmount) < Number(minBetAmount)
               }
-              className="w-full"
+              className="w-full mt-6 bg-[#F3642E] text-black hover:bg-[#F3642E]/90 font-minecraft rounded-lg"
             >
-              {!authenticated ? 'Connect Wallet' : 
-               isLoadingDynamicAmount ? 'Loading minimum bet...' :
-               isCheckingAllowance ? 'Checking Allowance...' : 
-               isBetting ? 'Betting...' : 
-               Number(betAmount) > Number(tokenBalance) ? 'Insufficient Balance' :
-               Number(betAmount) < Number(minBetAmount) ? `Minimum bet is ${minBetAmount} FUZZ` :
-               `Bet ${betAmount} FUZZ for ${displayName}`}
+              {`Bet for ${displayName}`}
             </Button>
           </div>
         </DialogContent>

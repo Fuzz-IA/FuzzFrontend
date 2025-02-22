@@ -15,7 +15,6 @@ import { BetButton } from './bet-button';
 import {  TOKEN_ADDRESS } from '@/lib/contracts/battle-abi';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2 } from "lucide-react";
-import { ThemeToggle } from '../theme-toggle';
 import { contractToast } from '@/lib/utils';
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 

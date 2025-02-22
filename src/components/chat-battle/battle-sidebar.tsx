@@ -294,29 +294,6 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
           </div>
         </Card>
       </SidebarGroup>
-
-      <SidebarGroup className="space-y-4 mt-6">
-        <Button
-          className="w-full mb-3"
-          variant="outline"
-          onClick={handleMint}
-          disabled={isMinting}
-        >
-          {isMinting ? (
-            <div className="flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Minting...
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Wallet className="h-4 w-4" />
-              Mint FUZZ Tokens
-            </div>
-          )}
-        </Button>
-
-        <BetButton selectedChampion={selectedChampion} />
-      </SidebarGroup>
     </>
   );
 }

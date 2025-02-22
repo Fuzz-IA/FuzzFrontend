@@ -152,12 +152,9 @@ interface BattleActionsProps {
 function BattleActions({ selectedChampion }: BattleActionsProps) {
   const { login, authenticated, user } = usePrivy();
   const { data: battleData, isLoading: isLoadingBattleData } = useBattleData();
-  const { mint, isLoading: isMinting } = useMintTokens();
-
   const { 
     formattedBalance, 
     isLoading: isLoadingBalance,
-    refresh: refreshBalance 
   } = useTokenBalance({ 
     tokenAddress: TOKEN_ADDRESS,
     enabled: authenticated && !!user?.wallet?.address
@@ -166,30 +163,6 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
   const selectedAgent = selectedChampion === 'trump' 
     ? battleData?.agentA 
     : battleData?.agentB;
-
-  const currentRatio = selectedChampion === 'trump' 
-      ? battleData?.marketInfo.sideARatio ?? 0
-      : battleData?.marketInfo.sideBRatio ?? 0;
-
-  const baseBetAmount = 2000;
-  const dynamicBetAmount = selectedChampion === 'trump'
-    ? Number(battleData?.marketInfo.costForSideA || baseBetAmount)
-    : Number(battleData?.marketInfo.costForSideB || baseBetAmount);
-
-  const handleMint = async () => {
-    if (!authenticated) {
-      contractToast.wallet.notConnected();
-      login();
-      return;
-    }
-
-    try {
-      await mint();
-      refreshBalance();
-    } catch (error) {
-      console.error('Error minting:', error);
-    }
-  };
 
   function ScoreBars({ scores }: { scores: { trump: number; xi: number } }) {
     const currentScore = selectedChampion === 'trump' ? scores.trump : scores.xi;
@@ -205,7 +178,7 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
             alt={selectedChampion}
             width={32}
             height={32}
-            className="rounded-full"
+            className="rounded-full object-cover aspect-square"
           />
           <div className="w-full">
             <div className="h-2 bg-muted rounded-full overflow-hidden">
@@ -222,28 +195,34 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
             Game Over - {selectedChampion === 'trump' ? 'Trump' : 'Xi'} has lost!
           </div>
         )}
+        <SidebarGroup className="space-y-4 mt-6">
+          <BetButton selectedChampion={selectedChampion} />
+        </SidebarGroup>
       </div>
     );
   }
 
   return (
     <>
-      <SidebarGroup className="space-y-4">
-        <SidebarGroupLabel className="text-sm font-medium">Battle Status</SidebarGroupLabel>
+      <SidebarGroup className="space-y-4 border-2 border-[#F3642E] rounded-xl pt-4">
+        <SidebarGroupLabel className="text-sm font-medium text-[#F3642E]">Battle Status</SidebarGroupLabel>
         {!isLoadingBattleData && battleData?.scores && (
           <ScoreBars scores={battleData.scores} />
         )}
 
         <Card className="bg-card p-6">
+          <div className="flex items-center gap-2 text-sm text-[#F3642E] font-bold pb-4">
+            Current Prize Pool
+          </div>
           <div className="flex items-center gap-3 text-xl font-bold">
-            <Trophy className="h-6 w-6 text-yellow-500" />
+            <Trophy className="h-6 w-6 text-[#F3642E]" />
             {isLoadingBattleData ? (
               <div className="flex items-center gap-2">
                 <Skeleton className="h-8 w-24" />
                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
               </div>
             ) : (
-              <span>{Number(battleData?.totalPool || 0).toFixed(2)} FUZZ</span>
+              <span className="text-sm">{Number(battleData?.totalPool || 0).toFixed(2)} FUZZ</span>
             )}
           </div>
 
@@ -262,43 +241,21 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
 
           <div className="mt-4 space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Agent {selectedAgent?.name} Total:</span>
+              <span className="text-muted-foreground text-xs">Agent {selectedAgent?.name} Pool: </span>
               {isLoadingBattleData ? (
                 <div className="flex items-center gap-2">
                   <Skeleton className="h-4 w-16" />
                   <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
                 </div>
               ) : (
-                <span className="font-mono">{selectedAgent?.total} FUZZ</span>
-              )}
-            </div>
-          </div>
-
-          <div className="mt-4 space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Market Ratio:</span>
-              <span className="font-mono">{(currentRatio || 0).toFixed(2)}%</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Base Bet Amount:</span>
-              <span className="font-mono">{baseBetAmount} FUZZ</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Dynamic Bet Amount:</span>
-              <span className="font-mono">{dynamicBetAmount.toFixed(2)} FUZZ</span>
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {currentRatio > 50 ? (
-                `Higher ratio increases required bet amount`
-              ) : (
-                `Lower ratio decreases required bet amount`
+                <span className="font-mono text-sm">{Number(selectedAgent?.total || 0).toFixed(2)} FUZZ</span>
               )}
             </div>
           </div>
 
           <div className="mt-4 space-y-2 text-xs">
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Agent {selectedAgent?.name}:</span>
+              <span className="text-muted-foreground text-sm">Agent {selectedAgent?.name}:</span>
               {isLoadingBattleData ? (
                 <div className="flex items-center gap-2">
                   <Skeleton className="h-4 w-24" />
@@ -318,29 +275,6 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
             </div>
           </div>
         </Card>
-      </SidebarGroup>
-
-      <SidebarGroup className="space-y-4 mt-6">
-        <Button
-          className="w-full mb-3"
-          variant="outline"
-          onClick={handleMint}
-          disabled={isMinting}
-        >
-          {isMinting ? (
-            <div className="flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Minting...
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Wallet className="h-4 w-4" />
-              Mint FUZZ Tokens
-            </div>
-          )}
-        </Button>
-
-        <BetButton selectedChampion={selectedChampion} />
       </SidebarGroup>
     </>
   );

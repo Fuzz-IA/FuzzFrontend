@@ -1,34 +1,27 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { usePrivy } from '@privy-io/react-auth';
 import { ethers } from 'ethers';
 import { BATTLE_ABI, BATTLE_ADDRESS, TOKEN_ADDRESS } from '@/lib/contracts/battle-abi';
-import { Slider } from "@/components/ui/slider";
 import { contractToast } from '@/lib/utils';
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { useTokenAllowance } from '@/hooks/useTokenAllowance';
 import { useNetworkSwitch } from '@/hooks/useNetworkSwitch';
 import { useDynamicBetAmount } from '@/hooks/useDynamicBetAmount';
-import { useMemo } from 'react';
+import { X } from 'lucide-react';
+import { saveBet } from '@/lib/supabase';
 
 interface BetButtonProps {
   selectedChampion: 'trump' | 'xi';
 }
 
-export function BetButton({ selectedChampion }: BetButtonProps) {
+export function BetButton({ selectedChampion: initialChampion }: BetButtonProps) {
   const { data: dynamicData, isLoading: isLoadingDynamicAmount } = useDynamicBetAmount();
-
-  const minBetAmount = useMemo(() => {
-    if (!dynamicData) return '0';
-    const baseAmount = selectedChampion === 'trump' 
-      ? dynamicData.costForSideA 
-      : dynamicData.costForSideB;
-    return baseAmount;
-  }, [dynamicData, selectedChampion]);
-
+  const [selectedChampion, setSelectedChampion] = useState<'trump' | 'xi'>(initialChampion);
+  const [gameEnded, setGameEnded] = useState(false);
   const [betAmount, setBetAmount] = useState('');
   const [showBetDialog, setShowBetDialog] = useState(false);
   const [isBetting, setIsBetting] = useState(false);
@@ -37,25 +30,22 @@ export function BetButton({ selectedChampion }: BetButtonProps) {
 
   const displayName = selectedChampion === 'trump' ? 'Trump' : 'Xi';
 
-  const {
-    formattedBalance: tokenBalance,
-    refresh: refreshBalance
-  } = useTokenBalance({
+  const minBetAmount = useMemo(() => {
+    if (!dynamicData) return '0';
+    return selectedChampion === 'trump' ? dynamicData.costForSideA : dynamicData.costForSideB;
+  }, [dynamicData, selectedChampion]);
+
+  const { formattedBalance: tokenBalance, refresh: refreshBalance } = useTokenBalance({
     tokenAddress: TOKEN_ADDRESS
   });
 
-  const {
-    checkAndApproveAllowance,
-    isCheckingAllowance
-  } = useTokenAllowance({
+  const { checkAndApproveAllowance, isCheckingAllowance } = useTokenAllowance({
     spenderAddress: BATTLE_ADDRESS,
     requiredAmount: ethers.utils.parseEther(betAmount || '0')
   });
 
   useEffect(() => {
-    if (minBetAmount) {
-      setBetAmount(minBetAmount);
-    }
+    if (minBetAmount) setBetAmount(minBetAmount);
   }, [minBetAmount]);
 
   const handleBet = async () => {
@@ -65,13 +55,8 @@ export function BetButton({ selectedChampion }: BetButtonProps) {
       return;
     }
 
-    if (!minBetAmount) {
-      contractToast.error('Dynamic bet amount not loaded');
-      return;
-    }
-
-    if (typeof window.ethereum === 'undefined') {
-      contractToast.wallet.notInstalled();
+    if (!minBetAmount || typeof window.ethereum === 'undefined') {
+      contractToast.error(minBetAmount ? 'Wallet not installed' : 'Dynamic bet amount not loaded');
       return;
     }
 
@@ -97,16 +82,30 @@ export function BetButton({ selectedChampion }: BetButtonProps) {
       const signer = provider.getSigner();
       const battleContract = new ethers.Contract(BATTLE_ADDRESS, BATTLE_ABI, signer);
 
-      const tx = await battleContract.betOnAgent(
-        selectedChampion === 'trump',
-        betAmountInWei
-      );
-      await tx.wait();
+      try {
+        const tx = await battleContract.betOnAgent(selectedChampion === 'trump', betAmountInWei);
+        await tx.wait();
 
-      contractToast.success(`Successfully bet ${betAmount} FUZZ on ${displayName}!`);
-      await refreshBalance();
-      setShowBetDialog(false);
-      setBetAmount('');
+        const walletAddress = await signer.getAddress();
+        await saveBet({
+          wallet_address: walletAddress,
+          amount: Number(betAmount),
+          is_agent_a: selectedChampion === 'trump'
+        });
+
+        contractToast.success(`Successfully bet ${betAmount} FUZZ on ${displayName}!`);
+        await refreshBalance();
+        setShowBetDialog(false);
+        setBetAmount('');
+      } catch (error: any) {
+        if (error?.error?.body?.includes('Game has ended')) {
+          setGameEnded(true);
+          contractToast.error('This game has ended. Please wait for the next round.');
+        } else {
+          console.error('Error:', error);
+          contractToast.error(error);
+        }
+      }
     } catch (error) {
       console.error('Error:', error);
       contractToast.error(error);
@@ -115,88 +114,101 @@ export function BetButton({ selectedChampion }: BetButtonProps) {
     }
   };
 
-  const handleSliderChange = (value: number[]) => {
-    setBetAmount(value[0].toString());
-  };
-
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 mt-4">
       <Button 
         onClick={() => authenticated ? setShowBetDialog(true) : login()}
-        disabled={isCheckingAllowance || isBetting}
+        disabled={isCheckingAllowance || isBetting || gameEnded}
         variant="outline"
-        className="w-full"
+        className="w-full bg-[#F3642E] text-black font-minecraft hover:bg-[#E88B5D]/90 hover:text-black text-lg"
       >
         {!authenticated ? 'Connect Wallet' : 
-                 isCheckingAllowance ? 'Checking Allowance...' : 
-                 isBetting ? 'Betting...' : 
-                 `Bet for ${displayName}`}
+         gameEnded ? 'Game has ended' :
+         isCheckingAllowance ? 'Checking Allowance...' : 
+         isBetting ? 'Betting...' : 
+         `Bet for ${displayName} Agent`}
       </Button>
 
-      <Dialog open={showBetDialog} onOpenChange={setShowBetDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Place your bet for {displayName}</DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col gap-6">
-            <div className="space-y-4">
-              <div className="text-xs text-muted-foreground">
-                <pre>
-                  {JSON.stringify({
-                    dynamicData,
-                    minBetAmount,
-                    betAmount,
-                    isLoading: isLoadingDynamicAmount
-                  }, null, 2)}
-                </pre>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Available Balance:</span>
-                <span className="font-mono text-sm">{Number(tokenBalance).toFixed(2)} FUZZ</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Bet Amount:</span>
-                <span className="font-mono text-sm">{Number(betAmount || '0').toFixed(2)} FUZZ</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Minimum Bet:</span>
-                <span className="font-mono text-sm">
-                  {isLoadingDynamicAmount 
-                    ? 'Loading...' 
-                    : `${minBetAmount} FUZZ`}
-                </span>
-              </div>
-              {dynamicData && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Market Ratio:</span>
-                  <span className="font-mono text-sm">
-                    {(selectedChampion === 'trump' 
-                      ? dynamicData.sideARatio 
-                      : dynamicData.sideBRatio).toFixed(2)}%
-                  </span>
-                </div>
-              )}
+      {gameEnded && (
+        <div className="text-sm text-[#F3642E] text-center">
+          This game has ended. Please wait for the next round.
+        </div>
+      )}
+
+      <Dialog open={showBetDialog && !gameEnded} onOpenChange={setShowBetDialog}>
+        <DialogContent className="bg-black text-[#F3642E] p-6 rounded-lg">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-minecraft">Bet</h2>
+            <button onClick={() => setShowBetDialog(false)} className="text-[#F3642E] hover:opacity-80">
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+
+          <div className="flex gap-4 mt-6">
+            <button 
+              onClick={() => {
+                setSelectedChampion('trump');
+                setBetAmount(dynamicData?.costForSideA || '0');
+              }}
+              className={`flex-1 py-4 rounded-lg font-minecraft ${
+                selectedChampion === 'trump' 
+                  ? 'bg-[#F3642E] text-black' 
+                  : 'bg-black text-[#F3642E]'
+              }`}
+            >
+              Trump
+            </button>
+            <button 
+              onClick={() => {
+                setSelectedChampion('xi');
+                setBetAmount(dynamicData?.costForSideB || '0');
+              }}
+              className={`flex-1 py-4 rounded-lg font-minecraft ${
+                selectedChampion === 'xi' 
+                  ? 'bg-[#F3642E] text-black' 
+                  : 'bg-black text-[#F3642E]'
+              }`}
+            >
+              Xi Jinping
+            </button>
+          </div>
+
+          <div className="mt-8">
+            <div className="flex justify-between items-center">
+              <span className="text-xl font-minecraft">Amount</span>
+              <span className="text-sm opacity-80">Minimum: {minBetAmount} FUZZ</span>
+            </div>
+            
+            <div className="relative mt-4">
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 text-4xl font-minecraft text-[#F3642E]">$</div>
+              <input
+                type="number"
+                value={isLoadingDynamicAmount ? '' : (betAmount || minBetAmount || '0')}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setBetAmount(value === '' ? minBetAmount || '0' : value);
+                }}
+                className="w-full bg-transparent text-4xl font-minecraft pl-8 focus:outline-none text-[#F3642E]"
+                placeholder={isLoadingDynamicAmount ? 'Loading...' : '0'}
+                min={minBetAmount || '0'}
+              />
             </div>
 
-            <div className="space-y-4">
-              <Slider
-                defaultValue={[Number(minBetAmount || 0)]}
-                min={Number(minBetAmount || 0)}
-                max={Number(tokenBalance)}
-                step={0.1}
-                value={[Number(betAmount || 0)]}
-                onValueChange={handleSliderChange}
-                className="w-full"
-                disabled={isLoadingDynamicAmount}
-              />
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>{minBetAmount} FUZZ</span>
-                <span>{Number(tokenBalance).toFixed(2)} FUZZ</span>
-              </div>
+            <div className="flex gap-2 mt-6">
+              {[100, 8347, 9747, 10000].map((amount) => (
+                <Button 
+                  key={amount}
+                  onClick={() => setBetAmount((prev) => (Number(prev) + amount).toString())}
+                  variant="outline" 
+                  className="flex-1 bg-black text-[#F3642E] hover:bg-[#F3642E] hover:text-black border-none"
+                >
+                  +${amount}
+                </Button>
+              ))}
             </div>
 
             <Button 
-              onClick={handleBet} 
+              onClick={handleBet}
               disabled={
                 !betAmount || 
                 !minBetAmount ||
@@ -205,15 +217,9 @@ export function BetButton({ selectedChampion }: BetButtonProps) {
                 Number(betAmount) > Number(tokenBalance) ||
                 Number(betAmount) < Number(minBetAmount)
               }
-              className="w-full"
+              className="w-full mt-6 bg-[#F3642E] text-black hover:bg-[#F3642E]/90 font-minecraft rounded-lg"
             >
-              {!authenticated ? 'Connect Wallet' : 
-               isLoadingDynamicAmount ? 'Loading minimum bet...' :
-               isCheckingAllowance ? 'Checking Allowance...' : 
-               isBetting ? 'Betting...' : 
-               Number(betAmount) > Number(tokenBalance) ? 'Insufficient Balance' :
-               Number(betAmount) < Number(minBetAmount) ? `Minimum bet is ${minBetAmount} FUZZ` :
-               `Bet ${betAmount} FUZZ for ${displayName}`}
+              {`Bet for ${displayName}`}
             </Button>
           </div>
         </DialogContent>

@@ -13,6 +13,7 @@ import { Message, PromptBetEvent , ProposePromptDialogProps} from "@/types/battl
 import { useTokenAllowance } from "@/hooks/useTokenAllowance";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { useNetworkSwitch } from "@/hooks/useNetworkSwitch";
+import { useInvalidations } from '@/hooks/useInvalidations';
 
 
 declare global {
@@ -28,6 +29,7 @@ export function ProposePromptDialog({ player, onSubmit, selectedChain, isSupport
   const [isImproving, setIsImproving] = useState(false)
   const { user, authenticated, login, ready } = usePrivy();
   const { switchToBaseSepolia } = useNetworkSwitch();
+  const { invalidateAll } = useInvalidations();
   
   const {
     checkAndApproveAllowance,
@@ -39,7 +41,7 @@ export function ProposePromptDialog({ player, onSubmit, selectedChain, isSupport
   
   const {
     formattedBalance: tokenBalance,
-    refresh: refreshBalance
+
   } = useTokenBalance({
     tokenAddress: TOKEN_ADDRESS
   });
@@ -169,6 +171,7 @@ export function ProposePromptDialog({ player, onSubmit, selectedChain, isSupport
       const receipt = await tx.wait();
       const event = receipt.events?.find((e: PromptBetEvent) => e.event === 'PromptBet');
       const promptId = event?.args?.promptId.toString();
+      invalidateAll();
 
       if (!promptId) {
         throw new Error('Failed to get prompt ID from transaction');

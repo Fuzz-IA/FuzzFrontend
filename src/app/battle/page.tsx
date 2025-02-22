@@ -14,9 +14,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { useState, useEffect } from "react"
 import { ProposePromptDialog } from "@/components/battle/propose-prompt-dialog"
-import { VotePromptDialog } from "@/components/battle/vote-prompt-dialog"
 import { PlayerAttributes, BattleData } from "@/types/battle"
-import { CountdownTimer } from "@/components/battle/countdown-timer"
 import { ethers } from 'ethers'
 import { BATTLE_ADDRESS, BATTLE_ABI } from '@/lib/contracts/battle-abi'
 import { BattleSidebar } from '@/components/chat-battle/battle-sidebar'

@@ -108,3 +108,18 @@ export async function saveBet(data: BetSubmission) {
   if (error) throw error
   return true
 } 
+
+export async function getLatestPrompt(isAgentA: boolean): Promise<Prompt | null> {
+  const currentGameId = await getCurrentGameId();
+
+  const { data, error } = await supabase
+    .from('prompt_submissions')
+    .select('*')
+    .eq('is_agent_a', isAgentA)
+    .eq('game_id', currentGameId)
+    .order('created_at', { ascending: false })
+    .limit(1);
+  
+  if (error) throw error;
+  return data && data.length > 0 ? data[0] : null;
+} 

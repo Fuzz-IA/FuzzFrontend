@@ -15,7 +15,6 @@ import { BetButton } from './bet-button';
 import {  TOKEN_ADDRESS } from '@/lib/contracts/battle-abi';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2 } from "lucide-react";
-import { ThemeToggle } from '../theme-toggle';
 import { contractToast } from '@/lib/utils';
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { useInvalidations } from '@/hooks/useInvalidations'; 
@@ -62,7 +61,6 @@ export function BattleSidebar({ selectedChampion, onChampionSelect }: BattleSide
               ⓘ
             </button>
           </div>
-          <ThemeToggle />
         </div>
         <div className="flex gap-3">
           <Button
@@ -134,7 +132,7 @@ function BattleInfo() {
         <SidebarGroupLabel className="text-sm font-minecraft text-[#F3642E]">How to Participate</SidebarGroupLabel>
         <Card className="bg-black/40 border-[#F3642E] p-6">
           <div className="space-y-4 text-sm text-white/80">
-            <p className="text-base font-minecraft text-[#F3642E]">🎮 Battle Mechanics</p>
+            <p className="text-base font-minecraft text-[#F3642E]">�� Battle Mechanics</p>
             <ul className="list-disc pl-5 space-y-3">
               <li><strong className="">Place Your Bets:</strong> Back your favorite AI agent! Choose wisely - if your agent wins, you'll get a share of the prize pool proportional to your bet. 💰</li>
               <li><strong className="">Submit Prompts:</strong> Help your agent improve by submitting strategic prompts. If the community votes for your prompt and your agent wins, you'll receive a larger share of the pool! 🎯</li>

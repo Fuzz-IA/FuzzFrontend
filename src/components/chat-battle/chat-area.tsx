@@ -8,6 +8,8 @@ import { SpringValue } from '@react-spring/web';
 import { ChatInput } from "./chat-input";
 import { ChatHeader } from "./chat-header";
 import { ClickableAgentAvatar } from "@/components/character/clickable-agent-avatar";
+import { Pin } from 'lucide-react';
+import { getLatestPrompt } from '@/lib/supabase';
 
 
 // Hardcoded agent IDs
@@ -59,6 +61,7 @@ interface Message {
         trump: number;
         xi: number;
     };
+    isPinned?: boolean;
 }
 
 interface ChatState {
@@ -163,6 +166,12 @@ function ChatMessages({ selectedChampion }: { selectedChampion: 'trump' | 'xi' |
         typingAgent: null,
         waitingResponse: false
     });
+    const [pinnedMessage, setPinnedMessage] = useState<Message | null>(null);
+    const [lastPrompt, setLastPrompt] = useState<{
+        message: string;
+        shortDescription: string;
+        fromAgent: string;
+    } | null>(null);
     const queryClient = useQueryClient();
     const messagesContainerRef = useRef<HTMLDivElement>(null);
     const [lastUpdateTime, setLastUpdateTime] = useState<number>(0);
@@ -254,6 +263,8 @@ function ChatMessages({ selectedChampion }: { selectedChampion: 'trump' | 'xi' |
 
             if (lastNewMessage && (!lastCurrentMessage || lastNewMessage.id !== lastCurrentMessage.id)) {
                 await simulateTyping(lastNewMessage);
+                // Pin the last message
+                setPinnedMessage(lastNewMessage);
             }
 
             queryClient.setQueryData(["messages"], newMessages);
@@ -261,6 +272,24 @@ function ChatMessages({ selectedChampion }: { selectedChampion: 'trump' | 'xi' |
             scrollToBottom();
         } catch (error) {
             console.error('Error fetching messages:', error);
+        }
+    };
+
+    // Fetch latest prompt from Supabase
+    const fetchLatestPrompt = async () => {
+        if (selectedChampion === 'info') return;
+        
+        try {
+            const prompt = await getLatestPrompt(selectedChampion === 'trump');
+            if (prompt) {
+                setLastPrompt({
+                    message: prompt.message,
+                    shortDescription: prompt.short_description,
+                    fromAgent: selectedChampion === 'trump' ? AGENT_IDS.AGENT1_ID : AGENT_IDS.AGENT2_ID
+                });
+            }
+        } catch (error) {
+            console.error('Error fetching latest prompt:', error);
         }
     };
 
@@ -276,6 +305,13 @@ function ChatMessages({ selectedChampion }: { selectedChampion: 'trump' | 'xi' |
 
         initChat();
     }, []);
+
+    // Add effect to fetch latest prompt
+    useEffect(() => {
+        fetchLatestPrompt();
+        const interval = setInterval(fetchLatestPrompt, 5000);
+        return () => clearInterval(interval);
+    }, [selectedChampion]);
 
     // Refresco automático cada 5 segundos
     useEffect(() => {
@@ -335,6 +371,28 @@ function ChatMessages({ selectedChampion }: { selectedChampion: 'trump' | 'xi' |
 
     return (
         <div className="flex-1 overflow-y-auto">
+          
+            {lastPrompt && (
+                <div className="sticky top-0 z-10 bg-black/80 backdrop-blur-sm border-b border-primary/20 p-4">
+                    <div className="max-w-3xl mx-auto">
+                        <div className="flex items-center gap-2 mb-2">
+                            <Pin className="h-4 w-4 text-primary" />
+                            <span className="text-sm font-medium text-primary text-white">Latest Prompt</span>
+                            {/* <span className="text-xs text-muted-foreground">({lastPrompt.shortDescription})</span> */}
+                        </div>
+                        <div className="flex items-start gap-2">
+                            <MessageAvatar agentId={lastPrompt.fromAgent}  />
+                            <div className="flex-1">
+                                <div className="bg-primary/10 rounded-lg p-4">
+                                    <p className="text-sm text-primary-foreground text-white">
+                                    {lastPrompt.shortDescription}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
             <div 
                 className="h-full overflow-y-auto scroll-smooth px-4" 
                 ref={messagesContainerRef}

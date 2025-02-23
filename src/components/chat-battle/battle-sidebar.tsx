@@ -186,7 +186,7 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
   function ScoreBars({ scores }: { scores: { trump: number; xi: number } }) {
     const currentScore = selectedChampion === 'trump' ? scores.trump : scores.xi;
     const otherScore = selectedChampion === 'trump' ? scores.xi : scores.trump;
-    const currentImage = selectedChampion === 'trump' ? '/trump.png' : '/xi.png';
+    const currentImage = selectedChampion === 'trump' ? '/trumpProfile.svg' : '/xiProfile.svg';
     const barColor = selectedChampion === 'trump' ? 'bg-orange-500' : 'bg-red-500';
     
     // Calculate the maximum score between both players

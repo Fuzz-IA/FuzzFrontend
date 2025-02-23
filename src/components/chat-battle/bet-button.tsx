@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent,DialogTitle } from '@/components/ui/dialog';
 import { usePrivy } from '@privy-io/react-auth';
 import { ethers } from 'ethers';
 import { BATTLE_ABI, BATTLE_ADDRESS, TOKEN_ADDRESS } from '@/lib/contracts/battle-abi';
@@ -14,6 +14,7 @@ import { useDynamicBetAmount } from '@/hooks/useDynamicBetAmount';
 import { useInvalidations } from '@/hooks/useInvalidations';
 import { X } from 'lucide-react';
 import { saveBet } from '@/lib/supabase';
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 
 interface BetButtonProps {
   selectedChampion: 'trump' | 'xi';
@@ -143,7 +144,9 @@ export function BetButton({ selectedChampion: initialChampion }: BetButtonProps)
       <Dialog open={showBetDialog && !gameEnded} onOpenChange={setShowBetDialog}>
         <DialogContent className="bg-black text-[#F3642E] p-6 rounded-lg">
           <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-minecraft">Bet</h2>
+            <VisuallyHidden>
+              <DialogTitle className="text-2xl font-minecraft">Bet</DialogTitle>
+            </VisuallyHidden>
             <button onClick={() => setShowBetDialog(false)} className="text-[#F3642E] hover:opacity-80">
               <X className="h-6 w-6" />
             </button>

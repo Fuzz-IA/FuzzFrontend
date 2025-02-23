@@ -44,7 +44,7 @@ export function usePromptSubmission(): UsePromptSubmissionResult {
       return;
     }
 
-    if (Number(tokenBalance) < 2000) {
+    if (Number(tokenBalance) < Number(ethers.utils.formatUnits(BETTING_AMOUNT,18))) {
       contractToast.error('Insufficient balance');
       return;
     }
@@ -61,11 +61,10 @@ export function usePromptSubmission(): UsePromptSubmissionResult {
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const signer = provider.getSigner();
       const battleContract = new ethers.Contract(BATTLE_ADDRESS, BATTLE_ABI, signer);
-
       contractToast.loading('Submitting prompt with bet...');
       const tx = await battleContract.betWithPrompt(
         selectedChampion === 'trump',
-        2000
+        BETTING_AMOUNT
       );
 
       contractToast.loading('Waiting for confirmation...');

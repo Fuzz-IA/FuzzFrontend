@@ -22,6 +22,7 @@ import { useInvalidations } from '@/hooks/useInvalidations';
 import Image from 'next/image';
 import { useBattleData } from '@/hooks/useBattleData';
 import { useMintTokens}from '@/hooks/useBattleData';
+import { BetActivityFeed } from './bet-activity-feed';
 
 interface BattleSidebarProps {
   selectedChampion: 'trump' | 'xi' | 'info';
@@ -92,7 +93,12 @@ export function BattleSidebar({ selectedChampion, onChampionSelect }: BattleSide
         {selectedChampion === 'info' ? (
           <BattleInfo />
         ) : (
-          <BattleActions selectedChampion={selectedChampion} />
+          <>
+            <BattleActions selectedChampion={selectedChampion} />
+            <div className="mt-4">
+              <BetActivityFeed maxItems={5} />
+            </div>
+          </>
         )}
       </SidebarContent>
     </Sidebar>

@@ -187,9 +187,18 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
 
   function ScoreBars({ scores }: { scores: { trump: number; xi: number } }) {
     const currentScore = selectedChampion === 'trump' ? scores.trump : scores.xi;
+    const otherScore = selectedChampion === 'trump' ? scores.xi : scores.trump;
     const currentImage = selectedChampion === 'trump' ? '/trump.png' : '/xi.png';
     const barColor = selectedChampion === 'trump' ? 'bg-orange-500' : 'bg-red-500';
-    const isGameOver = currentScore === 0;
+    
+    // Calculate the maximum score between both players
+    const maxScore = Math.max(scores.trump, scores.xi);
+    // Calculate the percentage for the progress bar (relative to the max score)
+    const progressPercentage = maxScore > 0 ? (currentScore / maxScore) * 100 : 0;
+    
+    // Determine who is winning
+    const isWinning = currentScore > otherScore;
+    const isTied = currentScore === otherScore;
 
     return (
       <div className="flex flex-col w-full">
@@ -202,20 +211,28 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
             className="rounded-full object-cover aspect-square"
           />
           <div className="w-full">
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-xs font-medium">
+                {isTied ? (
+                  <span className="text-yellow-500">Tied!</span>
+                ) : isWinning ? (
+                  <span className="text-green-500">Winning!</span>
+                ) : (
+                  <span className="text-red-500">Behind</span>
+                )}
+              </span>
+              <span className="text-xs font-mono">
+                [Trump {scores.trump} | Xi {scores.xi}]
+              </span>
+            </div>
             <div className="h-2 bg-muted rounded-full overflow-hidden">
               <div 
                 className={`h-full ${barColor} rounded-full transition-all duration-1000`}
-                style={{ width: `${Math.max(0, Math.min(100, (currentScore / 3) * 100))}%` }}
+                style={{ width: `${Math.max(0, Math.min(100, progressPercentage))}%` }}
               />
             </div>
-            <span className="text-xs text-muted-foreground mt-1 block">{currentScore}/3 Lives</span>
           </div>
         </div>
-        {isGameOver && (
-          <div className="text-sm text-red-500 font-medium text-center mb-2">
-            Game Over - {selectedChampion === 'trump' ? 'Trump' : 'Xi'} has lost!
-          </div>
-        )}
         <SidebarGroup className="space-y-4 mt-6">
           <BetButton selectedChampion={selectedChampion} />
         </SidebarGroup>
@@ -300,3 +317,4 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
     </>
   );
 }
+

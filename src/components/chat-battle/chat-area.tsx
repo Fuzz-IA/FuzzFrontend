@@ -7,6 +7,7 @@ import { useTransition, animated } from '@react-spring/web';
 import { SpringValue } from '@react-spring/web';
 import { ChatInput } from "./chat-input";
 import { ChatHeader } from "./chat-header";
+import { BetActivityFeed } from "./bet-activity-feed";
 import { ClickableAgentAvatar } from "@/components/character/clickable-agent-avatar";
 import { Pin } from 'lucide-react';
 import { getLatestPrompt } from '@/lib/supabase';

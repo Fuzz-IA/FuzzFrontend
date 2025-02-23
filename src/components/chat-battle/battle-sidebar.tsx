@@ -95,9 +95,6 @@ export function BattleSidebar({ selectedChampion, onChampionSelect }: BattleSide
         ) : (
           <>
             <BattleActions selectedChampion={selectedChampion} />
-            <div className="mt-4">
-              <BetActivityFeed maxItems={5} />
-            </div>
           </>
         )}
       </SidebarContent>

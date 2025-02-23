@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown, LogOut, ExternalLink } from 'lucide-react';
+import { BetActivityFeed } from './bet-activity-feed';
 
 function truncateAddress(address: string) {
   if (!address) return '';
@@ -23,55 +24,62 @@ export function ChatHeader() {
                      'Connected';
 
   return (
-    <div className="flex items-center justify-end gap-4 p-4 border-b border-[#F3642E]/20">
-      <div className="flex gap-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="bg-[#F3642E]/10 hover:bg-[#F3642E]/20 text-[#F3642E]"
-          onClick={() => window.open('https://twitter.com/fuzzai_xyz', '_blank')}
-          aria-label="Twitter"
-        >
-          <XIcon className="h-5 w-5" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="bg-[#F3642E]/10 hover:bg-[#F3642E]/20 text-[#F3642E]"
-          onClick={() => window.open('https://t.me/fuzzai_xyz', '_blank')}
-          aria-label="Telegram"
-        >
-          <TelegramIcon className="h-5 w-5" />
-        </Button>
-      </div>
+    <div className="border-b border-[#F3642E]/20">
+      <div className="flex items-center justify-between p-4">
+        <div className="flex-1 flex justify-center">
+          <BetActivityFeed maxItems={3} />
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="bg-[#F3642E]/10 hover:bg-[#F3642E]/20 text-[#F3642E]"
+              onClick={() => window.open('https://twitter.com/fuzzai_xyz', '_blank')}
+              aria-label="Twitter"
+            >
+              <XIcon className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="bg-[#F3642E]/10 hover:bg-[#F3642E]/20 text-[#F3642E]"
+              onClick={() => window.open('https://t.me/fuzzai_xyz', '_blank')}
+              aria-label="Telegram"
+            >
+              <TelegramIcon className="h-5 w-5" />
+            </Button>
+          </div>
 
-      {authenticated ? (
-        <DropdownMenu>
-          <DropdownMenuTrigger className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[#F3642E] hover:bg-[#F3642E]/90 text-white transition-colors font-minecraft">
-            {displayName}
-            <ChevronDown className="h-4 w-4" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-[264px]">
-            {user?.wallet?.address && (
-              <DropdownMenuItem className="cursor-pointer font-minecraft" onClick={() => window.open(`https://etherscan.io/address/${user?.wallet?.address}`, '_blank')}>
-                <ExternalLink className="mr-2 h-4 w-4" />
-                <span>View on Etherscan</span>
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuItem onClick={logout} className="cursor-pointer text-red-500 focus:text-red-500 font-minecraft">
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>Disconnect</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ) : (
-        <Button 
-          onClick={() => login()} 
-          className="bg-[#F3642E] hover:bg-[#F3642E]/90 text-white font-minecraft"
-        >
-          Connect Wallet
-        </Button>
-      )}
+          {authenticated ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[#F3642E] hover:bg-[#F3642E]/90 text-white transition-colors font-minecraft">
+                {displayName}
+                <ChevronDown className="h-4 w-4" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[264px]">
+                {user?.wallet?.address && (
+                  <DropdownMenuItem className="cursor-pointer font-minecraft" onClick={() => window.open(`https://etherscan.io/address/${user?.wallet?.address}`, '_blank')}>
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    <span>View on Etherscan</span>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onClick={logout} className="cursor-pointer text-red-500 focus:text-red-500 font-minecraft">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Disconnect</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button 
+              onClick={() => login()} 
+              className="bg-[#F3642E] hover:bg-[#F3642E]/90 text-white font-minecraft"
+            >
+              Connect Wallet
+            </Button>
+          )}
+        </div>
+      </div>
     </div>
   );
 } 

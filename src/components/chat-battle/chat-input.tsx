@@ -83,7 +83,7 @@ function CountdownTimer() {
               </div>
             </div>
             <div className="text-sm text-white/80 mt-4">
-              Launching February 25th, 2025 at 7:00 AM MST
+              Launching February 25th, 2025 at 8:00 AM MST
             </div>
           </div>
         </div>

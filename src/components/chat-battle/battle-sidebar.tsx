@@ -132,7 +132,7 @@ function BattleInfo() {
         <SidebarGroupLabel className="text-sm font-minecraft text-[#F3642E]">How to Participate</SidebarGroupLabel>
         <Card className="bg-black/40 border-[#F3642E] p-6">
           <div className="space-y-4 text-sm text-white/80">
-            <p className="text-base font-minecraft text-[#F3642E]">�� Battle Mechanics</p>
+            <p className="text-base font-minecraft text-[#F3642E]">Battle Mechanics</p>
             <ul className="list-disc pl-5 space-y-3">
               <li><strong className="">Place Your Bets:</strong> Back your favorite AI agent! Choose wisely - if your agent wins, you'll get a share of the prize pool proportional to your bet. 💰</li>
               <li><strong className="">Submit Prompts:</strong> Help your agent improve by submitting strategic prompts. If the community votes for your prompt and your agent wins, you'll receive a larger share of the pool! 🎯</li>
@@ -189,14 +189,15 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
     const currentImage = selectedChampion === 'trump' ? '/trumpProfile.svg' : '/xiProfile.png';
     const barColor = selectedChampion === 'trump' ? 'bg-orange-500' : 'bg-red-500';
     
-    // Calculate the maximum score between both players
-    const maxScore = Math.max(scores.trump, scores.xi);
-    // Calculate the percentage for the progress bar (relative to the max score)
-    const progressPercentage = maxScore > 0 ? (currentScore / maxScore) * 100 : 0;
+    // Calculate the maximum possible score (assuming it's out of 3 rounds)
+    const MAX_SCORE = 3;
+    // Calculate the percentage for the progress bar (relative to max possible score)
+    const progressPercentage = (currentScore / MAX_SCORE) * 100;
     
     // Determine who is winning
     const isWinning = currentScore > otherScore;
     const isTied = currentScore === otherScore;
+    const isGameOver = currentScore >= MAX_SCORE || otherScore >= MAX_SCORE;
 
     return (
       <div className="flex flex-col w-full">
@@ -211,16 +212,19 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
           <div className="w-full">
             <div className="flex justify-between items-center mb-1">
               <span className="text-xs font-medium">
-                {isTied ? (
-                  <span className="text-yellow-500">Tied!</span>
+                {isGameOver ? (
+                  currentScore >= MAX_SCORE ? (
+                    <span className="text-green-500">Winner!</span>
+                  ) : (
+                    <span className="text-red-500">Game Over</span>
+                  )
+                ) : isTied ? (
+                  <span className="text-yellow-500">Tied {currentScore}-{otherScore}</span>
                 ) : isWinning ? (
-                  <span className="text-green-500">Winning!</span>
+                  <span className="text-green-500">Leading {currentScore}-{otherScore}</span>
                 ) : (
-                  <span className="text-red-500">Behind</span>
+                  <span className="text-red-500">Behind {currentScore}-{otherScore}</span>
                 )}
-              </span>
-              <span className="text-xs font-mono">
-                [Trump {scores.trump} | Xi {scores.xi}]
               </span>
             </div>
             <div className="h-2 bg-muted rounded-full overflow-hidden">

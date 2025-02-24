@@ -21,7 +21,8 @@ interface AgentMemory {
       trump: number;
       xi: number;
     };
-  };
+    text?: string;
+  } | string;
   createdAt: number;
 }
 
@@ -33,15 +34,84 @@ async function fetchBattleData(): Promise<BattleContractData> {
   const provider = new ethers.providers.Web3Provider(window.ethereum);
   const contract = new ethers.Contract(BATTLE_ADDRESS, BATTLE_ABI, provider);
 
-  // Get the last message from Fuzz to get current scores
-  const roomId = await apiClient.stringToUuid(`default-room-${AGENT_IDS.AGENT3_ID}`);
-  const response = await apiClient.getAgentMemories(AGENT_IDS.AGENT3_ID, roomId);
-  const lastFuzzMessage = response?.memories
-    ?.filter((memory: AgentMemory) => memory.agentId === AGENT_IDS.AGENT3_ID)
-    ?.sort((a: AgentMemory, b: AgentMemory) => b.createdAt - a.createdAt)
-    ?.[0];
+  // Get messages from both agents
+  const [roomId1, roomId2] = await Promise.all([
+    apiClient.stringToUuid(`default-room-${AGENT_IDS.AGENT1_ID}`),
+    apiClient.stringToUuid(`default-room-${AGENT_IDS.AGENT2_ID}`)
+  ]);
+  
+  const [response1, response2] = await Promise.all([
+    apiClient.getAgentMemories(AGENT_IDS.AGENT1_ID, roomId1),
+    apiClient.getAgentMemories(AGENT_IDS.AGENT2_ID, roomId2)
+  ]);
 
-  const scores = lastFuzzMessage?.content?.scores || { trump: 1, xi: 1 };
+  // Combine and sort all messages
+  const allMemories = [
+    ...(response1?.memories || []),
+    ...(response2?.memories || [])
+  ].sort((a, b) => b.createdAt - a.createdAt);
+
+  console.log('All memories:', allMemories);
+
+  if (!allMemories || allMemories.length === 0) {
+    console.log('No memories found in responses');
+    return {
+      totalPool: '0',
+      agentA: {
+        name: 'Trump',
+        address: '',
+        total: '0'
+      },
+      agentB: {
+        name: 'Xi',
+        address: '',
+        total: '0'
+      },
+      gameEnded: false,
+      currentGameId: 0,
+      marketInfo: await fetchDynamicBetAmounts(),
+      scores: { trump: 0, xi: 0 }
+    };
+  }
+
+  // Try to find the last message with a score
+  const messagesWithScores = allMemories
+    .filter((memory: AgentMemory) => {
+      const messageText = typeof memory.content === 'string' 
+        ? memory.content 
+        : memory.content?.text || JSON.stringify(memory.content);
+      return messageText.includes('[Trump') && messageText.includes('Xi');
+    });
+
+  console.log('Messages with scores:', messagesWithScores);
+
+  let scores = { trump: 0, xi: 0 };
+  
+  if (messagesWithScores.length > 0) {
+    const lastMessage = messagesWithScores[0];
+    const messageText = typeof lastMessage.content === 'string' 
+      ? lastMessage.content 
+      : lastMessage.content?.text || JSON.stringify(lastMessage.content);
+    
+    console.log('Processing message text:', messageText);
+    
+    const scoreMatch = messageText.match(/\[Trump\s*(\d+)\s*\|\s*Xi\s*(\d+)\]/);
+    if (scoreMatch) {
+      console.log('Score match found:', scoreMatch);
+      scores = {
+        trump: parseInt(scoreMatch[1]),
+        xi: parseInt(scoreMatch[2])
+      };
+    }
+  }
+
+  console.log('Final parsed scores:', scores);
+
+  // Validate scores
+  if (typeof scores.trump !== 'number' || typeof scores.xi !== 'number' || 
+      isNaN(scores.trump) || isNaN(scores.xi)) {
+    scores = { trump: 0, xi: 0 };
+  }
 
   const [
     total,
@@ -99,8 +169,8 @@ export function useBattleData(): BattleDataHookResult {
       }
       return fetchBattleData();
     },
-    staleTime: 30000,
-    refetchInterval: 60000,
+    staleTime: 5000,
+    refetchInterval: 10000,
     retry: 2,
     enabled: typeof window !== 'undefined' && !!window.ethereum,
   });

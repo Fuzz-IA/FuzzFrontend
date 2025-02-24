@@ -188,7 +188,7 @@ export function BetButton({ selectedChampion: initialChampion }: BetButtonProps)
             </div>
 
             <div className="relative mt-4">
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 text-4xl font-minecraft text-[#F3642E]">$</div>
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 text-4xl font-minecraft text-[#F3642E]">FUZZ</div>
               <input
                 type="number"
                 value={isLoadingDynamicAmount ? '' : (betAmount || minBetAmount || '0')}
@@ -203,14 +203,14 @@ export function BetButton({ selectedChampion: initialChampion }: BetButtonProps)
             </div>
 
             <div className="flex gap-2 mt-6">
-              {[100, 8347, 9747, 10000].map((amount) => (
+              {[100, 500, 1000, 5000].map((amount) => (
                 <Button 
                   key={amount}
                   onClick={() => setBetAmount((prev) => (Number(prev) + amount).toString())}
                   variant="outline" 
                   className="flex-1 bg-black text-[#F3642E] hover:bg-[#F3642E] hover:text-black border-none"
                 >
-                  +${amount}
+                  +{amount} FUZZ
                 </Button>
               ))}
             </div>

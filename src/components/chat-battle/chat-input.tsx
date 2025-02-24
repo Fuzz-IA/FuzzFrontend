@@ -53,9 +53,40 @@ function CountdownTimer() {
   }, []);
 
   return {
-    timeLeftText: (
-      <div className="text-sm text-[#F3642E]/80 text-center mt-2 font-minecraft">
-        Battle starts in: {timeLeft} (7:00 AM MST)
+    timeLeftText: !hasStarted && (
+      <div className="relative">
+        <div className="absolute inset-0 bg-gradient-to-r from-[#F3642E]/20 via-[#F3642E]/10 to-[#F3642E]/20 animate-pulse"></div>
+        <div className="relative bg-black/80 border-2 border-[#F3642E] rounded-lg p-6 mt-4">
+          <div className="text-center">
+            <div className="text-2xl font-minecraft text-[#F3642E] mb-2">
+              🔥 COMING SOON 🔥
+            </div>
+            <div className="flex justify-center items-center gap-4 text-xl font-minecraft text-[#F3642E]">
+              <div className="text-center">
+                <div className="text-3xl">{timeLeft.split(' ')[0]}</div>
+                <div className="text-sm text-white/60">DAYS</div>
+              </div>
+              <div className="text-2xl">:</div>
+              <div className="text-center">
+                <div className="text-3xl">{timeLeft.split(' ')[1]?.replace('h','')}</div>
+                <div className="text-sm text-white/60">HOURS</div>
+              </div>
+              <div className="text-2xl">:</div>
+              <div className="text-center">
+                <div className="text-3xl">{timeLeft.split(' ')[2]?.replace('m','')}</div>
+                <div className="text-sm text-white/60">MINUTES</div>
+              </div>
+              <div className="text-2xl">:</div>
+              <div className="text-center">
+                <div className="text-3xl">{timeLeft.split(' ')[3]?.replace('s','')}</div>
+                <div className="text-sm text-white/60">SECONDS</div>
+              </div>
+            </div>
+            <div className="text-sm text-white/80 mt-4">
+              Launching February 25th, 2025 at 7:00 AM MST
+            </div>
+          </div>
+        </div>
       </div>
     ),
     hasStarted

@@ -36,8 +36,7 @@ export function Navbar() {
             DEX
           </Link>
           <Link
-            href="/doc"
-            className="font-minecraft text-sm sm:text-base text-[#F3642E] transition-colors hover:text-white"
+href="https://fuzz-ai.gitbook.io/fuzz-ai-docs"            className="font-minecraft text-sm sm:text-base text-[#F3642E] transition-colors hover:text-white"
           >
             DOC
           </Link>
@@ -56,7 +55,7 @@ export function Navbar() {
             />
           </Link>
           <Link
-            href="https://twitter.com/fuzzai"
+            href="https://x.com/fuzzai_agent"
             target="_blank"
             rel="noopener noreferrer"
             className="text-white/80 transition-colors hover:text-white"
@@ -68,6 +67,14 @@ export function Navbar() {
               height={24}
               className="h-5 w-5 sm:h-6 sm:w-6"
             />
+          </Link>
+          <Link
+            href="https://fuzz-ai.gitbook.io/fuzz-ai-docs"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-white/80 transition-colors hover:text-white"
+          >
+          
           </Link>
         </div>
       </nav>

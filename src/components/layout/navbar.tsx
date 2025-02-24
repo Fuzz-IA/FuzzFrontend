@@ -30,7 +30,9 @@ export function Navbar() {
 
         <div className="flex items-center gap-4 sm:gap-4 md:gap-8 pr-0 sm:pr-4 md:pr-8">
           <Link
-            href="/dex"
+            href="https://dexscreener.com/base/0xd8d268919a5cd51348f49b61671ad8209ecf859b"
+            target="_blank"
+            rel="noopener noreferrer"
             className="font-minecraft text-sm sm:text-base text-[#F3642E] transition-colors hover:text-white"
           >
             DEX

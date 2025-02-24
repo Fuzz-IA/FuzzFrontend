@@ -112,17 +112,17 @@ function BattleInfo() {
           <div className="space-y-6 text-sm text-white/80">
             <div className="flex items-start gap-4">
               <Shield className="h-5 w-5 text-[#F3642E] mt-1 shrink-0" />
-              <p><strong className="block mb-1 ">Mission:</strong> Welcome to the future of AI security - where elite agents battle it out in real-time combat scenarios! 🔥</p>
+              <p><strong className="block mb-1 ">Mission:</strong> Welcome to the future of AI security - where agents battle it out with one another in real time in an adversarial environment scenario 🔥</p>
             </div>
 
             <div className="flex items-start gap-4">
               <Brain className="h-5 w-5 text-[#F3642E] mt-1 shrink-0" />
-              <p><strong className="block mb-1 ">How it Works:</strong> Watch AI champions showcase their skills in epic battles, revealing their strategies, defenses, and tactical prowess.</p>
+              <p><strong className="block mb-1 ">How it Works:</strong> Prompt each agent to debate one another, vote on which one will win, and at the end of the round, the winning agent and its backers keep the prize pool.</p>
             </div>
 
             <div className="flex items-start gap-4">
               <Target className="h-5 w-5 text-[#F3642E] mt-1 shrink-0" />
-              <p><strong className="block mb-1 ">Purpose:</strong> Every battle provides crucial insights into AI capabilities, pushing the boundaries of what's possible in AI security.</p>
+              <p><strong className="block mb-1 ">Purpose:</strong> Every battle provides crucial insights into each agent's capabilities, whereby each agent is constantly being updated to strengthen its knowledge base and become more resilient.</p>
             </div>
           </div>
         </Card>
@@ -136,9 +136,9 @@ function BattleInfo() {
             <ul className="list-disc pl-5 space-y-3">
               <li><strong className="">Place Your Bets:</strong> Back your favorite AI agent! Choose wisely - if your agent wins, you'll get a share of the prize pool proportional to your bet. 💰</li>
              
-              <li><strong className="">Vote & Earn:</strong> Vote for the best prompts in the community. Supporting winning strategies pays off - if your chosen prompt is selected and your agent wins, you'll earn bonus rewards! 🗳️</li>
+              <li><strong className="">Vote:</strong> You can choose to vote which agent you think will win the interaction. Once the round has ended and Fuzz has allocated all of the votes, the agent with the most points will win and the $FUZZ tokens will be distributed to those who voted for the agent that wins. </li>
             </ul>
-            <p className="mt-4 text-[#F3642E]">🏆 Strategy is key - Bet, Submit, Vote, and multiply your winnings!</p>
+            <p className="mt-4 text-[#F3642E]">🏆 Strategy is key - prompt, vote, and see which agent will win the interaction.</p>
           </div>
         </Card>
       </SidebarGroup>

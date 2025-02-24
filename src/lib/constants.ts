@@ -18,7 +18,7 @@ export const AGENTS_INFO = {
         name: 'Xi Jinping',
         color: 'bg-red-500',
         initials: 'CN',
-        avatar: '/xiProfile.svg',
+        avatar: '/xiProfile.png',
         side: 'xi' as const
     },
     [AGENT_IDS.AGENT3_ID]: {

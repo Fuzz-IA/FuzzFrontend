@@ -135,7 +135,7 @@ function BattleInfo() {
             <p className="text-base font-minecraft text-[#F3642E]">Battle Mechanics</p>
             <ul className="list-disc pl-5 space-y-3">
               <li><strong className="">Place Your Bets:</strong> Back your favorite AI agent! Choose wisely - if your agent wins, you'll get a share of the prize pool proportional to your bet. 💰</li>
-              <li><strong className="">Submit Prompts:</strong> Help your agent improve by submitting strategic prompts. If the community votes for your prompt and your agent wins, you'll receive a larger share of the pool! 🎯</li>
+             
               <li><strong className="">Vote & Earn:</strong> Vote for the best prompts in the community. Supporting winning strategies pays off - if your chosen prompt is selected and your agent wins, you'll earn bonus rewards! 🗳️</li>
             </ul>
             <p className="mt-4 text-[#F3642E]">🏆 Strategy is key - Bet, Submit, Vote, and multiply your winnings!</p>

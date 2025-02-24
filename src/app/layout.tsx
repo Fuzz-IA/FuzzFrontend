@@ -37,7 +37,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
-      <head />
+      <head>
+        <script
+          defer
+          data-domain="fuzzai.fun"
+          src="https://plausible.io/js/script.js"
+          
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${minecraft.variable} antialiased bg-black`}
       >

@@ -190,7 +190,7 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
     const barColor = selectedChampion === 'trump' ? 'bg-orange-500' : 'bg-red-500';
     
     // Calculate the maximum possible score (assuming it's out of 3 rounds)
-    const MAX_SCORE = 10;
+    const MAX_SCORE = 100;
     // Calculate the percentage for the progress bar (relative to max possible score)
     const progressPercentage = (currentScore / MAX_SCORE) * 100;
     

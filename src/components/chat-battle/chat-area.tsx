@@ -11,6 +11,8 @@ import { BetActivityFeed } from "./bet-activity-feed";
 import { ClickableAgentAvatar } from "@/components/character/clickable-agent-avatar";
 import { Pin } from 'lucide-react';
 import { getLatestPrompt } from '@/lib/supabase';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 
 // Hardcoded agent IDs
@@ -172,11 +174,14 @@ function ChatMessages({ selectedChampion }: { selectedChampion: 'trump' | 'xi' |
         message: string;
         shortDescription: string;
         fromAgent: string;
+        wallet_address: string;
+        createdAt: string;
     } | null>(null);
     const queryClient = useQueryClient();
     const messagesContainerRef = useRef<HTMLDivElement>(null);
     const [lastUpdateTime, setLastUpdateTime] = useState<number>(0);
     const [hasNewMessages, setHasNewMessages] = useState(false);
+    const [showFullMessage, setShowFullMessage] = useState(false);
 
     const scrollToBottom = (force: boolean = false) => {
         if (messagesContainerRef.current && force) {
@@ -313,7 +318,9 @@ function ChatMessages({ selectedChampion }: { selectedChampion: 'trump' | 'xi' |
                 setLastPrompt({
                     message: prompt.message,
                     shortDescription: prompt.short_description,
-                    fromAgent: selectedChampion === 'trump' ? AGENT_IDS.AGENT1_ID : AGENT_IDS.AGENT2_ID
+                    fromAgent: selectedChampion === 'trump' ? AGENT_IDS.AGENT1_ID : AGENT_IDS.AGENT2_ID,
+                    wallet_address: prompt.wallet_address,
+                    createdAt: prompt.created_at
                 });
             }
         } catch (error) {
@@ -391,27 +398,70 @@ function ChatMessages({ selectedChampion }: { selectedChampion: 'trump' | 'xi' |
 
     return (
         <div className="flex-1 overflow-y-auto">
-          
             {lastPrompt && (
-                <div className="sticky top-0 z-10 bg-black/80 backdrop-blur-sm border-b border-primary/20 p-4">
-                    <div className="max-w-3xl mx-auto">
-                        <div className="flex items-center gap-2 mb-2">
-                            <Pin className="h-4 w-4 text-primary" />
-                            <span className="text-sm font-medium text-primary text-white">Latest Prompt</span>
-                            {/* <span className="text-xs text-muted-foreground">({lastPrompt.shortDescription})</span> */}
-                        </div>
-                        <div className="flex items-start gap-2">
-                            <MessageAvatar agentId={lastPrompt.fromAgent}  />
-                            <div className="flex-1">
-                                <div className="bg-primary/10 rounded-lg p-4">
-                                    <p className="text-sm text-primary-foreground text-white">
-                                    {lastPrompt.shortDescription}
-                                    </p>
+                <>
+                    <div 
+                        className="sticky top-0 z-10 bg-black/80 backdrop-blur-sm border-b border-primary/20 p-4 cursor-pointer hover:bg-black/90 transition-colors"
+                        onClick={() => setShowFullMessage(true)}
+                    >
+                        <div className="max-w-3xl mx-auto">
+                            <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                    <Pin className="h-4 w-4 text-primary" />
+                                    <span className="text-sm font-medium text-primary text-white">Latest Prompt</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs text-muted-foreground">
+                                        by {lastPrompt.wallet_address?.slice(0, 6)}...{lastPrompt.wallet_address?.slice(-4)}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">
+                                        • {new Date(lastPrompt.createdAt).toLocaleTimeString()}
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="flex items-start gap-2">
+                                <MessageAvatar agentId={lastPrompt.fromAgent} />
+                                <div className="flex-1">
+                                    <div className="bg-primary/10 rounded-lg p-4">
+                                        <p className="text-sm text-primary-foreground text-white">
+                                            {lastPrompt.shortDescription}
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
+
+                    <Dialog open={showFullMessage} onOpenChange={setShowFullMessage}>
+                        <DialogContent className="sm:max-w-2xl">
+                            <DialogHeader>
+                                <DialogTitle className="flex items-center gap-2">
+                                    <Pin className="h-4 w-4" />
+                                    Pinned Prompt
+                                </DialogTitle>
+                            </DialogHeader>
+                            <div className="flex flex-col gap-4">
+                                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                                    <span>
+                                        by {lastPrompt.wallet_address?.slice(0, 6)}...{lastPrompt.wallet_address?.slice(-4)}
+                                    </span>
+                                    <span>
+                                        {new Date(lastPrompt.createdAt).toLocaleString()}
+                                    </span>
+                                </div>
+                                <div className="flex items-start gap-4">
+                                    <MessageAvatar agentId={lastPrompt.fromAgent} />
+                                    <div className="flex-1 space-y-2">
+                                        <div className="bg-primary/10 rounded-lg p-4">
+                                            <h3 className="font-medium mb-2 text-primary">{lastPrompt.shortDescription}</h3>
+                                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{lastPrompt.message}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+                </>
             )}
             <div 
                 className="h-full overflow-y-auto scroll-smooth px-4" 

@@ -188,7 +188,7 @@ export function BetButton({ selectedChampion: initialChampion }: BetButtonProps)
             </div>
 
             <div className="relative mt-4">
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 text-4xl font-minecraft text-[#F3642E]">FUZZ</div>
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 text-4xl font-minecraft text-[#F3642E] ">FUZZ</div>
               <input
                 type="number"
                 value={isLoadingDynamicAmount ? '' : (betAmount || minBetAmount || '0')}
@@ -196,7 +196,7 @@ export function BetButton({ selectedChampion: initialChampion }: BetButtonProps)
                   const value = e.target.value;
                   setBetAmount(value === '' ? minBetAmount || '0' : value);
                 }}
-                className="w-full bg-transparent text-4xl font-minecraft pl-8 focus:outline-none text-[#F3642E]"
+                className="w-full bg-transparent text-4xl font-minecraft pl-28 focus:outline-none text-[#F3642E]"
                 placeholder={isLoadingDynamicAmount ? 'Loading...' : '0'}
                 min={minBetAmount || '0'}
               />

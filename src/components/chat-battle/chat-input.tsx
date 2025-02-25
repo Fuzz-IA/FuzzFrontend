@@ -16,7 +16,7 @@ function CountdownTimer() {
   
   // Denver is UTC-7, so 7 AM MST = 14:00 UTC
   // February is 1 (zero-based month in JavaScript)
-  const targetDate = new Date('2025-02-25T07:00:00-07:00');
+  const targetDate = new Date('2025-02-25T07:00:00-08:00');
 
   useEffect(() => {
     function updateCountdown() {

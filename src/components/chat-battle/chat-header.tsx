@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown, LogOut, ExternalLink } from 'lucide-react';
 import { BetActivityFeed } from './bet-activity-feed';
+import Image from 'next/image';
 
 function truncateAddress(address: string) {
   if (!address) return '';
@@ -48,6 +49,21 @@ export function ChatHeader() {
               aria-label="Telegram"
             >
               <TelegramIcon className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="bg-[#F3642E]/10 hover:bg-[#F3642E]/20 text-[#F3642E]"
+              onClick={() => window.open('https://app.uniswap.org/swap?outputCurrency=0xab9AFF6f259787300bBB16DD1fa0c622426Aa169&chain=base', '_blank')}
+              aria-label="Buy on Uniswap"
+            >
+              <Image
+                src="/uniswap-uni-logo.svg"
+                alt="Uniswap"
+                width={20}
+                height={20}
+                className="h-5 w-5"
+              />
             </Button>
             <Button
               variant="ghost"

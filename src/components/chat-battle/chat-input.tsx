@@ -10,95 +10,11 @@ interface ChatInputProps {
   onMessageSent?: () => void;
 }
 
-function CountdownTimer() {
-  const [timeLeft, setTimeLeft] = useState('');
-  const [hasStarted, setHasStarted] = useState(false);
-  
-  // Denver is UTC-7, so 7 AM MST = 14:00 UTC
-  // February is 1 (zero-based month in JavaScript)
-  const targetDate = new Date('2025-02-25T07:00:00-08:00');
-
-  useEffect(() => {
-    function updateCountdown() {
-      const now = new Date();
-      const difference = targetDate.getTime() - now.getTime();
-
-      if (difference <= 0) {
-        setTimeLeft('Battle has started!');
-        setHasStarted(true);
-        return;
-      }
-
-      setHasStarted(false);
-      const days = Math.floor(difference / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((difference % (1000 * 60)) / 1000);
-
-      // Add leading zeros for better readability
-      const formattedHours = hours.toString().padStart(2, '0');
-      const formattedMinutes = minutes.toString().padStart(2, '0');
-      const formattedSeconds = seconds.toString().padStart(2, '0');
-
-      setTimeLeft(`${days}d ${formattedHours}h ${formattedMinutes}m ${formattedSeconds}s`);
-    }
-
-    // Update immediately
-    updateCountdown();
-
-    // Update every second
-    const interval = setInterval(updateCountdown, 1000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  return {
-    timeLeftText: !hasStarted && (
-      <div className="relative">
-        <div className="absolute inset-0 bg-gradient-to-r from-[#F3642E]/20 via-[#F3642E]/10 to-[#F3642E]/20 animate-pulse"></div>
-        <div className="relative bg-black/80 border-2 border-[#F3642E] rounded-lg p-6 mt-4">
-          <div className="text-center">
-            <div className="text-2xl font-minecraft text-[#F3642E] mb-2">
-              🔥 COMING SOON 🔥
-            </div>
-            <div className="flex justify-center items-center gap-4 text-xl font-minecraft text-[#F3642E]">
-              <div className="text-center">
-                <div className="text-3xl">{timeLeft.split(' ')[0]}</div>
-                <div className="text-sm text-white/60">DAYS</div>
-              </div>
-              <div className="text-2xl">:</div>
-              <div className="text-center">
-                <div className="text-3xl">{timeLeft.split(' ')[1]?.replace('h','')}</div>
-                <div className="text-sm text-white/60">HOURS</div>
-              </div>
-              <div className="text-2xl">:</div>
-              <div className="text-center">
-                <div className="text-3xl">{timeLeft.split(' ')[2]?.replace('m','')}</div>
-                <div className="text-sm text-white/60">MINUTES</div>
-              </div>
-              <div className="text-2xl">:</div>
-              <div className="text-center">
-                <div className="text-3xl">{timeLeft.split(' ')[3]?.replace('s','')}</div>
-                <div className="text-sm text-white/60">SECONDS</div>
-              </div>
-            </div>
-            <div className="text-sm text-white/80 mt-4">
-              Launching February 25th, 2025 at 8:00 AM MST
-            </div>
-          </div>
-        </div>
-      </div>
-    ),
-    hasStarted
-  };
-}
-
 export function ChatInput({ selectedChampion, onMessageSent }: ChatInputProps) {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { submitPrompt, isLoading, isImproving, improveText } = usePromptSubmission();
-  const { timeLeftText, hasStarted } = CountdownTimer();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInput(e.target.value);
@@ -129,7 +45,7 @@ export function ChatInput({ selectedChampion, onMessageSent }: ChatInputProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading || selectedChampion === 'info' || !hasStarted) return;
+    if (!input.trim() || isLoading || selectedChampion === 'info') return;
 
     try {
       await submitPrompt({
@@ -147,8 +63,7 @@ export function ChatInput({ selectedChampion, onMessageSent }: ChatInputProps) {
     !input.trim() || 
     isLoading || 
     selectedChampion === 'info' ||
-    isImproving ||
-    !hasStarted;
+    isImproving;
 
   return (
     <div className="border-t border-[#F3642E]/20 bg-black/50 p-4 pbes-12">
@@ -158,13 +73,11 @@ export function ChatInput({ selectedChampion, onMessageSent }: ChatInputProps) {
           value={input}
           onChange={handleInputChange}
           placeholder={
-            !hasStarted
-              ? "Battle hasn't started yet..."
-              : selectedChampion === 'info' 
-                ? 'Select your champion first...' 
-                : `Submit a prompt for ${selectedChampion === 'trump' ? 'Donald Trump' : 'Xi Jinping'}...`
+            selectedChampion === 'info' 
+              ? 'Select your champion first...' 
+              : `Submit a prompt for ${selectedChampion === 'trump' ? 'Donald Trump' : 'Xi Jinping'}...`
           }
-          disabled={isLoading || selectedChampion === 'info' || !hasStarted}
+          disabled={isLoading || selectedChampion === 'info'}
           className="flex-1 rounded-lg border border-[#F3642E]/20 bg-black/50 px-4 py-3 text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#F3642E] focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         />
         <Button
@@ -172,7 +85,7 @@ export function ChatInput({ selectedChampion, onMessageSent }: ChatInputProps) {
           variant="outline"
           size="icon"
           onClick={handleImproveText}
-          disabled={!input.trim() || isImproving || isLoading || selectedChampion === 'info' || !hasStarted}
+          disabled={!input.trim() || isImproving || isLoading || selectedChampion === 'info'}
           className="px-3 border-[#F3642E]/20 bg-black/50 hover:bg-[#F3642E]/10 hover:text-[#F3642E] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Wand2 className={`h-5 w-5 ${isImproving ? 'animate-spin' : ''}`} />
@@ -197,7 +110,6 @@ export function ChatInput({ selectedChampion, onMessageSent }: ChatInputProps) {
           You are typing...
         </div>
       )}
-      {timeLeftText}
     </div>
   );
 }

@@ -130,7 +130,7 @@ function UserContributions({ isAgentA, player }: { isAgentA: boolean, player: Pl
 function PlayerCard({ player, title, isAgentA }: { player: PlayerAttributes, title: string, isAgentA: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
   const [dialogContent, setDialogContent] = useState<DialogContent>(null);
-  const selectedChain = isAgentA ? 'base' : 'solana';
+  const selectedChain = isAgentA ? 'trump' : 'xi';
 
   const handlePromptSubmit = async (prompt: string) => {
     // Here you would interact with your smart contract

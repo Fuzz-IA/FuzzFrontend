@@ -28,7 +28,7 @@ export function ProposePromptDialog({ player, onSubmit, selectedChain, isSupport
   const [isLoading, setIsLoading] = useState(false)
   const [isImproving, setIsImproving] = useState(false)
   const { user, authenticated, login, ready } = usePrivy();
-  const { switchToBaseSepolia } = useNetworkSwitch();
+  const { switchToBaseMainnet } = useNetworkSwitch();
   const { invalidateAll } = useInvalidations();
   
   const {
@@ -120,7 +120,7 @@ export function ProposePromptDialog({ player, onSubmit, selectedChain, isSupport
       if (!ready) throw new Error('Privy is not ready');
       if (!user?.wallet) throw new Error('No wallet found');
       
-      const networkSwitched = await switchToBaseSepolia();
+      const networkSwitched = await switchToBaseMainnet();
       if (!networkSwitched) return;
       
       setMessages(prev => [...prev, {
@@ -153,7 +153,7 @@ export function ProposePromptDialog({ player, onSubmit, selectedChain, isSupport
       const battleContract = new ethers.Contract(BATTLE_ADDRESS, BATTLE_ABI, signer);
     
       const tx = await battleContract.betWithPrompt(
-        selectedChain === 'solana', // true if Solana, false otherwise
+        selectedChain === 'trump', // true if Trump, false if Xi
         BETTING_AMOUNT
       );
 
@@ -186,7 +186,7 @@ export function ProposePromptDialog({ player, onSubmit, selectedChain, isSupport
             wallet_address: user.wallet.address,
             message: input,
             short_description: shortDesc,
-            is_agent_a: selectedChain === 'solana',
+            is_agent_a: selectedChain === 'trump',
             prompt_id: Number(promptId)
           });
         } catch (error) {

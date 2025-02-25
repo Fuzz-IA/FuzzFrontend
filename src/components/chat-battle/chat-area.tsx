@@ -176,10 +176,10 @@ function ChatMessages({ selectedChampion }: { selectedChampion: 'trump' | 'xi' |
     const queryClient = useQueryClient();
     const messagesContainerRef = useRef<HTMLDivElement>(null);
     const [lastUpdateTime, setLastUpdateTime] = useState<number>(0);
-    const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+    const [hasNewMessages, setHasNewMessages] = useState(false);
 
     const scrollToBottom = (force: boolean = false) => {
-        if (messagesContainerRef.current && (shouldAutoScroll || force)) {
+        if (messagesContainerRef.current && force) {
             messagesContainerRef.current.scrollTo({
                 top: messagesContainerRef.current.scrollHeight,
                 behavior: 'smooth'
@@ -192,7 +192,11 @@ function ChatMessages({ selectedChampion }: { selectedChampion: 'trump' | 'xi' |
         if (messagesContainerRef.current) {
             const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
             const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
-            setShouldAutoScroll(isNearBottom);
+            
+            // Solo actualizamos si el usuario ha llegado al fondo
+            if (isNearBottom) {
+                setHasNewMessages(false);
+            }
         }
     };
 
@@ -204,7 +208,7 @@ function ChatMessages({ selectedChampion }: { selectedChampion: 'trump' | 'xi' |
             typingAgent: message.fromAgent
         }));
 
-        scrollToBottom(true);
+        // No forzamos el scroll automático aquí
         await new Promise<void>((resolve) => setTimeout(resolve, Math.random() * 2000 + 1000));
 
         setChatState(prev => ({
@@ -243,6 +247,13 @@ function ChatMessages({ selectedChampion }: { selectedChampion: 'trump' | 'xi' |
                 ...(response2?.memories || [])
             ].sort((a, b) => a.createdAt! - b.createdAt!);
 
+            // Guardar la posición actual del scroll antes de actualizar los mensajes
+            const container = messagesContainerRef.current;
+            const scrollPosition = container ? container.scrollTop : 0;
+            const isAtBottom = container ? 
+                (container.scrollHeight - container.scrollTop - container.clientHeight < 100) : 
+                false;
+
             // Procesar nuevos mensajes con delay
             const currentMessages = queryClient.getQueryData<Message[]>(["messages"]) || [];
             const newMessages = allMemories
@@ -266,11 +277,27 @@ function ChatMessages({ selectedChampion }: { selectedChampion: 'trump' | 'xi' |
                 await simulateTyping(lastNewMessage);
                 // Pin the last message
                 setPinnedMessage(lastNewMessage);
+                // Indicar que hay nuevos mensajes si el usuario no está en el fondo
+                if (!isAtBottom) {
+                    setHasNewMessages(true);
+                }
             }
 
             queryClient.setQueryData(["messages"], newMessages);
             setLastUpdateTime(Date.now());
-            scrollToBottom();
+            
+            // Solo hacemos scroll automático en la carga inicial
+            if (isLoadingHistory) {
+                scrollToBottom(true);
+            } else if (container && !isAtBottom) {
+                // Restaurar la posición del scroll después de actualizar los mensajes
+                // Usamos setTimeout para asegurar que el DOM se ha actualizado
+                setTimeout(() => {
+                    if (container) {
+                        container.scrollTop = scrollPosition;
+                    }
+                }, 0);
+            }
         } catch (error) {
             console.error('Error fetching messages:', error);
         }
@@ -322,14 +349,6 @@ function ChatMessages({ selectedChampion }: { selectedChampion: 'trump' | 'xi' |
 
         return () => clearInterval(interval);
     }, []);
-
-    // Modificar el useEffect para el scroll automático
-    useEffect(() => {
-        const messages = queryClient.getQueryData<Message[]>(["messages"]);
-        if (messages?.length) {
-            scrollToBottom();
-        }
-    }, [queryClient.getQueryData(["messages"]), chatState.isTyping]);
 
     // Agregar event listener para el scroll
     useEffect(() => {
@@ -397,7 +416,6 @@ function ChatMessages({ selectedChampion }: { selectedChampion: 'trump' | 'xi' |
             <div 
                 className="h-full overflow-y-auto scroll-smooth px-4" 
                 ref={messagesContainerRef}
-                onScroll={handleScroll}
             >
                 <div className="space-y-4 max-w-3xl mx-auto py-4">
                     {transitions((style, message) => {
@@ -470,11 +488,15 @@ function ChatMessages({ selectedChampion }: { selectedChampion: 'trump' | 'xi' |
                     )}
                 </div>
             </div>
-            {!shouldAutoScroll && (
+            {hasNewMessages && (
                 <button
-                    onClick={() => scrollToBottom(true)}
-                    className="fixed bottom-20 right-8 bg-primary text-primary-foreground rounded-full p-2 shadow-lg hover:bg-primary/90 transition-all"
+                    onClick={() => {
+                        scrollToBottom(true);
+                        setHasNewMessages(false);
+                    }}
+                    className="fixed bottom-20 right-8 bg-primary text-primary-foreground rounded-full p-2 shadow-lg hover:bg-primary/90 transition-all animate-bounce"
                 >
+                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
                         width="24"

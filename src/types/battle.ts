@@ -50,7 +50,7 @@ export interface PromptBetEvent {
 export interface ProposePromptDialogProps {
   player: PlayerAttributes
   onSubmit: (prompt: string) => Promise<void>
-  selectedChain: 'solana' | 'base' | 'info'
+  selectedChain: ChampionType
   isSupport?: boolean
 }
 

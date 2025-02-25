@@ -30,9 +30,9 @@ export default function PrivyClientProvider({
           createOnLogin: 'users-without-wallets',
         },
         defaultChain: {
-          id: 84532,
-          name: 'Base Sepolia',
-          network: 'base-sepolia',
+          id: 8453,
+          name: 'Base',
+          network: 'base',
           nativeCurrency: {
             name: 'ETH',
             symbol: 'ETH',
@@ -40,19 +40,19 @@ export default function PrivyClientProvider({
           },
           rpcUrls: {
             default: {
-              http: ['https://sepolia.base.org'],
+              http: ['https://mainnet.base.org'],
             },
             public: {
-              http: ['https://sepolia.base.org'],
+              http: ['https://mainnet.base.org'],
             },
           },
           blockExplorers: {
             default: {
               name: 'BaseScan',
-              url: 'https://sepolia.basescan.org',
+              url: 'https://basescan.org',
             },
           },
-          testnet: true,
+          testnet: false,
         },
       }}
     >

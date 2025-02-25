@@ -1,18 +1,18 @@
 import { ethers } from 'ethers';
 
-export const BASE_SEPOLIA_CONFIG = {
-  chainId: "0x14A34",
-  chainName: "Base Sepolia",
+export const BASE_MAINNET_CONFIG = {
+  chainId: "0x2105",
+  chainName: "Base",
   nativeCurrency: {
     name: "ETH",
     symbol: "ETH",
     decimals: 18
   },
-  rpcUrls: ["https://sepolia.base.org"],
-  blockExplorerUrls: ["https://sepolia.basescan.org"]
+  rpcUrls: ["https://mainnet.base.org"],
+  blockExplorerUrls: ["https://basescan.org"]
 } as const;
 
-export const BASE_SEPOLIA_CHAIN_ID = 0x14A34;
+export const BASE_MAINNET_CHAIN_ID = 0x2105;
 
 export const MAX_ALLOWANCE = ethers.constants.MaxUint256;
 

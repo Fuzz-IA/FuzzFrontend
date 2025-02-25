@@ -16,7 +16,7 @@ export function usePromptSubmission(): UsePromptSubmissionResult {
   const [isLoading, setIsLoading] = useState(false);
   const [isImproving, setIsImproving] = useState(false);
   const { login, authenticated, user } = usePrivy();
-  const { switchToBaseSepolia } = useNetworkSwitch();
+  const { switchToBaseMainnet } = useNetworkSwitch();
   const { invalidateAll } = useInvalidations();
 
   const { checkAndApproveAllowance, isCheckingAllowance } = useTokenAllowance({
@@ -52,7 +52,7 @@ export function usePromptSubmission(): UsePromptSubmissionResult {
     setIsLoading(true);
 
     try {
-      const networkSwitched = await switchToBaseSepolia();
+      const networkSwitched = await switchToBaseMainnet();
       if (!networkSwitched) return;
 
       const allowanceApproved = await checkAndApproveAllowance();

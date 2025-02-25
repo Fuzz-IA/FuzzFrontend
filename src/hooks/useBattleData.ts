@@ -153,7 +153,7 @@ async function fetchBattleData(): Promise<BattleContractData> {
 }
 
 export function useBattleData(): BattleDataHookResult {
-  const { switchToBaseSepolia } = useNetworkSwitch();
+  const { switchToBaseMainnet } = useNetworkSwitch();
 
   const { 
     data, 
@@ -163,7 +163,7 @@ export function useBattleData(): BattleDataHookResult {
   } = useQuery({
     queryKey: queryKeys.battle.gameInfo,
     queryFn: async () => {
-      const networkSwitched = await switchToBaseSepolia();
+      const networkSwitched = await switchToBaseMainnet();
       if (!networkSwitched) {
         throw new Error('Network switch failed');
       }
@@ -185,7 +185,7 @@ export function useBattleData(): BattleDataHookResult {
 
 export function useMintTokens(): MintTokensHookResult {
   const queryClient = useQueryClient();
-  const { switchToBaseSepolia } = useNetworkSwitch();
+  const { switchToBaseMainnet } = useNetworkSwitch();
 
   const { 
     mutateAsync: mint, 
@@ -193,7 +193,7 @@ export function useMintTokens(): MintTokensHookResult {
     error 
   } = useMutation({
     mutationFn: async () => {
-      const networkSwitched = await switchToBaseSepolia();
+      const networkSwitched = await switchToBaseMainnet();
       if (!networkSwitched) {
         throw new Error('Network switch failed');
       }

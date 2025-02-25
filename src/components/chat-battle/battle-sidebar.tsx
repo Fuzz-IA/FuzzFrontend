@@ -303,7 +303,7 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
                 </div>
               ) : (
                 <a 
-                  href={`https://sepolia.basescan.org/address/${selectedAgent?.address}`}
+                  href={`https://basescan.org/address/${selectedAgent?.address}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-mono text-primary hover:underline"

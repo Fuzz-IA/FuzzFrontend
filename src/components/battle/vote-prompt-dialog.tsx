@@ -23,7 +23,7 @@ function truncateAddress(address: string) {
 }
 
 export function VotePromptDialog({ selectedChampion, onClose }: VotePromptDialogProps) {
-  const { switchToBaseSepolia } = useNetworkSwitch();
+  const { switchToBaseMainnet } = useNetworkSwitch();
   const { invalidateAll } = useInvalidations();
   const { 
     formattedBalance: tokenBalance 
@@ -67,7 +67,7 @@ export function VotePromptDialog({ selectedChampion, onClose }: VotePromptDialog
     setIsVoting(true);
 
     try {
-      const networkSwitched = await switchToBaseSepolia();
+      const networkSwitched = await switchToBaseMainnet();
       if (!networkSwitched) return;
 
       const allowanceApproved = await checkAndApproveAllowance();

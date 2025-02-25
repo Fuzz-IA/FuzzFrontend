@@ -35,12 +35,12 @@ export async function fetchDynamicBetAmounts(): Promise<DynamicBetAmounts> {
 }
 
 export function useDynamicBetAmount(isAgentA?: boolean) {
-  const { switchToBaseSepolia } = useNetworkSwitch();
+  const { switchToBaseMainnet } = useNetworkSwitch();
 
   const { data, isLoading } = useQuery({
     queryKey: queryKeys.battle.dynamicBets,
     queryFn: async () => {
-      const networkSwitched = await switchToBaseSepolia();
+      const networkSwitched = await switchToBaseMainnet();
       if (!networkSwitched) {
         throw new Error('Network switch failed');
       }

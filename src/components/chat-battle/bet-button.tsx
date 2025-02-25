@@ -38,7 +38,7 @@ export function BetButton({ selectedChampion: initialChampion }: BetButtonProps)
   const [showBetDialog, setShowBetDialog] = useState(false);
   const [isBetting, setIsBetting] = useState(false);
   const { login, authenticated } = usePrivy();
-  const { switchToBaseSepolia } = useNetworkSwitch();
+  const { switchToBaseMainnet } = useNetworkSwitch();
 
   const displayName = selectedChampion === 'trump' ? 'Trump' : 'Xi';
 
@@ -70,7 +70,7 @@ export function BetButton({ selectedChampion: initialChampion }: BetButtonProps)
     }
 
     try {
-      const networkSwitched = await switchToBaseSepolia();
+      const networkSwitched = await switchToBaseMainnet();
       if (!networkSwitched) return;
 
       const minAmountInWei = ethers.utils.parseEther(minBetAmount);

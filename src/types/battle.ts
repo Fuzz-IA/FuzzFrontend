@@ -149,3 +149,7 @@ export interface UseTokenBalanceProps {
   tokenAddress: string;
   enabled?: boolean;
 }
+
+export interface BattleEndedPopupProps {
+  onClose: () => void;
+}

@@ -89,7 +89,7 @@ function CountdownTimer() {
         </div>
       </div>
     ),
-    hasStarted
+    hasStarted: false
   };
 }
 

@@ -51,10 +51,10 @@ async function fetchBattleData(): Promise<BattleContractData> {
     ...(response2?.memories || [])
   ].sort((a, b) => b.createdAt - a.createdAt);
 
-  console.log('All memories:', allMemories);
+  // console.log('All memories:', allMemories);
 
   if (!allMemories || allMemories.length === 0) {
-    console.log('No memories found in responses');
+    // console.log('No memories found in responses');
     return {
       totalPool: '0',
       agentA: {
@@ -83,7 +83,7 @@ async function fetchBattleData(): Promise<BattleContractData> {
       return messageText.includes('[Trump') && messageText.includes('Xi');
     });
 
-  console.log('Messages with scores:', messagesWithScores);
+  // console.log('Messages with scores:', messagesWithScores);
 
   let scores = { trump: 0, xi: 0 };
   
@@ -93,11 +93,11 @@ async function fetchBattleData(): Promise<BattleContractData> {
       ? lastMessage.content 
       : lastMessage.content?.text || JSON.stringify(lastMessage.content);
     
-    console.log('Processing message text:', messageText);
+    // console.log('Processing message text:', messageText);
     
     const scoreMatch = messageText.match(/\[Trump\s*(\d+)\s*\|\s*Xi\s*(\d+)\]/);
     if (scoreMatch) {
-      console.log('Score match found:', scoreMatch);
+      // console.log('Score match found:', scoreMatch);
       scores = {
         trump: parseInt(scoreMatch[1]),
         xi: parseInt(scoreMatch[2])
@@ -105,7 +105,7 @@ async function fetchBattleData(): Promise<BattleContractData> {
     }
   }
 
-  console.log('Final parsed scores:', scores);
+  // console.log('Final parsed scores:', scores);
 
   // Validate scores
   if (typeof scores.trump !== 'number' || typeof scores.xi !== 'number' || 

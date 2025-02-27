@@ -38,7 +38,9 @@ export const useTokenBalance = ({ tokenAddress, enabled = true }: UseTokenBalanc
     retry: 2
   });
 
-  const formattedBalance = Number(balance).toFixed(2);
+  const formattedBalance = Number(balance) >= 1000000 
+    ? `${(Number(balance) / 1000000).toFixed(2)}M`
+    : Number(balance).toFixed(2);
 
   const invalidateBalance = () => {
       queryClient.invalidateQueries({

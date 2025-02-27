@@ -26,12 +26,10 @@ function formatAmount(amount: string): string {
   try {
     const numAmount = Number(amount);
     if (isNaN(numAmount)) {
-      console.error('Invalid amount:', amount);
       return '0';
     }
     return numAmount.toFixed(2);
   } catch (error) {
-    console.error('Error formatting amount:', error);
     return '0';
   }
 }
@@ -191,7 +189,7 @@ export function BetActivityFeed({ maxItems = 5 }: BetActivityProps) {
   }, [maxItems]);
 
   return (
-    <div className="flex items-center justify-center gap-12">
+    <div className="flex items-center justify-center gap-6">
       <BetTicker 
         bets={trumpBets} 
         label="Trump" 

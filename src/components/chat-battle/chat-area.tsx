@@ -180,30 +180,7 @@ function ChatMessages({ selectedChampion }: { selectedChampion: 'trump' | 'xi' |
     const queryClient = useQueryClient();
     const messagesContainerRef = useRef<HTMLDivElement>(null);
     const [lastUpdateTime, setLastUpdateTime] = useState<number>(0);
-    const [hasNewMessages, setHasNewMessages] = useState(false);
     const [showFullMessage, setShowFullMessage] = useState(false);
-
-    const scrollToBottom = (force: boolean = false) => {
-        if (messagesContainerRef.current && force) {
-            messagesContainerRef.current.scrollTo({
-                top: messagesContainerRef.current.scrollHeight,
-                behavior: 'smooth'
-            });
-        }
-    };
-
-    // Manejar el scroll manual del usuario
-    const handleScroll = () => {
-        if (messagesContainerRef.current) {
-            const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
-            const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
-            
-            // Solo actualizamos si el usuario ha llegado al fondo
-            if (isNearBottom) {
-                setHasNewMessages(false);
-            }
-        }
-    };
 
     // Simula el efecto de escritura para un nuevo mensaje
     const simulateTyping = async (message: Message) => {
@@ -252,14 +229,7 @@ function ChatMessages({ selectedChampion }: { selectedChampion: 'trump' | 'xi' |
                 ...(response2?.memories || [])
             ].sort((a, b) => a.createdAt! - b.createdAt!);
 
-            // Guardar la posición actual del scroll antes de actualizar los mensajes
-            const container = messagesContainerRef.current;
-            const scrollPosition = container ? container.scrollTop : 0;
-            const isAtBottom = container ? 
-                (container.scrollHeight - container.scrollTop - container.clientHeight < 100) : 
-                false;
-
-            // Procesar nuevos mensajes con delay
+            // Procesar nuevos mensajes
             const currentMessages = queryClient.getQueryData<Message[]>(["messages"]) || [];
             const newMessages = allMemories
                 .filter(memory => memory.userId !== "12dea96f-ec20-0935-a6ab-75692c994959")
@@ -280,29 +250,12 @@ function ChatMessages({ selectedChampion }: { selectedChampion: 'trump' | 'xi' |
 
             if (lastNewMessage && (!lastCurrentMessage || lastNewMessage.id !== lastCurrentMessage.id)) {
                 await simulateTyping(lastNewMessage);
-                // Pin the last message
                 setPinnedMessage(lastNewMessage);
-                // Indicar que hay nuevos mensajes si el usuario no está en el fondo
-                if (!isAtBottom) {
-                    setHasNewMessages(true);
-                }
             }
 
             queryClient.setQueryData(["messages"], newMessages);
             setLastUpdateTime(Date.now());
             
-            // Solo hacemos scroll automático en la carga inicial
-            if (isLoadingHistory) {
-                scrollToBottom(true);
-            } else if (container && !isAtBottom) {
-                // Restaurar la posición del scroll después de actualizar los mensajes
-                // Usamos setTimeout para asegurar que el DOM se ha actualizado
-                setTimeout(() => {
-                    if (container) {
-                        container.scrollTop = scrollPosition;
-                    }
-                }, 0);
-            }
         } catch (error) {
             console.error('Error fetching messages:', error);
         }
@@ -357,19 +310,18 @@ function ChatMessages({ selectedChampion }: { selectedChampion: 'trump' | 'xi' |
         return () => clearInterval(interval);
     }, []);
 
-    // Agregar event listener para el scroll
-    useEffect(() => {
-        const container = messagesContainerRef.current;
-        if (container) {
-            container.addEventListener('scroll', handleScroll);
-            return () => container.removeEventListener('scroll', handleScroll);
-        }
-    }, []);
-
     const messages = queryClient.getQueryData<Message[]>(["messages"]) || [];
-    const lastMessageId = messages[messages.length - 1]?.id;
+    
+    // Modificar el efecto de scroll para mantener la posición en la parte inferior
+    // useEffect(() => {
+    //     if (messagesContainerRef.current) {
+    //         messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    //     }
+    // }, [messages.length, chatState.isTyping]); // Se ejecuta cuando hay nuevos mensajes o cambia el estado de typing
 
-    const transitions = useTransition<Message, AnimatedStyles>(messages, {
+    const lastMessageId = messages[0]?.id;
+
+    const transitions = useTransition<Message, AnimatedStyles>([...messages].reverse(), {
         keys: (message) => `${message.createdAt}-${message.user}-${message.text}`,
         from: { 
             opacity: 0, 
@@ -467,7 +419,7 @@ function ChatMessages({ selectedChampion }: { selectedChampion: 'trump' | 'xi' |
                 className="h-full overflow-y-auto scroll-smooth px-4" 
                 ref={messagesContainerRef}
             >
-                <div className="space-y-4 max-w-3xl mx-auto py-4">
+                <div className="space-y-4 max-w-3xl mx-auto py-4 flex flex-col">
                     {transitions((style, message) => {
                         const AnimatedDiv = animated('div');
                         const agentInfo = AGENTS_INFO[message.fromAgent as keyof typeof AGENTS_INFO];
@@ -538,30 +490,6 @@ function ChatMessages({ selectedChampion }: { selectedChampion: 'trump' | 'xi' |
                     )}
                 </div>
             </div>
-            {hasNewMessages && (
-                <button
-                    onClick={() => {
-                        scrollToBottom(true);
-                        setHasNewMessages(false);
-                    }}
-                    className="fixed bottom-20 right-8 bg-primary text-primary-foreground rounded-full p-2 shadow-lg hover:bg-primary/90 transition-all animate-bounce"
-                >
-                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                    >
-                        <path d="M12 19V5M5 12l7 7 7-7" />
-                    </svg>
-                </button>
-            )}
             <div className="text-sm text-gray-500 text-center pb-2">
                 Last updated: {new Date(lastUpdateTime).toLocaleTimeString()}
             </div>

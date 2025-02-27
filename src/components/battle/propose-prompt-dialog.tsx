@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useState } from "react"
-import { Send, Wand2 } from "lucide-react"
+import { Send, Wand2, Coins } from "lucide-react"
 import { usePrivy } from '@privy-io/react-auth';
 import { ethers } from 'ethers';
 import { BATTLE_ADDRESS, TOKEN_ADDRESS, BATTLE_ABI, BETTING_AMOUNT } from '@/lib/contracts/battle-abi';
@@ -14,6 +14,7 @@ import { useTokenAllowance } from "@/hooks/useTokenAllowance";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { useNetworkSwitch } from "@/hooks/useNetworkSwitch";
 import { useInvalidations } from '@/hooks/useInvalidations';
+import { InsufficientFuzzDialog } from './insufficient-fuzz-dialog';
 
 
 declare global {
@@ -27,6 +28,7 @@ export function ProposePromptDialog({ player, onSubmit, selectedChain, isSupport
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isImproving, setIsImproving] = useState(false)
+  const [showInsufficientFuzzDialog, setShowInsufficientFuzzDialog] = useState(false);
   const { user, authenticated, login, ready } = usePrivy();
   const { switchToBaseMainnet } = useNetworkSwitch();
   const { invalidateAll } = useInvalidations();
@@ -97,6 +99,13 @@ export function ProposePromptDialog({ player, onSubmit, selectedChain, isSupport
         text: 'Please connect your wallet first'
       }]);
       login();
+      return;
+    }
+
+    // Check if user has enough FUZZ - Convert both to same unit (wei)
+    const userBalanceInWei = ethers.utils.parseEther(tokenBalance || '0');
+    if (userBalanceInWei.lt(BETTING_AMOUNT)) {
+      setShowInsufficientFuzzDialog(true);
       return;
     }
 
@@ -223,63 +232,78 @@ export function ProposePromptDialog({ player, onSubmit, selectedChain, isSupport
   }
 
   return (
-    <div className="flex flex-col h-[60vh]">
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message, i) => (
-          <div
-            key={i}
-            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
+    <>
+      <div className="flex flex-col h-[60vh]">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {messages.map((message, i) => (
             <div
-              className={`rounded-lg px-4 py-2 max-w-[80%] ${
-                message.role === 'user'
-                  ? `${player.style.borderColor} border bg-black/40`
-                  : 'bg-gray-800'
-              }`}
+              key={i}
+              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
-              <p className={message.role === 'user' ? player.style.textColor : 'text-gray-300'}>
-                {message.content}
-              </p>
+              <div
+                className={`rounded-lg px-4 py-2 max-w-[80%] ${
+                  message.role === 'user'
+                    ? `${player.style.borderColor} border bg-black/40`
+                    : 'bg-gray-800'
+                }`}
+              >
+                <p className={message.role === 'user' ? player.style.textColor : 'text-gray-300'}>
+                  {message.content}
+                </p>
+              </div>
             </div>
+          ))}
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-4 border-t border-gray-800">
+          <div className="flex gap-2">
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder={isSupport ? "Support this agent with 1 FUZZ" : "Type your prompt..."}
+              disabled={isLoading || selectedChain === 'info'}
+              className="flex-1"
+            />
+            {!isSupport && (
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={handleImproveText}
+                disabled={!input.trim() || isImproving || isLoading || selectedChain === 'info'}
+              >
+                <Wand2 className="h-4 w-4" />
+              </Button>
+            )}
+            <Button 
+              type="submit"
+              disabled={(!input.trim() && !isSupport) || isLoading || selectedChain === 'info'}
+              className={`${ethers.utils.parseEther(tokenBalance || '0').lt(BETTING_AMOUNT) ? 'bg-destructive hover:bg-destructive/90' : ''}`}
+            >
+              {isLoading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Processing...
+                </div>
+              ) : ethers.utils.parseEther(tokenBalance || '0').lt(BETTING_AMOUNT) ? (
+                <div className="flex items-center gap-2">
+                  <Coins className="h-4 w-4" />
+                  <span>Insufficient FUZZ</span>
+                </div>
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </Button>
           </div>
-        ))}
+        </form>
       </div>
 
-      <form onSubmit={handleSubmit} className="p-4 border-t border-gray-800">
-        <div className="flex gap-2">
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder={isSupport ? "Support this agent with 1 FUZZ" : "Type your prompt..."}
-            disabled={isLoading || selectedChain === 'info'}
-            className="flex-1"
-          />
-          {!isSupport && (
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={handleImproveText}
-              disabled={!input.trim() || isImproving || isLoading || selectedChain === 'info'}
-            >
-              <Wand2 className="h-4 w-4" />
-            </Button>
-          )}
-          <Button 
-            type="submit"
-            disabled={(!input.trim() && !isSupport) || isLoading || selectedChain === 'info'}
-          >
-            {isLoading ? (
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Processing...
-              </div>
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-          </Button>
-        </div>
-      </form>
-    </div>
+      <InsufficientFuzzDialog
+        isOpen={showInsufficientFuzzDialog}
+        onClose={() => setShowInsufficientFuzzDialog(false)}
+        requiredAmount={ethers.utils.formatEther(BETTING_AMOUNT)}
+        currentBalance={tokenBalance}
+      />
+    </>
   );
 } 

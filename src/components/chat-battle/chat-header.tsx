@@ -27,7 +27,7 @@ export function ChatHeader() {
   return (
     <div className="border-b border-[#F3642E]/20">
       <div className="flex items-center justify-between p-4">
-        <div className="flex-1 flex justify-center">
+        <div className="flex-1 flex justify-center pl-6">
           <BetActivityFeed maxItems={3} />
         </div>
         <div className="flex items-center gap-4">
@@ -53,16 +53,16 @@ export function ChatHeader() {
             <Button
               variant="ghost"
               size="icon"
-              className="bg-[#F3642E]/10 hover:bg-[#F3642E]/20 text-[#F3642E]"
+              className="bg-[#F3642E]/10 hover:bg-[#F3642E]/20 text-[#F3642E] "
               onClick={() => window.open('https://app.uniswap.org/swap?outputCurrency=0xab9AFF6f259787300bBB16DD1fa0c622426Aa169&chain=base', '_blank')}
               aria-label="Buy on Uniswap"
             >
               <Image
-                src="/uniswap-uni-logo.svg"
+                src="/uniswap-logo.svg"
                 alt="Uniswap"
                 width={20}
                 height={20}
-                className="h-5 w-5"
+                className="h-6 w-6"
               />
             </Button>
             <Button

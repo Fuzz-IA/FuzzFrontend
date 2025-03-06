@@ -9,7 +9,7 @@ import { ChatInput } from "./chat-input";
 import { ChatHeader } from "./chat-header";
 import { BetActivityFeed } from "./bet-activity-feed";
 import { ClickableAgentAvatar } from "@/components/character/clickable-agent-avatar";
-import { Pin } from 'lucide-react';
+import { Pin, ChevronDown } from 'lucide-react';
 import { getLatestPrompt } from '@/lib/supabase';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -152,6 +152,8 @@ function ChatMessages({ selectedChampion, countdownActive }: { selectedChampion:
     const messagesContainerRef = useRef<HTMLDivElement>(null);
     const [lastUpdateTime, setLastUpdateTime] = useState<number>(0);
     const [showFullMessage, setShowFullMessage] = useState(false);
+    const [showScrollButton, setShowScrollButton] = useState(false);
+    const [hasNewMessages, setHasNewMessages] = useState(false);
 
     // Simula el efecto de escritura para un nuevo mensaje
     const simulateTyping = async (message: Message) => {
@@ -283,12 +285,73 @@ function ChatMessages({ selectedChampion, countdownActive }: { selectedChampion:
 
     const messages = queryClient.getQueryData<Message[]>(["messages"]) || [];
     
-    // Modificar el efecto de scroll para mantener la posición en la parte inferior
+    // Automatic scroll to bottom when new messages arrive or typing state changes
+    // Removing this effect to avoid continuous auto-scrolling
     // useEffect(() => {
     //     if (messagesContainerRef.current) {
-    //         messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    //         const container = messagesContainerRef.current;
+    //         // Smooth scroll to bottom
+    //         container.scrollTo({
+    //             top: container.scrollHeight,
+    //             behavior: 'smooth'
+    //         });
     //     }
-    // }, [messages.length, chatState.isTyping]); // Se ejecuta cuando hay nuevos mensajes o cambia el estado de typing
+    // }, [messages.length, chatState.isTyping]); // Triggers on new messages or typing state changes
+
+    // Initial scroll to bottom ONLY when messages are first loaded
+    useEffect(() => {
+        if (!isLoadingHistory && messagesContainerRef.current && messages.length > 0) {
+            const container = messagesContainerRef.current;
+            // Immediate scroll to bottom on initial load only
+            container.scrollTop = container.scrollHeight;
+        }
+    }, [isLoadingHistory]); // Only depends on isLoadingHistory to run just once after loading
+
+    // Add scroll event listener to show/hide scroll button
+    useEffect(() => {
+        const container = messagesContainerRef.current;
+        if (!container) return;
+
+        const handleScroll = () => {
+            // Show button when user has scrolled up at least 200px from bottom
+            const isScrolledUp = container.scrollHeight - container.scrollTop - container.clientHeight > 200;
+            setShowScrollButton(isScrolledUp);
+        };
+
+        container.addEventListener('scroll', handleScroll);
+        return () => container.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    // Check if we need to show the scroll button when new messages arrive
+    useEffect(() => {
+        const container = messagesContainerRef.current;
+        if (!container) return;
+        
+        // If user is not at the bottom when new messages arrive, show the scroll button
+        const isScrolledUp = container.scrollHeight - container.scrollTop - container.clientHeight > 200;
+        if (isScrolledUp) {
+            setShowScrollButton(true);
+            setHasNewMessages(true); // Indicate that there are new messages
+            
+            // Reset the new messages indicator after 5 seconds
+            const timer = setTimeout(() => {
+                setHasNewMessages(false);
+            }, 5000);
+            
+            return () => clearTimeout(timer);
+        }
+    }, [messages.length]); // Run when messages array length changes
+
+    // Function to scroll to bottom when button is clicked
+    const scrollToBottom = () => {
+        if (messagesContainerRef.current) {
+            messagesContainerRef.current.scrollTo({
+                top: messagesContainerRef.current.scrollHeight,
+                behavior: 'smooth'
+            });
+            setHasNewMessages(false); // Reset new messages indicator after scrolling
+        }
+    };
 
     const lastMessageId = messages[0]?.id;
 
@@ -300,11 +363,23 @@ function ChatMessages({ selectedChampion, countdownActive }: { selectedChampion:
     }
 
     return (
-        <div className="flex-1 overflow-y-auto p-4 pb-0" ref={messagesContainerRef}>
+        <div className="flex-1 overflow-y-auto p-4 pb-0 relative" ref={messagesContainerRef}>
+            {showScrollButton && (
+                <button 
+                    onClick={scrollToBottom}
+                    className={`absolute bottom-4 right-4 text-white rounded-full p-2 shadow-lg z-20 transition-all animate-fadeIn hover:scale-110 ${hasNewMessages ? 'bg-[#F3642E] animate-pulse' : 'bg-[#F3642E]/80 hover:bg-[#F3642E]'}`}
+                    aria-label="Scroll to bottom"
+                >
+                    <ChevronDown className="h-5 w-5" />
+                    {hasNewMessages && (
+                        <span className="absolute -top-1 -right-1 bg-red-500 rounded-full w-3 h-3"></span>
+                    )}
+                </button>
+            )}
             {isLoadingHistory ? (
                 <LoadingSpinner />
             ) : (
-                <div className="space-y-8 pb-2">
+                <div className="space-y-8 pb-2 ">
                     {lastPrompt && (
                         <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-sm rounded-lg border-2 border-[#F3642E]/50 p-3 mb-3 shadow-lg shadow-[#F3642E]/10">
                             <div className="flex items-center gap-2 text-xs text-[#F3642E]">

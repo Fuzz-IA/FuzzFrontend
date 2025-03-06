@@ -15,6 +15,17 @@ export default function ChatBattlePage() {
   const [showEndPopup, setShowEndPopup] = useState(true);
   const [showCountdown, setShowCountdown] = useState(true);
 
+  // Verificar si la batalla ya ha comenzado
+  useEffect(() => {
+    const now = new Date();
+    const targetDate = new Date();
+    targetDate.setHours(13, 0, 0, 0); // 1:00:00 PM
+    
+    if (now >= targetDate) {
+      setShowCountdown(false); // Ocultar el banner si la batalla ya ha comenzado
+    }
+  }, []);
+
   // Function to handle when the countdown ends
   const handleCountdownEnd = () => {
     setShowCountdown(false);
@@ -34,17 +45,17 @@ export default function ChatBattlePage() {
         <div className="flex flex-col flex-1">
           <ChatHeader />
           <div className="flex-1 overflow-hidden flex flex-col mx-4 ml-20 my-6 mt-4">
-            <div className="rounded-lg border bg-background shadow-md border-[#F3642E] h-[calc(100vh-10rem)] flex flex-col">
+            <div className="rounded-lg border bg-background shadow-md border-[#F3642E] h-[calc(100vh-4rem)] flex flex-col">
               {/* Countdown banner inside chat area */}
-              <div className="px-3 pt-3">
+              {/* <div className="px-3 pt-3">
                 <AnimatePresence>
                   {showCountdown && (
                     <CountdownBanner onClose={handleCountdownEnd} />
                   )}
                 </AnimatePresence>
-              </div>
+              </div> */}
               
-              <div className="flex-1">
+              <div className="flex-1 pt-6">
                 <ChatArea 
                   selectedChampion={selectedChampion} 
                   showHeader={false} 

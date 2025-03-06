@@ -58,7 +58,7 @@ export function ChatArea({ selectedChampion, showHeader = true, countdownActive 
   return (
     <>
       {showHeader && <ChatHeader />}
-      <main className={`flex-1 overflow-hidden relative ${showHeader ? 'mx-4 ml-20 my-6 mt-4 rounded-lg border bg-background shadow-md border-[#F3642E]' : ''} h-[calc(100vh-10rem)]`}>
+      <main className={`flex-1 overflow-hidden relative ${showHeader ? 'mx-0 ml-20 my-6 mt-4 rounded-lg border bg-background shadow-md border-[#F3642E]' : ''} h-[calc(100vh-10rem)]`}>
         <div className="h-full flex flex-col">
           <ChatMessages selectedChampion={selectedChampion} countdownActive={countdownActive} />
           <ChatInput selectedChampion={selectedChampion} countdownActive={countdownActive} />
@@ -300,11 +300,22 @@ function ChatMessages({ selectedChampion, countdownActive }: { selectedChampion:
     }
 
     return (
-        <div className="flex-1 overflow-y-auto p-4" ref={messagesContainerRef}>
+        <div className="flex-1 overflow-y-auto p-4 pb-0" ref={messagesContainerRef}>
             {isLoadingHistory ? (
                 <LoadingSpinner />
             ) : (
-                <div className="space-y-4">
+                <div className="space-y-8 pb-2">
+                    {lastPrompt && (
+                        <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-sm rounded-lg border-2 border-[#F3642E]/50 p-3 mb-3 shadow-lg shadow-[#F3642E]/10">
+                            <div className="flex items-center gap-2 text-xs text-[#F3642E]">
+                                <Pin className="h-4 w-4 text-[#F3642E]" />
+                                <span className="font-bold uppercase tracking-wider">Latest prompt for {selectedChampion === CHAMPION1 ? CHAMPION1_NAME : CHAMPION2_NAME}</span>
+                            </div>
+                            <div className="text-sm text-white mt-2 font-medium">
+                                {lastPrompt.message}
+                            </div>
+                        </div>
+                    )}
                     <div className="text-xs text-muted-foreground text-center">
                         Last updated: {new Date(lastUpdateTime).toLocaleTimeString()}
                     </div>

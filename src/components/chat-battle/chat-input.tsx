@@ -2,10 +2,12 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Send, Wand2, Clock } from "lucide-react";
+import { Send, Wand2 } from "lucide-react";
 import { usePromptSubmission } from '@/hooks/usePromptSubmission';
-import { CHAMPION1, CHAMPION2, CHAMPION1_NAME, CHAMPION2_NAME } from '@/lib/constants';
+import { CHAMPION1, CHAMPION2, CHAMPION1_NAME, CHAMPION2_NAME, AGENT_IDS } from '@/lib/constants';
 import { ChampionType } from '@/types/battle';
+import { getLatestPrompt } from '@/lib/supabase';
+import { Prompt } from '@/lib/supabase';
 
 interface ChatInputProps {
   selectedChampion: ChampionType;
@@ -13,95 +15,14 @@ interface ChatInputProps {
   countdownActive?: boolean;
 }
 
-function CountdownTimer() {
-  const [timeLeft, setTimeLeft] = useState('');
-  const [hasStarted, setHasStarted] = useState(false);
-  
-  // Denver is UTC-7, so 7 AM MST = 14:00 UTC
-  // February is 1 (zero-based month in JavaScript)
-  const targetDate = new Date('2025-02-25T07:00:00-10:00');
-
-  useEffect(() => {
-    function updateCountdown() {
-      const now = new Date();
-      const difference = targetDate.getTime() - now.getTime();
-
-      if (difference <= 0) {
-        setTimeLeft('Battle has started!');
-        setHasStarted(true);
-        return;
-      }
-
-      setHasStarted(false);
-      const days = Math.floor(difference / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((difference % (1000 * 60)) / 1000);
-
-      // Add leading zeros for better readability
-      const formattedHours = hours.toString().padStart(2, '0');
-      const formattedMinutes = minutes.toString().padStart(2, '0');
-      const formattedSeconds = seconds.toString().padStart(2, '0');
-
-      setTimeLeft(`${days}d ${formattedHours}h ${formattedMinutes}m ${formattedSeconds}s`);
-    }
-
-    // Update immediately
-    updateCountdown();
-
-    // Update every second
-    const interval = setInterval(updateCountdown, 1000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  return {
-    timeLeftText: !hasStarted && (
-      <div className="relative">
-        <div className="absolute inset-0 bg-gradient-to-r from-[#F3642E]/20 via-[#F3642E]/10 to-[#F3642E]/20 animate-pulse"></div>
-        <div className="relative bg-black/80 border-2 border-[#F3642E] rounded-lg p-6 mt-4">
-          <div className="text-center">
-            <div className="text-2xl font-minecraft text-[#F3642E] mb-2">
-              🔥 COMING SOON 🔥
-            </div>
-            <div className="flex justify-center items-center gap-4 text-xl font-minecraft text-[#F3642E]">
-              <div className="text-center">
-                <div className="text-3xl">{timeLeft.split(' ')[0]}</div>
-                <div className="text-sm text-white/60">DAYS</div>
-              </div>
-              <div className="text-2xl">:</div>
-              <div className="text-center">
-                <div className="text-3xl">{timeLeft.split(' ')[1]?.replace('h','')}</div>
-                <div className="text-sm text-white/60">HOURS</div>
-              </div>
-              <div className="text-2xl">:</div>
-              <div className="text-center">
-                <div className="text-3xl">{timeLeft.split(' ')[2]?.replace('m','')}</div>
-                <div className="text-sm text-white/60">MINUTES</div>
-              </div>
-              <div className="text-2xl">:</div>
-              <div className="text-center">
-                <div className="text-3xl">{timeLeft.split(' ')[3]?.replace('s','')}</div>
-                <div className="text-sm text-white/60">SECONDS</div>
-              </div>
-            </div>
-            <div className="text-sm text-white/80 mt-4">
-              Launching February 25th, 2025 at 10:00 AM MST
-            </div>
-          </div>
-        </div>
-      </div>
-    ),
-    hasStarted: false
-  };
-}
-
 export function ChatInput({ selectedChampion, onMessageSent, countdownActive = false }: ChatInputProps) {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { submitPrompt, isLoading, isImproving, improveText } = usePromptSubmission();
-  const { timeLeftText, hasStarted } = CountdownTimer();
+  
+  // Remove countdown functionality and always set battle as started
+  const battleHasStarted = true;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInput(e.target.value);
@@ -132,7 +53,7 @@ export function ChatInput({ selectedChampion, onMessageSent, countdownActive = f
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading || selectedChampion === 'info' || countdownActive) return;
+    if (!input.trim() || isLoading || selectedChampion === 'info' || !battleHasStarted) return;
 
     try {
       await submitPrompt({
@@ -150,18 +71,12 @@ export function ChatInput({ selectedChampion, onMessageSent, countdownActive = f
     !input.trim() || 
     isLoading || 
     selectedChampion === 'info' ||
-    isImproving ||
-    countdownActive;
+    isImproving;
 
   return (
-    <div className="border-t border-[#F3642E]/20 bg-black/50 p-4 pbes-12">
-      {countdownActive ? (
-        <div className="flex items-center justify-center gap-2 text-[#F3642E] py-2">
-          <Clock className="h-4 w-4 animate-pulse" />
-          <span className="text-sm">The battle will start soon...</span>
-        </div>
-      ) : (
-        <form onSubmit={handleSubmit} className="flex gap-3 max-w-3xl mx-auto">
+    <div className="border-t border-[#F3642E]/20 bg-black/50 pt-2 px-2">
+      <div className="max-w-3xl mx-auto">
+        <form onSubmit={handleSubmit} className="flex gap-2">
           <input
             type="text"
             value={input}
@@ -172,7 +87,7 @@ export function ChatInput({ selectedChampion, onMessageSent, countdownActive = f
                 : `Submit a prompt for ${selectedChampion === CHAMPION1 ? CHAMPION1_NAME : CHAMPION2_NAME}...`
             }
             disabled={isLoading || selectedChampion === 'info'}
-            className="flex-1 rounded-lg border border-[#F3642E]/20 bg-black/50 px-4 py-3 text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#F3642E] focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 rounded-lg border border-[#F3642E]/20 bg-black/50 px-4 py-2 text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#F3642E] focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           />
           <Button
             type="button"
@@ -199,13 +114,12 @@ export function ChatInput({ selectedChampion, onMessageSent, countdownActive = f
             )}
           </Button>
         </form>
-      )}
-      {isTyping && !countdownActive && (
-        <div className="text-sm text-[#F3642E]/60 text-center mt-2">
-          You are typing...
-        </div>
-      )}
-      {timeLeftText}
+        {isTyping && (
+          <div className="text-xs text-[#F3642E]/60 text-center mt-1">
+            You are typing...
+          </div>
+        )}
+      </div>
     </div>
   );
 }

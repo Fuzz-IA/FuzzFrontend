@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { X, Clock, Flame } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Clock } from 'lucide-react';
 import { CHAMPION1_NAME, CHAMPION2_NAME, AGENTS_INFO, AGENT_IDS } from '@/lib/constants';
 import Image from 'next/image';
 
@@ -22,6 +21,15 @@ export function CountdownBanner({ onClose }: CountdownBannerProps) {
   targetDate.setSeconds(0);
   targetDate.setMilliseconds(0);
   
+  // Si la batalla ya ha comenzado, cerrar el banner inmediatamente
+  useEffect(() => {
+    const now = new Date();
+    if (now >= targetDate) {
+      setHasStarted(true);
+      onClose(); // Cerrar el banner automáticamente
+    }
+  }, [onClose, targetDate]);
+  
   // If it's already past 1pm today, set for tomorrow
   if (targetDate.getTime() < Date.now()) {
     targetDate.setDate(targetDate.getDate() + 1);
@@ -35,6 +43,8 @@ export function CountdownBanner({ onClose }: CountdownBannerProps) {
       if (difference <= 0) {
         setTimeLeft('The battle has started!');
         setHasStarted(true);
+        // Auto-close the banner when the battle starts
+        onClose();
         return;
       }
 
@@ -58,27 +68,18 @@ export function CountdownBanner({ onClose }: CountdownBannerProps) {
     const interval = setInterval(updateCountdown, 1000);
 
     return () => clearInterval(interval);
-  }, [targetDate]);
+  }, [targetDate, onClose]);
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="bg-gradient-to-r from-orange-600/90 to-red-600/90 rounded-lg shadow-md p-3 mb-4 relative"
+      exit={{ opacity: 0, y: -10 }}
+      className="bg-gradient-to-r from-orange-600/80 to-red-600/80 rounded-lg shadow-sm p-2 mb-3 relative"
     >
-      {/* <Button 
-        variant="ghost" 
-        size="icon" 
-        onClick={onClose}
-        className="absolute right-1 top-1 text-white hover:bg-white/20 h-6 w-6 p-1"
-      >
-        <X className="h-4 w-4" />
-      </Button> */}
-
-      <div className="flex items-center justify-center gap-3">
+      <div className="flex items-center justify-center gap-2">
         <div className="flex items-center gap-1">
-          <div className="relative h-7 w-7 rounded-full overflow-hidden border border-white/50">
+          <div className="relative h-5 w-5 rounded-full overflow-hidden border border-white/50">
             <Image 
               src={AGENTS_INFO[AGENT_IDS.AGENT1_ID].avatar} 
               alt={CHAMPION1_NAME}
@@ -86,14 +87,14 @@ export function CountdownBanner({ onClose }: CountdownBannerProps) {
               className="object-cover"
             />
           </div>
-          <span className="font-bold text-white text-xs">{CHAMPION1_NAME}</span>
+          <span className="text-white text-xs">{CHAMPION1_NAME}</span>
         </div>
 
         <span className="text-white text-xs">vs</span>
 
         <div className="flex items-center gap-1">
-          <span className="font-bold text-white text-xs">{CHAMPION2_NAME}</span>
-          <div className="relative h-7 w-7 rounded-full overflow-hidden border border-white/50">
+          <span className="text-white text-xs">{CHAMPION2_NAME}</span>
+          <div className="relative h-5 w-5 rounded-full overflow-hidden border border-white/50">
             <Image 
               src={AGENTS_INFO[AGENT_IDS.AGENT2_ID].avatar} 
               alt={CHAMPION2_NAME}
@@ -104,44 +105,11 @@ export function CountdownBanner({ onClose }: CountdownBannerProps) {
         </div>
       </div>
 
-      <div className="text-center mt-1">
-        <p className="text-xs text-white font-medium flex items-center justify-center gap-1">
-          {hasStarted ? (
-            <>
-              <Flame className="h-3 w-3" />
-              The Battle Has Started!
-            </>
-          ) : (
-            <>
-              <Clock className="h-3 w-3" />
-              Battle starts in:
-            </>
-          )}
-        </p>
-        
-        {!hasStarted ? (
-          <div className="flex items-center justify-center gap-1 mt-1">
-            <span className="bg-black/20 px-1.5 py-0.5 rounded text-white text-xs font-mono">{timeLeft.split(':')[0]}</span>
-            <span className="text-white text-xs">:</span>
-            <span className="bg-black/20 px-1.5 py-0.5 rounded text-white text-xs font-mono">{timeLeft.split(':')[1]}</span>
-            <span className="text-white text-xs">:</span>
-            <span className="bg-black/20 px-1.5 py-0.5 rounded text-white text-xs font-mono">{timeLeft.split(':')[2]}</span>
-          </div>
-        ) : (
-          <Button 
-            variant="outline" 
-            size="sm"
-            className="mt-1 bg-white text-red-600 hover:bg-white/90 border-none text-xs py-0 h-6"
-            onClick={onClose}
-          >
-            Join Now!
-          </Button>
-        )}
-        
-        {!hasStarted && (
-          <p className="text-xs text-white/80 mt-0.5">
-            Today at 11:00 AM EST          </p>
-        )}
+      <div className="text-center mt-1 flex items-center justify-center gap-1">
+        <Clock className="h-3 w-3 text-white" />
+        <span className="text-white text-xs">
+          Battle starts at 1:00 PM ({timeLeft})
+        </span>
       </div>
     </motion.div>
   );

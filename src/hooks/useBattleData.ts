@@ -248,15 +248,25 @@ function extractScores(messageText: string): BattleScores | null {
   };
   
   // Extraer puntuaciones del texto
-  // Nota: Esto asume que el formato del mensaje sigue siendo [Trump X | Xi Y]
-  // Si el formato cambia, esta expresión regular necesitará ser actualizada
-  const scoreMatch = messageText.match(/\[Trump\s*(\d+)\s*\|\s*Xi\s*(\d+)\]/);
+  // Actualizar la expresión regular para que coincida con el nuevo formato [Putin X | Zelensky Y]
+  const scoreMatch = messageText.match(new RegExp(`\\[${CHAMPION1_NAME}\\s*(\\d+)\\s*\\|\\s*${CHAMPION2_NAME}\\s*(\\d+)\\]`));
   
   if (scoreMatch && scoreMatch.length === 3) {
     scores = {
       [CHAMPION1]: parseInt(scoreMatch[1]),
       [CHAMPION2]: parseInt(scoreMatch[2])
     };
+  }
+  
+  // Intentar también con el formato antiguo por compatibilidad
+  if (scores[CHAMPION1] === 0 && scores[CHAMPION2] === 0) {
+    const oldFormatMatch = messageText.match(/\[Trump\s*(\d+)\s*\|\s*Xi\s*(\d+)\]/);
+    if (oldFormatMatch && oldFormatMatch.length === 3) {
+      scores = {
+        [CHAMPION1]: parseInt(oldFormatMatch[1]),
+        [CHAMPION2]: parseInt(oldFormatMatch[2])
+      };
+    }
   }
   
   // Validar puntuaciones

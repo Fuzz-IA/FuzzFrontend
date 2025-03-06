@@ -15,6 +15,8 @@ import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { useNetworkSwitch } from "@/hooks/useNetworkSwitch";
 import { useInvalidations } from '@/hooks/useInvalidations';
 import { InsufficientFuzzDialog } from './insufficient-fuzz-dialog';
+import { CHAMPION1, CHAMPION1_NAME, CHAMPION2_NAME } from '@/lib/constants';
+import { mapToOriginalChampion } from '@/types/battle';
 
 
 declare global {
@@ -162,7 +164,7 @@ export function ProposePromptDialog({ player, onSubmit, selectedChain, isSupport
       const battleContract = new ethers.Contract(BATTLE_ADDRESS, BATTLE_ABI, signer);
     
       const tx = await battleContract.betWithPrompt(
-        selectedChain === 'trump', // true if Trump, false if Xi
+        selectedChain === CHAMPION1, // true if Putin, false if Zelensky
         BETTING_AMOUNT
       );
 
@@ -195,7 +197,7 @@ export function ProposePromptDialog({ player, onSubmit, selectedChain, isSupport
             wallet_address: user.wallet.address,
             message: input,
             short_description: shortDesc,
-            is_agent_a: selectedChain === 'trump',
+            is_agent_a: selectedChain === CHAMPION1,
             prompt_id: Number(promptId)
           });
         } catch (error) {

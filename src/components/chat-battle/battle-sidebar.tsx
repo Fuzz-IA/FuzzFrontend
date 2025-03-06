@@ -12,7 +12,7 @@ import { Trophy, MessageSquarePlus, Info, Shield, Brain, Target, ChevronDown, Wa
 import { usePrivy } from '@privy-io/react-auth';
 
 import { BetButton } from './bet-button';
-import {  TOKEN_ADDRESS } from '@/lib/contracts/battle-abi';
+import { TOKEN_ADDRESS } from '@/lib/contracts/battle-abi';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2 } from "lucide-react";
 import { contractToast } from '@/lib/utils';
@@ -22,10 +22,12 @@ import Image from 'next/image';
 import { useBattleData } from '@/hooks/useBattleData';
 import { useMintTokens}from '@/hooks/useBattleData';
 import { BetActivityFeed } from './bet-activity-feed';
+import { CHAMPION1, CHAMPION2, CHAMPION1_NAME, CHAMPION2_NAME, CHAMPION1_AVATAR, CHAMPION2_AVATAR } from '@/lib/constants';
+import { ChampionType, BattleScores } from '@/types/battle';
 
 interface BattleSidebarProps {
-  selectedChampion: 'trump' | 'xi' | 'info';
-  onChampionSelect: (champion: 'trump' | 'xi' | 'info') => void;
+  selectedChampion: ChampionType;
+  onChampionSelect: (champion: ChampionType) => void;
 }
 
 function truncateAddress(address: string) {
@@ -64,26 +66,26 @@ export function BattleSidebar({ selectedChampion, onChampionSelect }: BattleSide
         </div>
         <div className="flex gap-3">
           <Button
-            variant={selectedChampion === 'trump' ? 'default' : 'outline'}
+            variant={selectedChampion === CHAMPION1 ? 'default' : 'outline'}
             className={`flex-1 font-minecraft text-base h-[64px] whitespace-pre-line ${
-              selectedChampion === 'trump'
+              selectedChampion === CHAMPION1
                 ? 'bg-[#F3642E] hover:bg-[#F3642E]/90 text-white'
                 : 'bg-black border-[#F3642E] hover:bg-[#F3642E]/10 text-white'
             }`}
-            onClick={() => onChampionSelect('trump')}
+            onClick={() => onChampionSelect(CHAMPION1)}
           >
-            Donald{'\n'}Trump
+            {CHAMPION1_NAME.split(' ').join('\n')}
           </Button>
           <Button
-            variant={selectedChampion === 'xi' ? 'default' : 'outline'}
+            variant={selectedChampion === CHAMPION2 ? 'default' : 'outline'}
             className={`flex-1 font-minecraft text-base h-[64px] whitespace-pre-line ${
-              selectedChampion === 'xi'
+              selectedChampion === CHAMPION2
                 ? 'bg-[#F3642E] hover:bg-[#F3642E]/90 text-white'
                 : 'bg-black border-[#F3642E] hover:bg-[#F3642E]/10 text-white'
             }`}
-            onClick={() => onChampionSelect('xi')}
+            onClick={() => onChampionSelect(CHAMPION2)}
           >
-            Xi{'\n'}Jinping
+            {CHAMPION2_NAME.split(' ').join('\n')}
           </Button>
         </div>
       </SidebarHeader>
@@ -147,7 +149,7 @@ function BattleInfo() {
 }
 
 interface BattleActionsProps {
-  selectedChampion: 'trump' | 'xi';
+  selectedChampion: Exclude<ChampionType, 'info'>;
 }
 
 function BattleActions({ selectedChampion }: BattleActionsProps) {
@@ -164,8 +166,8 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
     enabled: authenticated && !!user?.wallet?.address
   });
 
-  const selectedAgent = selectedChampion === 'trump' 
-    ? battleData?.agentA 
+  const selectedAgent = selectedChampion === CHAMPION1
+    ? battleData?.agentA
     : battleData?.agentB;
 
   const handleMint = async () => {
@@ -183,11 +185,11 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
     }
   };
 
-  function ScoreBars({ scores }: { scores: { trump: number; xi: number } }) {
-    const currentScore = selectedChampion === 'trump' ? scores.trump : scores.xi;
-    const otherScore = selectedChampion === 'trump' ? scores.xi : scores.trump;
-    const currentImage = selectedChampion === 'trump' ? '/trumpProfile.svg' : '/xiProfile.png';
-    const barColor = selectedChampion === 'trump' ? 'bg-orange-500' : 'bg-red-500';
+  function ScoreBars({ scores }: { scores: BattleScores }) {
+    const currentScore = selectedChampion === CHAMPION1 ? scores[CHAMPION1] : scores[CHAMPION2];
+    const otherScore = selectedChampion === CHAMPION1 ? scores[CHAMPION2] : scores[CHAMPION1];
+    const currentImage = selectedChampion === CHAMPION1 ? CHAMPION1_AVATAR : CHAMPION2_AVATAR;
+    const barColor = selectedChampion === CHAMPION1 ? 'bg-orange-500' : 'bg-red-500';
     
     // Calculate the maximum possible score (assuming it's out of 3 rounds)
     const MAX_SCORE = 100;
@@ -204,7 +206,7 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
         <div className="flex items-center gap-2 w-full bg-card p-4 rounded-lg mb-2">
           <Image 
             src={currentImage} 
-            alt={selectedChampion}
+            alt={selectedChampion === CHAMPION1 ? CHAMPION1_NAME : CHAMPION2_NAME}
             width={32}
             height={32}
             className="rounded-full object-cover aspect-square"
@@ -281,7 +283,7 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
 
           <div className="mt-4 space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground text-xs">Agent {selectedAgent?.name} Pool: </span>
+              <span className="text-muted-foreground text-xs">Agent {selectedChampion === CHAMPION1 ? CHAMPION1_NAME : CHAMPION2_NAME} Pool: </span>
               {isLoadingBattleData ? (
                 <div className="flex items-center gap-2">
                   <Skeleton className="h-4 w-16" />
@@ -295,7 +297,7 @@ function BattleActions({ selectedChampion }: BattleActionsProps) {
 
           <div className="mt-4 space-y-2 text-xs">
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground text-sm">Agent {selectedAgent?.name}:</span>
+              <span className="text-muted-foreground text-sm">Agent {selectedChampion === CHAMPION1 ? CHAMPION1_NAME : CHAMPION2_NAME}:</span>
               {isLoadingBattleData ? (
                 <div className="flex items-center gap-2">
                   <Skeleton className="h-4 w-24" />

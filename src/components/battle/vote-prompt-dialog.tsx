@@ -8,7 +8,7 @@ import { BATTLE_ABI, BATTLE_ADDRESS, TOKEN_ADDRESS, BETTING_AMOUNT } from '@/lib
 import { getPrompts, Prompt, incrementVoteCount } from '@/lib/supabase';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-import { DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Loader2, Vote, Coins } from "lucide-react";
 import { contractToast } from '@/lib/utils';
 import { VotePromptDialogProps} from "@/types/battle"
@@ -17,6 +17,7 @@ import { useNetworkSwitch } from "@/hooks/useNetworkSwitch";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { useInvalidations } from '@/hooks/useInvalidations';
 import { InsufficientFuzzDialog } from './insufficient-fuzz-dialog';
+import { CHAMPION1, CHAMPION2, CHAMPION1_NAME, CHAMPION2_NAME } from '@/lib/constants';
 
 function truncateAddress(address: string) {
   if (!address) return '';
@@ -50,7 +51,7 @@ export function VotePromptDialog({ selectedChampion, onClose }: VotePromptDialog
   const loadPrompts = async () => {
     try {
       setIsLoading(true);
-      const promptsData = await getPrompts(selectedChampion === 'trump');
+      const promptsData = await getPrompts(selectedChampion === CHAMPION1);
       setPrompts(promptsData);
     } catch (error) {
       console.error('Error loading prompts:', error);
@@ -106,9 +107,12 @@ export function VotePromptDialog({ selectedChampion, onClose }: VotePromptDialog
 
   return (
     <>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Vote for {selectedChampion === 'trump' ? 'Donald Trump' : 'Xi Jinping'} Prompts</DialogTitle>
+          <DialogTitle>Vote for {selectedChampion === CHAMPION1 ? CHAMPION1_NAME : CHAMPION2_NAME} Prompts</DialogTitle>
+          <DialogDescription>
+            Select a prompt to vote for. Your vote will help determine which prompt gets sent to the AI.
+          </DialogDescription>
         </DialogHeader>
         <div className="text-sm text-muted-foreground mb-4">
           Available Balance: {Number(tokenBalance).toFixed(2)} FUZZ

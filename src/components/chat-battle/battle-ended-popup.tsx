@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Trophy, X, ExternalLink, MessageSquare } from 'lucide-react';
 import Image from 'next/image';
 import {BattleEndedPopupProps} from '@/types/battle';
+import { CHAMPION1_AVATAR, CHAMPION1_NAME } from '@/lib/constants';
+
 export function BattleEndedPopup({ onClose }: BattleEndedPopupProps) {
   const [isVisible, setIsVisible] = useState(true);
 
@@ -22,8 +24,8 @@ export function BattleEndedPopup({ onClose }: BattleEndedPopupProps) {
     return () => clearTimeout(timer);
   }, []);
 
-  const winnerName = 'Donald Trump';
-  const winnerImage = '/trumpProfile.svg';
+  const winnerName = CHAMPION1_NAME;
+  const winnerImage = CHAMPION1_AVATAR;
   
   const transactionLink = "https://basescan.org/tx/0x9d2d21a3e6b551ed698fa2a6861e3188f3cf2c5664e0d881bdad1d091832983f";
 

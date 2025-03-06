@@ -2,12 +2,15 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Send, Wand2 } from "lucide-react";
+import { Send, Wand2, Clock } from "lucide-react";
 import { usePromptSubmission } from '@/hooks/usePromptSubmission';
+import { CHAMPION1, CHAMPION2, CHAMPION1_NAME, CHAMPION2_NAME } from '@/lib/constants';
+import { ChampionType } from '@/types/battle';
 
 interface ChatInputProps {
-  selectedChampion: 'trump' | 'xi' | 'info';
+  selectedChampion: ChampionType;
   onMessageSent?: () => void;
+  countdownActive?: boolean;
 }
 
 function CountdownTimer() {
@@ -93,7 +96,7 @@ function CountdownTimer() {
   };
 }
 
-export function ChatInput({ selectedChampion, onMessageSent }: ChatInputProps) {
+export function ChatInput({ selectedChampion, onMessageSent, countdownActive = false }: ChatInputProps) {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -129,7 +132,7 @@ export function ChatInput({ selectedChampion, onMessageSent }: ChatInputProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading || selectedChampion === 'info' || !hasStarted) return;
+    if (!input.trim() || isLoading || selectedChampion === 'info' || countdownActive) return;
 
     try {
       await submitPrompt({
@@ -148,51 +151,56 @@ export function ChatInput({ selectedChampion, onMessageSent }: ChatInputProps) {
     isLoading || 
     selectedChampion === 'info' ||
     isImproving ||
-    !hasStarted;
+    countdownActive;
 
   return (
     <div className="border-t border-[#F3642E]/20 bg-black/50 p-4 pbes-12">
-      <form onSubmit={handleSubmit} className="flex gap-3 max-w-3xl mx-auto">
-        <input
-          type="text"
-          value={input}
-          onChange={handleInputChange}
-          placeholder={
-            !hasStarted
-              ? "Battle hasn't started yet..."
-              : selectedChampion === 'info' 
+      {countdownActive ? (
+        <div className="flex items-center justify-center gap-2 text-[#F3642E] py-2">
+          <Clock className="h-4 w-4 animate-pulse" />
+          <span className="text-sm">The battle will start soon...</span>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="flex gap-3 max-w-3xl mx-auto">
+          <input
+            type="text"
+            value={input}
+            onChange={handleInputChange}
+            placeholder={
+              selectedChampion === 'info' 
                 ? 'Select your champion first...' 
-                : `Submit a prompt for ${selectedChampion === 'trump' ? 'Donald Trump' : 'Xi Jinping'}...`
-          }
-          disabled={isLoading || selectedChampion === 'info' || !hasStarted}
-          className="flex-1 rounded-lg border border-[#F3642E]/20 bg-black/50 px-4 py-3 text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#F3642E] focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        />
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          onClick={handleImproveText}
-          disabled={!input.trim() || isImproving || isLoading || selectedChampion === 'info' || !hasStarted}
-          className="px-3 border-[#F3642E]/20 bg-black/50 hover:bg-[#F3642E]/10 hover:text-[#F3642E] disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Wand2 className={`h-5 w-5 ${isImproving ? 'animate-spin' : ''}`} />
-        </Button>
-        <Button 
-          type="submit" 
-          disabled={isSubmitDisabled}
-          className="bg-[#F3642E] hover:bg-[#F3642E]/90 text-white px-6 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isLoading ? (
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              Processing...
-            </div>
-          ) : (
-            <Send className="h-5 w-5" />
-          )}
-        </Button>
-      </form>
-      {isTyping && (
+                : `Submit a prompt for ${selectedChampion === CHAMPION1 ? CHAMPION1_NAME : CHAMPION2_NAME}...`
+            }
+            disabled={isLoading || selectedChampion === 'info'}
+            className="flex-1 rounded-lg border border-[#F3642E]/20 bg-black/50 px-4 py-3 text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#F3642E] focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={handleImproveText}
+            disabled={!input.trim() || isImproving || isLoading || selectedChampion === 'info'}
+            className="px-3 border-[#F3642E]/20 bg-black/50 hover:bg-[#F3642E]/10 hover:text-[#F3642E] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Wand2 className={`h-5 w-5 ${isImproving ? 'animate-spin' : ''}`} />
+          </Button>
+          <Button 
+            type="submit" 
+            disabled={isSubmitDisabled}
+            className="bg-[#F3642E] hover:bg-[#F3642E]/90 text-white px-6 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoading ? (
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Processing...
+              </div>
+            ) : (
+              <Send className="h-5 w-5" />
+            )}
+          </Button>
+        </form>
+      )}
+      {isTyping && !countdownActive && (
         <div className="text-sm text-[#F3642E]/60 text-center mt-2">
           You are typing...
         </div>

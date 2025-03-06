@@ -21,6 +21,8 @@ import { BattleSidebar } from '@/components/chat-battle/battle-sidebar'
 import { ChatArea } from '@/components/chat-battle/chat-area'
 import { SidebarProvider } from '@/components/ui/sidebar'
 import { useBattleTotals } from '@/hooks/useBattleTotals'
+import { CHAMPION1, CHAMPION2 } from '@/lib/constants'
+import { ChampionType } from '@/types/battle'
 
 // Mock data - this would come from your API
 const battleData: BattleData = {
@@ -130,7 +132,7 @@ function UserContributions({ isAgentA, player }: { isAgentA: boolean, player: Pl
 function PlayerCard({ player, title, isAgentA }: { player: PlayerAttributes, title: string, isAgentA: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
   const [dialogContent, setDialogContent] = useState<DialogContent>(null);
-  const selectedChain = isAgentA ? 'trump' : 'xi';
+  const selectedChain = isAgentA ? CHAMPION1 : CHAMPION2;
 
   const handlePromptSubmit = async (prompt: string) => {
     // Here you would interact with your smart contract
@@ -319,7 +321,7 @@ function PlayerCard({ player, title, isAgentA }: { player: PlayerAttributes, tit
 }
 
 export default function BattlePage() {
-  const [selectedChampion, setSelectedChampion] = useState<'trump' | 'xi' | 'info'>('info');
+  const [selectedChampion, setSelectedChampion] = useState<ChampionType>('info');
 
   return (
     <SidebarProvider>

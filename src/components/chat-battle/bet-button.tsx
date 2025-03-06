@@ -15,20 +15,22 @@ import { useInvalidations } from '@/hooks/useInvalidations';
 import { X } from 'lucide-react';
 import { saveBet } from '@/lib/supabase';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
+import { CHAMPION1, CHAMPION2, CHAMPION1_NAME, CHAMPION2_NAME } from '@/lib/constants';
+import { ChampionType, mapToOriginalChampion } from '@/types/battle';
 
 interface BetButtonProps {
-  selectedChampion: 'trump' | 'xi';
+  selectedChampion: Exclude<ChampionType, 'info'>;
 }
 
 export function BetButton({ selectedChampion: initialChampion }: BetButtonProps) {
   const { data: dynamicData, isLoading: isLoadingDynamicAmount } = useDynamicBetAmount();
   const { invalidateAll } = useInvalidations();
-  const [selectedChampion, setSelectedChampion] = useState<'trump' | 'xi'>(initialChampion);
+  const [selectedChampion, setSelectedChampion] = useState<Exclude<ChampionType, 'info'>>(initialChampion);
   const [gameEnded, setGameEnded] = useState(false);
 
   const minBetAmount = useMemo(() => {
     if (!dynamicData) return '0';
-    const baseAmount = selectedChampion === 'trump' 
+    const baseAmount = selectedChampion === CHAMPION1
       ? dynamicData.costForSideA 
       : dynamicData.costForSideB;
     return baseAmount;
@@ -40,7 +42,7 @@ export function BetButton({ selectedChampion: initialChampion }: BetButtonProps)
   const { login, authenticated } = usePrivy();
   const { switchToBaseMainnet } = useNetworkSwitch();
 
-  const displayName = selectedChampion === 'trump' ? 'Trump' : 'Xi';
+  const displayName = selectedChampion === CHAMPION1 ? CHAMPION1_NAME : CHAMPION2_NAME;
 
   const {
     formattedBalance: tokenBalance
@@ -56,6 +58,9 @@ export function BetButton({ selectedChampion: initialChampion }: BetButtonProps)
   useEffect(() => {
     if (minBetAmount) setBetAmount(minBetAmount);
   }, [minBetAmount]);
+
+  // Determinar si el campeón seleccionado es el agente A (antes 'trump')
+  const isAgentA = mapToOriginalChampion(selectedChampion) === 'trump';
 
   const handleBet = async () => {
     if (!authenticated) {
@@ -91,14 +96,14 @@ export function BetButton({ selectedChampion: initialChampion }: BetButtonProps)
       const signer = provider.getSigner();
       const battleContract = new ethers.Contract(BATTLE_ADDRESS, BATTLE_ABI, signer);
 
-      const tx = await battleContract.betOnAgent(selectedChampion === 'trump', betAmountInWei);
+      const tx = await battleContract.betOnAgent(isAgentA, betAmountInWei);
       await tx.wait();
 
       const walletAddress = await signer.getAddress();
       await saveBet({
         wallet_address: walletAddress,
         amount: Number(betAmount),
-        is_agent_a: selectedChampion === 'trump'
+        is_agent_a: isAgentA
       });
 
       contractToast.success(`Successfully bet ${betAmount} FUZZ on ${displayName}!`);
@@ -152,32 +157,26 @@ export function BetButton({ selectedChampion: initialChampion }: BetButtonProps)
             </button>
           </div>
 
-          <div className="flex gap-4 mt-6">
-            <button 
-              onClick={() => {
-                setSelectedChampion('trump');
-                setBetAmount(dynamicData?.costForSideA || '0');
-              }}
-              className={`flex-1 py-4 rounded-lg font-minecraft ${
-                selectedChampion === 'trump' 
+          <div className="flex gap-2">
+            <button
+              className={`flex-1 py-2 px-4 rounded-md ${
+                selectedChampion === CHAMPION1 
                   ? 'bg-[#F3642E] text-black' 
                   : 'bg-black text-[#F3642E]'
               }`}
+              onClick={() => setSelectedChampion(CHAMPION1)}
             >
-              Trump
+              {CHAMPION1_NAME}
             </button>
-            <button 
-              onClick={() => {
-                setSelectedChampion('xi');
-                setBetAmount(dynamicData?.costForSideB || '0');
-              }}
-              className={`flex-1 py-4 rounded-lg font-minecraft ${
-                selectedChampion === 'xi' 
+            <button
+              className={`flex-1 py-2 px-4 rounded-md ${
+                selectedChampion === CHAMPION2 
                   ? 'bg-[#F3642E] text-black' 
                   : 'bg-black text-[#F3642E]'
               }`}
+              onClick={() => setSelectedChampion(CHAMPION2)}
             >
-              Xi Jinping
+              {CHAMPION2_NAME}
             </button>
           </div>
 

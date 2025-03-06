@@ -9,6 +9,7 @@ import { improveText as improveTextAPI, generateShortDescription } from '@/lib/o
 import { savePromptSubmission } from '@/lib/supabase';
 import { contractToast } from '@/lib/utils';
 import {useInvalidations} from './useInvalidations'
+import { CHAMPION1 } from '@/lib/constants';
 
 import type { PromptSubmission, UsePromptSubmissionResult } from '@/types/battle';
 
@@ -63,7 +64,7 @@ export function usePromptSubmission(): UsePromptSubmissionResult {
       const battleContract = new ethers.Contract(BATTLE_ADDRESS, BATTLE_ABI, signer);
       contractToast.loading('Submitting prompt with bet...');
       const tx = await battleContract.betWithPrompt(
-        selectedChampion === 'trump',
+        selectedChampion === CHAMPION1,
         BETTING_AMOUNT
       );
 
@@ -79,7 +80,7 @@ export function usePromptSubmission(): UsePromptSubmissionResult {
         wallet_address: user.wallet.address,
         message,
         short_description: shortDesc,
-        is_agent_a: selectedChampion === 'trump',
+        is_agent_a: selectedChampion === CHAMPION1,
         prompt_id: Number(promptId)
       });
 

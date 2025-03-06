@@ -12,7 +12,7 @@ import {
 import { contractToast } from '@/lib/utils';
 import { fetchDynamicBetAmounts } from './useDynamicBetAmount';
 import { apiClient } from '@/lib/api';
-import { AGENT_IDS } from '@/lib/constants';
+import { AGENT_IDS, CHAMPION1, CHAMPION2, CHAMPION1_NAME, CHAMPION2_NAME } from '@/lib/constants';
 
 interface AgentMemory {
   agentId: string;
@@ -24,6 +24,11 @@ interface AgentMemory {
     text?: string;
   } | string;
   createdAt: number;
+}
+
+interface BattleScores {
+  [CHAMPION1]: number;
+  [CHAMPION2]: number;
 }
 
 async function fetchBattleData(): Promise<BattleContractData> {
@@ -58,19 +63,22 @@ async function fetchBattleData(): Promise<BattleContractData> {
     return {
       totalPool: '0',
       agentA: {
-        name: 'Trump',
+        name: CHAMPION1_NAME,
         address: '',
         total: '0'
       },
       agentB: {
-        name: 'Xi',
+        name: CHAMPION2_NAME,
         address: '',
         total: '0'
       },
       gameEnded: false,
       currentGameId: 0,
       marketInfo: await fetchDynamicBetAmounts(),
-      scores: { trump: 0, xi: 0 }
+      scores: { 
+        [CHAMPION1]: 0, 
+        [CHAMPION2]: 0 
+      }
     };
   }
 
@@ -80,12 +88,15 @@ async function fetchBattleData(): Promise<BattleContractData> {
       const messageText = typeof memory.content === 'string' 
         ? memory.content 
         : memory.content?.text || JSON.stringify(memory.content);
-      return messageText.includes('[Trump') && messageText.includes('Xi');
+      return messageText.includes(`[${CHAMPION1_NAME}`) && messageText.includes(CHAMPION2_NAME);
     });
 
   // console.log('Messages with scores:', messagesWithScores);
 
-  let scores = { trump: 0, xi: 0 };
+  let scores: BattleScores = { 
+    [CHAMPION1]: 0, 
+    [CHAMPION2]: 0 
+  };
   
   if (messagesWithScores.length > 0) {
     const lastMessage = messagesWithScores[0];
@@ -95,22 +106,22 @@ async function fetchBattleData(): Promise<BattleContractData> {
     
     // console.log('Processing message text:', messageText);
     
-    const scoreMatch = messageText.match(/\[Trump\s*(\d+)\s*\|\s*Xi\s*(\d+)\]/);
-    if (scoreMatch) {
-      // console.log('Score match found:', scoreMatch);
-      scores = {
-        trump: parseInt(scoreMatch[1]),
-        xi: parseInt(scoreMatch[2])
-      };
+    const extractedScores = extractScores(messageText);
+    if (extractedScores) {
+      // console.log('Score match found:', extractedScores);
+      scores = extractedScores;
     }
   }
 
   // console.log('Final parsed scores:', scores);
 
   // Validate scores
-  if (typeof scores.trump !== 'number' || typeof scores.xi !== 'number' || 
-      isNaN(scores.trump) || isNaN(scores.xi)) {
-    scores = { trump: 0, xi: 0 };
+  if (typeof scores[CHAMPION1] !== 'number' || typeof scores[CHAMPION2] !== 'number' || 
+      isNaN(scores[CHAMPION1]) || isNaN(scores[CHAMPION2])) {
+    scores = { 
+      [CHAMPION1]: 0, 
+      [CHAMPION2]: 0 
+    };
   }
 
   const [
@@ -136,12 +147,12 @@ async function fetchBattleData(): Promise<BattleContractData> {
   return {
     totalPool: ethers.utils.formatEther(total),
     agentA: {
-      name: 'Trump',
+      name: CHAMPION1_NAME,
       address: agentAAddress,
       total: ethers.utils.formatEther(totalA)
     },
     agentB: {
-      name: 'Xi',
+      name: CHAMPION2_NAME,
       address: agentBAddress,
       total: ethers.utils.formatEther(totalB)
     },
@@ -221,3 +232,67 @@ export function useMintTokens(): MintTokensHookResult {
     error: error as Error | null
   };
 }
+
+function extractScores(messageText: string): BattleScores | null {
+  if (!messageText) return null;
+  
+  // Verificar si el mensaje contiene puntuaciones
+  if (!messageText.includes(`[${CHAMPION1_NAME}`) && !messageText.includes(CHAMPION2_NAME)) {
+    return null;
+  }
+  
+  // Inicializar puntuaciones
+  let scores = { 
+    [CHAMPION1]: 0, 
+    [CHAMPION2]: 0 
+  };
+  
+  // Extraer puntuaciones del texto
+  // Nota: Esto asume que el formato del mensaje sigue siendo [Trump X | Xi Y]
+  // Si el formato cambia, esta expresión regular necesitará ser actualizada
+  const scoreMatch = messageText.match(/\[Trump\s*(\d+)\s*\|\s*Xi\s*(\d+)\]/);
+  
+  if (scoreMatch && scoreMatch.length === 3) {
+    scores = {
+      [CHAMPION1]: parseInt(scoreMatch[1]),
+      [CHAMPION2]: parseInt(scoreMatch[2])
+    };
+  }
+  
+  // Validar puntuaciones
+  if (typeof scores[CHAMPION1] !== 'number' || typeof scores[CHAMPION2] !== 'number' ||
+      isNaN(scores[CHAMPION1]) || isNaN(scores[CHAMPION2])) {
+    scores = { 
+      [CHAMPION1]: 0, 
+      [CHAMPION2]: 0 
+    };
+  }
+  
+  return scores;
+}
+
+const mockData: BattleContractData = {
+  totalPool: '1000',
+  agentA: {
+    name: CHAMPION1_NAME,
+    address: '0x123',
+    total: '500'
+  },
+  agentB: {
+    name: CHAMPION2_NAME,
+    address: '0x456',
+    total: '500'
+  },
+  gameEnded: false,
+  currentGameId: 1,
+  marketInfo: {
+    sideARatio: 0.5,
+    sideBRatio: 0.5,
+    costForSideA: '10',
+    costForSideB: '10'
+  },
+  scores: { 
+    [CHAMPION1]: 0, 
+    [CHAMPION2]: 0 
+  }
+};

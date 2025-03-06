@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { motion, AnimatePresence } from 'framer-motion';
+import { CHAMPION1, CHAMPION2, CHAMPION1_NAME, CHAMPION2_NAME } from '@/lib/constants';
 
 interface Bet {
   id: string;
@@ -138,31 +139,32 @@ function BetTicker({ bets, label, colorClass }: { bets: Bet[], label: string, co
 }
 
 export function BetActivityFeed({ maxItems = 5 }: BetActivityProps) {
-  const [trumpBets, setTrumpBets] = useState<Bet[]>([]);
-  const [xiBets, setXiBets] = useState<Bet[]>([]);
+  const [champion1Bets, setChampion1Bets] = useState<Bet[]>([]);
+  const [champion2Bets, setChampion2Bets] = useState<Bet[]>([]);
 
   useEffect(() => {
     const fetchBets = async () => {
-      const { data: trumpData } = await supabase
+      const { data: champion1Data } = await supabase
         .from('bets')
         .select('*')
         .eq('is_agent_a', true)
         .order('created_at', { ascending: false })
         .limit(maxItems);
 
-      const { data: xiData } = await supabase
+      const { data: champion2Data } = await supabase
         .from('bets')
         .select('*')
         .eq('is_agent_a', false)
         .order('created_at', { ascending: false })
         .limit(maxItems);
 
-      if (trumpData) setTrumpBets(trumpData as Bet[]);
-      if (xiData) setXiBets(xiData as Bet[]);
+      if (champion1Data) setChampion1Bets(champion1Data as Bet[]);
+      if (champion2Data) setChampion2Bets(champion2Data as Bet[]);
     };
 
     fetchBets();
 
+    // Subscribe to new bets
     const subscription = supabase
       .channel('bets_channel')
       .on(
@@ -175,9 +177,9 @@ export function BetActivityFeed({ maxItems = 5 }: BetActivityProps) {
         (payload) => {
           const newBet = payload.new as Bet;
           if (newBet.is_agent_a) {
-            setTrumpBets((current) => [newBet, ...current].slice(0, maxItems));
+            setChampion1Bets((current) => [newBet, ...current].slice(0, maxItems));
           } else {
-            setXiBets((current) => [newBet, ...current].slice(0, maxItems));
+            setChampion2Bets((current) => [newBet, ...current].slice(0, maxItems));
           }
         }
       )
@@ -191,13 +193,13 @@ export function BetActivityFeed({ maxItems = 5 }: BetActivityProps) {
   return (
     <div className="flex items-center justify-center gap-6">
       <BetTicker 
-        bets={trumpBets} 
-        label="Trump" 
+        bets={champion1Bets} 
+        label={CHAMPION1_NAME} 
         colorClass="text-orange-500" 
       />
       <BetTicker 
-        bets={xiBets} 
-        label="Xi" 
+        bets={champion2Bets} 
+        label={CHAMPION2_NAME} 
         colorClass="text-red-500" 
       />
     </div>

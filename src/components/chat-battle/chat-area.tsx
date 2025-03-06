@@ -13,42 +13,11 @@ import { Pin } from 'lucide-react';
 import { getLatestPrompt } from '@/lib/supabase';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { CHAMPION1, CHAMPION2, CHAMPION1_NAME, CHAMPION2_NAME, AGENT_IDS, AGENTS_INFO } from '@/lib/constants';
+import { ChampionType } from '@/types/battle';
 
-
-// Hardcoded agent IDs
-const AGENT_IDS = {
-    AGENT1_ID: 'e0e10e6f-ff2b-0d4c-8011-1fc1eee7cb32', // trump
-    AGENT2_ID: '94bfebec-fb1a-02b3-a54d-a1f15b5668a5',  // china
-    AGENT3_ID: 'd1c10fb0-e672-079e-b9cf-a1c8cdc32b96'  // Fuzz
-} as const;
-
-// Modificar las constantes de los agentes para incluir más información
-const AGENTS_INFO = {
-    [AGENT_IDS.AGENT1_ID]: {
-        name: 'Donald Trump',
-        color: 'bg-orange-500',
-        initials: 'DT',
-        avatar: '/trumpProfile.svg',
-        side: 'trump' as const
-    },
-    [AGENT_IDS.AGENT2_ID]: {
-        name: 'Xi Jinping',
-        color: 'bg-red-500',
-        initials: 'CN',
-        avatar: '/xiProfile.png',
-        side: 'xi' as const
-    },
-    [AGENT_IDS.AGENT3_ID]: {
-        name: 'Fuzz',
-        color: 'bg-blue-500',
-        initials: 'FZ',
-        avatar: '/fuzzProfile.svg',
-        side: 'fuzz' as const
-    }
-} as const;
-
+// Use the imported constants instead of redefining them
 type AgentId = keyof typeof AGENTS_INFO;
-
 
 interface Message {
     id: string;
@@ -61,8 +30,8 @@ interface Message {
     text?: string;
     isTyping?: boolean;
     scores?: {
-        trump: number;
-        xi: number;
+        [CHAMPION1]: number;
+        [CHAMPION2]: number;
     };
     isPinned?: boolean;
 }
@@ -74,7 +43,9 @@ interface ChatState {
 }
 
 interface ChatAreaProps {
-  selectedChampion: 'trump' | 'xi' | 'info';
+  selectedChampion: ChampionType;
+  showHeader?: boolean;
+  countdownActive?: boolean;
 }
 
 interface AnimatedStyles {
@@ -83,14 +54,14 @@ interface AnimatedStyles {
     scale: SpringValue<number>;
 }
 
-export function ChatArea({ selectedChampion }: ChatAreaProps) {
+export function ChatArea({ selectedChampion, showHeader = true, countdownActive = false }: ChatAreaProps) {
   return (
     <>
-      <ChatHeader />
-      <main className="flex-1 overflow-hidden relative mx-4 ml-20 my-6 mt-4 rounded-lg border bg-background shadow-md border-[#F3642E] h-[calc(100vh-10rem)]">
+      {showHeader && <ChatHeader />}
+      <main className={`flex-1 overflow-hidden relative ${showHeader ? 'mx-4 ml-20 my-6 mt-4 rounded-lg border bg-background shadow-md border-[#F3642E]' : ''} h-[calc(100vh-10rem)]`}>
         <div className="h-full flex flex-col">
-          <ChatMessages selectedChampion={selectedChampion} />
-          <ChatInput selectedChampion={selectedChampion} />
+          <ChatMessages selectedChampion={selectedChampion} countdownActive={countdownActive} />
+          <ChatInput selectedChampion={selectedChampion} countdownActive={countdownActive} />
         </div>
       </main>
     </>
@@ -162,7 +133,7 @@ function TypewriterText({ text, animate = false }: { text: string; animate?: boo
     );
 }
 
-function ChatMessages({ selectedChampion }: { selectedChampion: 'trump' | 'xi' | 'info' }) {
+function ChatMessages({ selectedChampion, countdownActive }: { selectedChampion: ChampionType; countdownActive?: boolean }) {
     const [isLoadingHistory, setIsLoadingHistory] = useState(true);
     const [chatState, setChatState] = useState<ChatState>({
         isTyping: false,
@@ -266,12 +237,12 @@ function ChatMessages({ selectedChampion }: { selectedChampion: 'trump' | 'xi' |
         if (selectedChampion === 'info') return;
         
         try {
-            const prompt = await getLatestPrompt(selectedChampion === 'trump');
+            const prompt = await getLatestPrompt(selectedChampion === CHAMPION1);
             if (prompt) {
                 setLastPrompt({
                     message: prompt.message,
                     shortDescription: prompt.short_description,
-                    fromAgent: selectedChampion === 'trump' ? AGENT_IDS.AGENT1_ID : AGENT_IDS.AGENT2_ID,
+                    fromAgent: selectedChampion === CHAMPION1 ? AGENT_IDS.AGENT1_ID : AGENT_IDS.AGENT2_ID,
                     wallet_address: prompt.wallet_address,
                     createdAt: prompt.created_at
                 });
@@ -321,166 +292,72 @@ function ChatMessages({ selectedChampion }: { selectedChampion: 'trump' | 'xi' |
 
     const lastMessageId = messages[0]?.id;
 
-    const transitions = useTransition<Message, AnimatedStyles>([...messages].reverse(), {
-        keys: (message) => `${message.createdAt}-${message.user}-${message.text}`,
-        from: { 
-            opacity: 0, 
-            transform: 'translateY(50px)',
-            scale: 0.9
-        },
-        enter: { 
-            opacity: 1, 
-            transform: 'translateY(0px)',
-            scale: 1
-        },
-        leave: { 
-            opacity: 0, 
-            transform: 'translateY(10px)',
-            scale: 0.95 
-        },
-        config: {
-            tension: 300,
-            friction: 20
-        }
-    });
+    // Show all messages regardless of countdown
+    const filteredMessages = messages;
 
     if (isLoadingHistory) {
         return <LoadingSpinner />;
     }
 
     return (
-        <div className="flex-1 overflow-y-auto">
-            {lastPrompt && (
-                <>
-                    <div 
-                        className="sticky top-0 z-10 bg-black/80 backdrop-blur-sm border-b border-primary/20 p-4 cursor-pointer hover:bg-black/90 transition-colors"
-                        onClick={() => setShowFullMessage(true)}
-                    >
-                        <div className="max-w-3xl mx-auto">
-                            <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-2">
-                                    <Pin className="h-4 w-4 text-primary" />
-                                    <span className="text-sm font-medium text-primary text-white">Latest Prompt</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xs text-muted-foreground">
-                                        by {lastPrompt.wallet_address?.slice(0, 6)}...{lastPrompt.wallet_address?.slice(-4)}
-                                    </span>
-                                    <span className="text-xs text-muted-foreground">
-                                        • {new Date(lastPrompt.createdAt).toLocaleTimeString()}
-                                    </span>
-                                </div>
-                            </div>
-                            <div className="flex items-start gap-2">
-                                <MessageAvatar agentId={lastPrompt.fromAgent} />
-                                <div className="flex-1">
-                                    <div className="bg-primary/10 rounded-lg p-4">
-                                        <p className="text-sm text-primary-foreground text-white">
-                                            {lastPrompt.shortDescription}
-                                        </p>
-                                    </div>
+        <div className="flex-1 overflow-y-auto p-4" ref={messagesContainerRef}>
+            {isLoadingHistory ? (
+                <LoadingSpinner />
+            ) : (
+                <div className="space-y-4">
+                    <div className="text-xs text-muted-foreground text-center">
+                        Last updated: {new Date(lastUpdateTime).toLocaleTimeString()}
+                    </div>
+                    
+                    {/* Render messages without animations for simplicity */}
+                    {filteredMessages.map((message, index) => (
+                        <div
+                            key={`${message.createdAt}-${message.user}-${message.text}-${index}`}
+                            className={`flex items-start gap-2 ${
+                                message.fromAgent && 
+                                AGENTS_INFO[message.fromAgent as AgentId]?.side === selectedChampion 
+                                    ? 'flex-row-reverse' 
+                                    : 'flex-row'
+                            }`}
+                        >
+                            <MessageAvatar agentId={message.fromAgent} />
+                            <div className={`flex flex-col ${
+                                message.fromAgent && 
+                                AGENTS_INFO[message.fromAgent as AgentId]?.side === selectedChampion 
+                                    ? 'items-end' 
+                                    : 'items-start'
+                            }`}>
+                                <div className={`relative rounded-lg p-4 ${
+                                    message.isPinned 
+                                        ? 'bg-[#F3642E]/10 border border-[#F3642E]/30' 
+                                        : 'bg-primary/10'
+                                }`}>
+                                    {message.isPinned && (
+                                        <Pin className="absolute -top-2 -left-2 h-4 w-4 text-[#F3642E]" />
+                                    )}
+                                    <TypewriterText 
+                                        text={message.text || message.content} 
+                                        animate={message.isTyping} 
+                                    />
                                 </div>
                             </div>
                         </div>
-                    </div>
-
-                    <Dialog open={showFullMessage} onOpenChange={setShowFullMessage}>
-                        <DialogContent className="sm:max-w-2xl">
-                            <DialogHeader>
-                                <DialogTitle className="flex items-center gap-2">
-                                    <Pin className="h-4 w-4" />
-                                    Pinned Prompt
-                                </DialogTitle>
-                            </DialogHeader>
-                            <div className="flex flex-col gap-4">
-                                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                                    <span>
-                                        by {lastPrompt.wallet_address?.slice(0, 6)}...{lastPrompt.wallet_address?.slice(-4)}
-                                    </span>
-                                    <span>
-                                        {new Date(lastPrompt.createdAt).toLocaleString()}
-                                    </span>
-                                </div>
-                                <div className="flex items-start gap-4">
-                                    <MessageAvatar agentId={lastPrompt.fromAgent} />
-                                    <div className="flex-1 space-y-2">
-                                        <div className="bg-primary/10 rounded-lg p-4">
-                                            <h3 className="font-medium mb-2 text-primary">{lastPrompt.shortDescription}</h3>
-                                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{lastPrompt.message}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </DialogContent>
-                    </Dialog>
-                </>
-            )}
-            <div 
-                className="h-full overflow-y-auto scroll-smooth px-4" 
-                ref={messagesContainerRef}
-            >
-                <div className="space-y-4 max-w-3xl mx-auto py-4 flex flex-col">
-                    {transitions((style, message) => {
-                        const AnimatedDiv = animated('div');
-                        const agentInfo = AGENTS_INFO[message.fromAgent as keyof typeof AGENTS_INFO];
-                        const isLastMessage = message.id === lastMessageId;
-                        const isMyChampion = agentInfo?.side === selectedChampion;
-                        
-                        return (
-                            <AnimatedDiv
-                                style={{
-                                    opacity: style.opacity,
-                                    transform: style.transform,
-                                    scale: style.scale
-                                }}
-                                className="flex flex-col gap-2 p-4"
-                            >
-                                <div
-                                    key={message.id}
-                                    className={`flex items-start gap-2 ${
-                                        isMyChampion ? 'flex-row-reverse' : 'flex-row'
-                                    }`}
-                                >
-                                    <MessageAvatar agentId={message.fromAgent} />
-                                    <div className={`flex flex-col ${
-                                        isMyChampion ? 'items-end' : 'items-start'
-                                    }`}>
-                                        <div className={`rounded-lg p-4 max-w-[80%] ${
-                                            isMyChampion ? 'bg-primary/20 border-2 border-primary/10' : 'bg-muted'
-                                        }`}>
-                                            <p className={`text-md font-medium ${
-                                                isMyChampion ? 'text-primary' : 'text-muted-foreground'
-                                            }`}>
-                                                {agentInfo.name}
-                                            </p>
-                                            <p className="text-[12px] text-muted-foreground">
-                                                {new Date(message.createdAt).toLocaleTimeString()}
-                                            </p>
-                                            <p className="mt-1">
-                                                <TypewriterText 
-                                                    text={message.text || message.content} 
-                                                    animate={isLastMessage}
-                                                />
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </AnimatedDiv>
-                        );
-                    })}
+                    ))}
+                    
+                    {/* Show typing indicator */}
                     {chatState.isTyping && (
                         <div className={`flex items-start gap-2 ${
                             chatState.typingAgent && 
                             AGENTS_INFO[chatState.typingAgent as AgentId]?.side === selectedChampion 
-                                ? 'flex-row-reverse' 
-                                : 'flex-row'
+                            ? 'flex-row-reverse' 
+                            : 'flex-row'
                         }`}>
                             <MessageAvatar agentId={chatState.typingAgent || ''} />
                             <div className={`flex flex-col ${
                                 chatState.typingAgent && 
                                 AGENTS_INFO[chatState.typingAgent as AgentId]?.side === selectedChampion 
-                                    ? 'items-end' 
-                                    : 'items-start'
+                                ? 'items-end' 
+                                : 'items-start'
                             }`}>
                                 <div className="bg-primary/10 rounded-lg p-4">
                                     <TypingIndicator />
@@ -489,14 +366,10 @@ function ChatMessages({ selectedChampion }: { selectedChampion: 'trump' | 'xi' |
                         </div>
                     )}
                 </div>
-            </div>
-            <div className="text-sm text-gray-500 text-center pb-2">
-                Last updated: {new Date(lastUpdateTime).toLocaleTimeString()}
-            </div>
+            )}
         </div>
     );
 }
-
 
 function LoadingSpinner() {
     return (

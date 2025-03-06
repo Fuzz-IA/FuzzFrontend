@@ -1,4 +1,8 @@
 import { ethers} from 'ethers'
+import { CHAMPION1, CHAMPION2 } from '@/lib/constants';
+
+// Definir los tipos originales para compatibilidad con código existente
+export type OriginalChampionType = 'trump' | 'xi';
 
 export interface PlayerAttributes {
   tokenCA: string
@@ -30,8 +34,8 @@ export interface Message {
   text?: string;
   isTyping?: boolean;
   scores?: {
-    trump: number;
-    xi: number;
+    [CHAMPION1]: number;
+    [CHAMPION2]: number;
   };
   role: 'user' | 'assistant';
 }
@@ -55,7 +59,7 @@ export interface ProposePromptDialogProps {
 }
 
 export interface VotePromptDialogProps {
-  selectedChampion: 'trump' | 'xi';
+  selectedChampion: typeof CHAMPION1 | typeof CHAMPION2;
   onClose: () => void;
 }
 
@@ -76,10 +80,9 @@ export interface AgentInfo {
   total: string;
 }
 
-
 export interface BattleScores {
-  trump: number;
-  xi: number;
+  [CHAMPION1]: number;
+  [CHAMPION2]: number;
 }
 
 export interface MintTokensHookResult {
@@ -93,7 +96,12 @@ export interface BattleSidebarProps {
   onChampionSelect: (champion: ChampionType) => void;
 }
 
-export type ChampionType = 'trump' | 'xi' | 'info';
+export type ChampionType = typeof CHAMPION1 | typeof CHAMPION2 | 'info';
+
+// Función de utilidad para mapear entre los nuevos nombres y los originales
+export function mapToOriginalChampion(champion: Exclude<ChampionType, 'info'>): OriginalChampionType {
+  return champion === CHAMPION1 ? 'trump' : 'xi';
+}
 
 export interface BattleActionsProps {
   selectedChampion: Exclude<ChampionType, 'info'>;

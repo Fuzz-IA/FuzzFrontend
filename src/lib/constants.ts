@@ -8,8 +8,8 @@ export const CHAMPION2_AVATAR = '/zelensky.jpg';
 
 // Agent IDs
 export const AGENT_IDS = {
-    AGENT1_ID: 'e0e10e6f-ff2b-0d4c-8011-1fc1eee7cb32', // champion1
-    AGENT2_ID: '94bfebec-fb1a-02b3-a54d-a1f15b5668a5',  // champion2
+    AGENT1_ID: '89749fe5-00cb-0aba-8032-4cab455e597c', // champion1
+    AGENT2_ID: 'a5315c55-09b5-013e-9056-5a812d48c50a',  // champion2
     AGENT3_ID: 'd1c10fb0-e672-079e-b9cf-a1c8cdc32b96'  // Fuzz
 } as const;
 

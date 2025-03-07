@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Trophy, X, ExternalLink, MessageSquare } from 'lucide-react';
 import Image from 'next/image';
 import {BattleEndedPopupProps} from '@/types/battle';
-import { CHAMPION1_AVATAR, CHAMPION1_NAME } from '@/lib/constants';
+import { CHAMPION2_AVATAR, CHAMPION2_NAME } from '@/lib/constants';
 
 export function BattleEndedPopup({ onClose }: BattleEndedPopupProps) {
   const [isVisible, setIsVisible] = useState(true);
@@ -24,10 +24,10 @@ export function BattleEndedPopup({ onClose }: BattleEndedPopupProps) {
     return () => clearTimeout(timer);
   }, []);
 
-  const winnerName = CHAMPION1_NAME;
-  const winnerImage = CHAMPION1_AVATAR;
+  const winnerName = CHAMPION2_NAME;
+  const winnerImage = CHAMPION2_AVATAR;
   
-  const transactionLink = "https://basescan.org/tx/0x9d2d21a3e6b551ed698fa2a6861e3188f3cf2c5664e0d881bdad1d091832983f";
+  const transactionLink = "https://basescan.org/tx/0xb5cd7c98b73bbb34540a2b9cdf95947c008f2da86850c6540fed6d3fe7344e6f";
 
   const openTransaction = () => {
     window.open(transactionLink, '_blank');

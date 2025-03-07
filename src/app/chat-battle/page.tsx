@@ -33,9 +33,9 @@ export default function ChatBattlePage() {
 
   return (
     <div className="flex h-[calc(100vh-72px)] bg-background">
-      {/* {showEndPopup && (
+      {showEndPopup && (
         <BattleEndedPopup onClose={() => setShowEndPopup(false)} />
-      )} */}
+      )}
       
       <SidebarProvider defaultOpen>
         <BattleSidebar 

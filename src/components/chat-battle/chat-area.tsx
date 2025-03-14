@@ -9,12 +9,14 @@ import { ChatInput } from "./chat-input";
 import { ChatHeader } from "./chat-header";
 import { BetActivityFeed } from "./bet-activity-feed";
 import { ClickableAgentAvatar } from "@/components/character/clickable-agent-avatar";
-import { Pin, ChevronDown } from 'lucide-react';
+import { Pin, ChevronDown, Loader2 } from 'lucide-react';
 import { getLatestPrompt } from '@/lib/supabase';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { CHAMPION1, CHAMPION2, CHAMPION1_NAME, CHAMPION2_NAME, AGENT_IDS, AGENTS_INFO } from '@/lib/constants';
 import { ChampionType } from '@/types/battle';
+import { processChatMessages, getCacheStats, clearSummaryCache } from '@/lib/message-cache';
+import { initializeDatabase } from '@/lib/database-setup';
 
 // Use the imported constants instead of redefining them
 type AgentId = keyof typeof AGENTS_INFO;
@@ -34,6 +36,7 @@ interface Message {
         [CHAMPION2]: number;
     };
     isPinned?: boolean;
+    shortSummary?: string;
 }
 
 interface ChatState {
@@ -56,15 +59,15 @@ interface AnimatedStyles {
 
 export function ChatArea({ selectedChampion, showHeader = true, countdownActive = false }: ChatAreaProps) {
   return (
-    <>
+    <div className="flex flex-col flex-1 h-full w-full ml-[80px] pl-2 pr-4">
       {showHeader && <ChatHeader />}
-      <main className={`flex-1 overflow-hidden relative ${showHeader ? 'mx-0 ml-20 my-6 mt-4 rounded-lg border bg-background shadow-md border-[#F3642E]' : ''} h-[calc(100vh-10rem)]`}>
+      <main className={`flex-1 overflow-hidden relative ${showHeader ? 'w-full my-4 rounded-lg border bg-background shadow-md border-[#F3642E]' : ''} h-[calc(100vh-10rem)]`}>
         <div className="h-full flex flex-col">
           <ChatMessages selectedChampion={selectedChampion} countdownActive={countdownActive} />
           <ChatInput selectedChampion={selectedChampion} countdownActive={countdownActive} />
         </div>
       </main>
-    </>
+    </div>
   );
 }
 
@@ -154,6 +157,38 @@ function ChatMessages({ selectedChampion, countdownActive }: { selectedChampion:
     const [showFullMessage, setShowFullMessage] = useState(false);
     const [showScrollButton, setShowScrollButton] = useState(false);
     const [hasNewMessages, setHasNewMessages] = useState(false);
+    const [displayShortSummaries, setDisplayShortSummaries] = useState<boolean>(false);
+    const [isSummarizing, setIsSummarizing] = useState<boolean>(false);
+    const [summaryStats, setSummaryStats] = useState<{
+        cacheSize: number;
+        hitRate: number;
+        dbSuccessRate?: number;
+        queuedMessages?: number;
+        processedFromQueue?: number;
+        isProcessingQueue?: boolean;
+        totalLookups?: number;
+    } | null>(null);
+    const [dbInitialized, setDbInitialized] = useState<boolean>(false);
+
+    // Initialize database
+    useEffect(() => {
+        const setupDatabase = async () => {
+            try {
+                const success = await initializeDatabase();
+                setDbInitialized(success);
+                if (success) {
+                    console.log('Database initialized successfully');
+                } else {
+                    console.warn('Database initialization failed, summaries will only be cached in memory');
+                }
+            } catch (error) {
+                console.error('Error initializing database:', error);
+                setDbInitialized(false);
+            }
+        };
+        
+        setupDatabase();
+    }, []);
 
     // Simula el efecto de escritura para un nuevo mensaje
     const simulateTyping = async (message: Message) => {
@@ -175,10 +210,10 @@ function ChatMessages({ selectedChampion, countdownActive }: { selectedChampion:
         return message;
     };
 
-    // Función modificada para cargar mensajes
+    // Updated function to fetch messages and process summaries
     const fetchMessages = async () => {
         try {
-            // Obtener mensajes del Agent 1
+            // Obtain messages from Agent 1
             const roomId1 = await apiClient.stringToUuid(
                 `default-room-${AGENT_IDS.AGENT1_ID}`
             );
@@ -187,7 +222,7 @@ function ChatMessages({ selectedChampion, countdownActive }: { selectedChampion:
                 roomId1
             );
 
-            // Obtener mensajes del Agent 2
+            // Obtain messages from Agent 2
             const roomId2 = await apiClient.stringToUuid(
                 `default-room-${AGENT_IDS.AGENT2_ID}`
             );
@@ -196,13 +231,13 @@ function ChatMessages({ selectedChampion, countdownActive }: { selectedChampion:
                 roomId2
             );
 
-            // Combinar y ordenar todos los mensajes
+            // Combine and sort all messages
             const allMemories = [
                 ...(response1?.memories || []),
                 ...(response2?.memories || [])
             ].sort((a, b) => a.createdAt! - b.createdAt!);
 
-            // Procesar nuevos mensajes
+            // Process new messages
             const currentMessages = queryClient.getQueryData<Message[]>(["messages"]) || [];
             const newMessages = allMemories
                 .filter(memory => memory.userId !== "12dea96f-ec20-0935-a6ab-75692c994959")
@@ -214,23 +249,33 @@ function ChatMessages({ selectedChampion, countdownActive }: { selectedChampion:
                     isHistory: true,
                     text: memory.content.text,
                     fromAgent: memory.agentId,
-                    toAgent: memory.userId
+                    toAgent: memory.userId,
+                    timestamp: memory.createdAt
                 }));
 
-            // Si hay nuevos mensajes, simular typing
+            // Process message summaries with our new caching system
+            setIsSummarizing(true);
+            const messagesWithSummaries = await processChatMessages(newMessages);
+            setIsSummarizing(false);
+
+            // Get cache statistics
+            setSummaryStats(getCacheStats());
+
+            // If there are new messages, simulate typing
             const lastCurrentMessage = currentMessages[currentMessages.length - 1];
-            const lastNewMessage = newMessages[newMessages.length - 1];
+            const lastNewMessage = messagesWithSummaries[messagesWithSummaries.length - 1];
 
             if (lastNewMessage && (!lastCurrentMessage || lastNewMessage.id !== lastCurrentMessage.id)) {
                 await simulateTyping(lastNewMessage);
                 setPinnedMessage(lastNewMessage);
             }
 
-            queryClient.setQueryData(["messages"], newMessages);
+            queryClient.setQueryData(["messages"], messagesWithSummaries);
             setLastUpdateTime(Date.now());
             
         } catch (error) {
             console.error('Error fetching messages:', error);
+            setIsSummarizing(false);
         }
     };
 
@@ -358,6 +403,64 @@ function ChatMessages({ selectedChampion, countdownActive }: { selectedChampion:
     // Show all messages regardless of countdown
     const filteredMessages = messages;
 
+    // Add a toggle for showing summaries vs. full content
+    const toggleSummaryView = () => {
+        setDisplayShortSummaries(!displayShortSummaries);
+    };
+
+    // Actualización periódica de estadísticas
+    useEffect(() => {
+        // Actualizar estadísticas cada segundo cuando hay procesamiento en cola
+        const statsInterval = setInterval(() => {
+            const stats = getCacheStats();
+            if (stats.queuedMessages > 0 || stats.isProcessingQueue) {
+                setSummaryStats(stats);
+            }
+        }, 1000);
+        
+        return () => clearInterval(statsInterval);
+    }, []);
+
+    // Refrescar mensajes cuando cambien las estadísticas de procesamiento
+    useEffect(() => {
+        if (!summaryStats) return;
+        
+        // Si hay mensajes en cola y el procesamiento está activo, 
+        // refrescar los mensajes para obtener las versiones resumidas
+        if (summaryStats.isProcessingQueue && messages.length > 0) {
+            const hasPlaceholders = messages.some(msg => 
+                msg.shortSummary === '⏳ Processing summary...'
+            );
+            
+            // Solo refrescar si hay marcadores de procesamiento
+            if (hasPlaceholders) {
+                const refreshMessages = async () => {
+                    // No necesitamos volver a cargar de la API, solo reprocesar con la caché actual
+                    const refreshedMessages = await processChatMessages(messages);
+                    queryClient.setQueryData(["messages"], refreshedMessages);
+                };
+                
+                refreshMessages();
+            }
+        }
+    }, [summaryStats, messages]);
+
+    // Añadir función para limpiar la caché
+    const clearCache = () => {
+        clearSummaryCache();
+        setSummaryStats(getCacheStats());
+        
+        // Reprocesar los mensajes
+        const refreshMessages = async () => {
+            setIsSummarizing(true);
+            const refreshedMessages = await processChatMessages(messages);
+            queryClient.setQueryData(["messages"], refreshedMessages);
+            setIsSummarizing(false);
+        };
+        
+        refreshMessages();
+    };
+
     if (isLoadingHistory) {
         return <LoadingSpinner />;
     }
@@ -379,74 +482,138 @@ function ChatMessages({ selectedChampion, countdownActive }: { selectedChampion:
             {isLoadingHistory ? (
                 <LoadingSpinner />
             ) : (
-                <div className="space-y-8 pb-2 ">
-                    {lastPrompt && (
-                        <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-sm rounded-lg border-2 border-[#F3642E]/50 p-3 mb-3 shadow-lg shadow-[#F3642E]/10">
+                <div className="space-y-8 pb-2">
+                    <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-sm rounded-lg border-2 border-[#F3642E]/50 p-3 mb-3 shadow-lg shadow-[#F3642E]/10">
+                        <div className="flex justify-between items-center mb-2">
                             <div className="flex items-center gap-2 text-xs text-[#F3642E]">
                                 <Pin className="h-4 w-4 text-[#F3642E]" />
                                 <span className="font-bold uppercase tracking-wider">Latest prompt for {selectedChampion === CHAMPION1 ? CHAMPION1_NAME : CHAMPION2_NAME}</span>
                             </div>
-                            <div className="text-sm text-white mt-2 font-medium">
-                                {lastPrompt.message}
+                            <div className="flex items-center gap-2">
+                                {isSummarizing && (
+                                    <div className="flex items-center text-xs text-[#F3642E]/70">
+                                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                        <span>Summarizing...</span>
+                                    </div>
+                                )}
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={toggleSummaryView}
+                                    className="text-xs border-[#F3642E]/50 text-[#F3642E] hover:bg-[#F3642E]/10"
+                                >
+                                    {displayShortSummaries ? "Show Full Messages" : "Show Summaries"}
+                                </Button>
                             </div>
                         </div>
-                    )}
+                        <div className="text-sm text-white mt-2 font-medium">
+                            {lastPrompt && lastPrompt.message}
+                        </div>
+                        {/* {summaryStats && (
+                            <div className="text-xs text-[#F3642E]/70 mt-2 flex flex-wrap gap-2">
+                                <span>Cache: {summaryStats.cacheSize} msgs ({summaryStats.hitRate}% hits)</span>
+                                
+                                {summaryStats.dbSuccessRate !== undefined && (
+                                    <span className="border-l border-[#F3642E]/30 pl-2">
+                                        DB: {summaryStats.dbSuccessRate}% success
+                                    </span>
+                                )}
+                                
+                                <span className="border-l border-[#F3642E]/30 pl-2">
+                                    {dbInitialized ? '✅' : '❌'} DB
+                                </span>
+                                
+                                {summaryStats.queuedMessages !== undefined && (
+                                    <span className={`border-l border-[#F3642E]/30 pl-2 ${summaryStats.isProcessingQueue ? 'animate-pulse' : ''}`}>
+                                        Queue: {summaryStats.queuedMessages} 
+                                        {summaryStats.processedFromQueue !== undefined && 
+                                          ` (${summaryStats.processedFromQueue} processed)`}
+                                        {summaryStats.isProcessingQueue && ' ⏳'}
+                                    </span>
+                                )}
+                                
+                                <button 
+                                    onClick={clearCache}
+                                    className="border-l border-[#F3642E]/30 pl-2 hover:text-[#F3642E] transition-colors"
+                                    title="Clear cache and reprocess messages"
+                                >
+                                    🔄 Reset
+                                </button>
+                            </div>
+                        )} */}
+                    </div>
                     <div className="text-xs text-muted-foreground text-center">
                         Last updated: {new Date(lastUpdateTime).toLocaleTimeString()}
                     </div>
                     
-                    {/* Render messages without animations for simplicity */}
                     {filteredMessages.map((message, index) => (
                         <div
                             key={`${message.createdAt}-${message.user}-${message.text}-${index}`}
-                            className={`flex items-start gap-2 ${
+                            className={`flex items-start gap-3 max-w-[90%] ${
                                 message.fromAgent && 
                                 AGENTS_INFO[message.fromAgent as AgentId]?.side === selectedChampion 
-                                    ? 'flex-row-reverse' 
-                                    : 'flex-row'
+                                    ? 'flex-row-reverse ml-auto' 
+                                    : 'flex-row mr-auto'
                             }`}
                         >
                             <MessageAvatar agentId={message.fromAgent} />
-                            <div className={`flex flex-col ${
+                            <div className={`flex flex-col max-w-[85%] ${
                                 message.fromAgent && 
                                 AGENTS_INFO[message.fromAgent as AgentId]?.side === selectedChampion 
                                     ? 'items-end' 
                                     : 'items-start'
                             }`}>
-                                <div className={`relative rounded-lg p-4 ${
-                                    message.isPinned 
-                                        ? 'bg-[#F3642E]/10 border border-[#F3642E]/30' 
-                                        : 'bg-primary/10'
-                                }`}>
+                                <div 
+                                    className={`relative rounded-lg p-4 mb-1 ${
+                                        message.isPinned 
+                                            ? 'bg-[#F3642E]/10 border border-[#F3642E]/30' 
+                                            : message.fromAgent && AGENTS_INFO[message.fromAgent as AgentId]?.side === selectedChampion
+                                              ? 'bg-[#F3642E]/10'
+                                              : 'bg-slate-700/30'
+                                    }`}
+                                >
                                     {message.isPinned && (
                                         <Pin className="absolute -top-2 -left-2 h-4 w-4 text-[#F3642E]" />
                                     )}
                                     <TypewriterText 
-                                        text={message.text || message.content} 
+                                        text={displayShortSummaries && message.shortSummary 
+                                            ? message.shortSummary 
+                                            : (message.text || message.content)
+                                        } 
                                         animate={message.isTyping} 
                                     />
+                                </div>
+                                <div className="text-xs text-gray-400">
+                                    {message.fromAgent && AGENTS_INFO[message.fromAgent as AgentId]?.name || 'Unknown'} • {new Date(message.timestamp).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
                                 </div>
                             </div>
                         </div>
                     ))}
                     
-                    {/* Show typing indicator */}
                     {chatState.isTyping && (
-                        <div className={`flex items-start gap-2 ${
+                        <div className={`flex items-start gap-3 max-w-[90%] ${
                             chatState.typingAgent && 
                             AGENTS_INFO[chatState.typingAgent as AgentId]?.side === selectedChampion 
-                            ? 'flex-row-reverse' 
-                            : 'flex-row'
+                            ? 'flex-row-reverse ml-auto' 
+                            : 'flex-row mr-auto'
                         }`}>
                             <MessageAvatar agentId={chatState.typingAgent || ''} />
-                            <div className={`flex flex-col ${
+                            <div className={`flex flex-col max-w-[85%] ${
                                 chatState.typingAgent && 
                                 AGENTS_INFO[chatState.typingAgent as AgentId]?.side === selectedChampion 
                                 ? 'items-end' 
                                 : 'items-start'
                             }`}>
-                                <div className="bg-primary/10 rounded-lg p-4">
+                                <div className={`rounded-lg p-4 mb-1 ${
+                                    chatState.typingAgent && 
+                                    AGENTS_INFO[chatState.typingAgent as AgentId]?.side === selectedChampion
+                                    ? 'bg-[#F3642E]/10'
+                                    : 'bg-slate-700/30'
+                                }`}>
                                     <TypingIndicator />
+                                </div>
+                                <div className="text-xs text-gray-400">
+                                    {chatState.typingAgent && AGENTS_INFO[chatState.typingAgent as AgentId]?.name || 'Unknown'} • typing...
                                 </div>
                             </div>
                         </div>

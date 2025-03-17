@@ -9,7 +9,7 @@ import { ChatInput } from "./chat-input";
 import { ChatHeader } from "./chat-header";
 import { BetActivityFeed } from "./bet-activity-feed";
 import { ClickableAgentAvatar } from "@/components/character/clickable-agent-avatar";
-import { Pin, ChevronDown, Loader2 } from 'lucide-react';
+import { Pin, ChevronDown, Loader2, Info, FileText, BarChart } from 'lucide-react';
 import { getLatestPrompt } from '@/lib/supabase';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -167,6 +167,7 @@ function ChatMessages({ selectedChampion, countdownActive }: { selectedChampion:
         processedFromQueue?: number;
         isProcessingQueue?: boolean;
         totalLookups?: number;
+        progress?: number;
     } | null>(null);
     const [dbInitialized, setDbInitialized] = useState<boolean>(false);
 
@@ -258,8 +259,15 @@ function ChatMessages({ selectedChampion, countdownActive }: { selectedChampion:
             const messagesWithSummaries = await processChatMessages(newMessages);
             setIsSummarizing(false);
 
-            // Get cache statistics
-            setSummaryStats(getCacheStats());
+            // Get cache statistics and calculate progress
+            const stats = getCacheStats();
+            const statsWithProgress = {
+                ...stats,
+                progress: newMessages.length > 0 
+                    ? Math.floor((stats.processedFromQueue || 0) * 100 / newMessages.length)
+                    : 100
+            };
+            setSummaryStats(statsWithProgress);
 
             // If there are new messages, simulate typing
             const lastCurrentMessage = currentMessages[currentMessages.length - 1];
@@ -483,64 +491,58 @@ function ChatMessages({ selectedChampion, countdownActive }: { selectedChampion:
                 <LoadingSpinner />
             ) : (
                 <div className="space-y-8 pb-2">
-                    <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-sm rounded-lg border-2 border-[#F3642E]/50 p-3 mb-3 shadow-lg shadow-[#F3642E]/10">
-                        <div className="flex justify-between items-center mb-2">
-                            <div className="flex items-center gap-2 text-xs text-[#F3642E]">
-                                <Pin className="h-4 w-4 text-[#F3642E]" />
-                                <span className="font-bold uppercase tracking-wider">Latest prompt for {selectedChampion === CHAMPION1 ? CHAMPION1_NAME : CHAMPION2_NAME}</span>
+                    <div className={`sticky top-0 z-10 backdrop-blur-sm rounded-lg p-3 mb-3 shadow-lg transition-all duration-300 ${
+                        selectedChampion === 'info' 
+                            ? 'bg-gradient-to-r from-[#1c1c1c] to-[#222]  border-2 border-[#F3642E] shadow-[#F3642E]/20' 
+                            : 'bg-black/90 border-2 border-[#F3642E]/50 shadow-[#F3642E]/10'
+                    }`}>
+                        <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                                {selectedChampion === 'info' ? (
+                                    <>
+                                        <Info className="h-4 w-4 text-[#F3642E]" />
+                                        <span className="font-bold uppercase tracking-wider">Information Mode</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Pin className="h-4 w-4 text-[#F3642E]" />
+                                        <span className="font-bold uppercase tracking-wider">Latest prompt for {selectedChampion === CHAMPION1 ? CHAMPION1_NAME : CHAMPION2_NAME}</span>
+                                    </>
+                                )}
                             </div>
                             <div className="flex items-center gap-2">
-                                {isSummarizing && (
-                                    <div className="flex items-center text-xs text-[#F3642E]/70">
-                                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                        <span>Summarizing...</span>
-                                    </div>
+                                {selectedChampion === 'info' && (
+                                    <>
+                                        {isSummarizing && (
+                                            <div className="flex items-center text-xs text-white/70 gap-1">
+                                                <Loader2 className="h-3 w-3 animate-spin" />
+                                                <span>Processing...</span>
+                                            </div>
+                                        )}
+                                        <Button
+                                            variant={displayShortSummaries ? "default" : "outline"}
+                                            size="sm"
+                                            onClick={toggleSummaryView}
+                                            className={`text-xs transition-all ${displayShortSummaries 
+                                                ? 'bg-[#F3642E] hover:bg-[#F3642E]/90 text-white' 
+                                                : 'border-[#F3642E]/50 text-[#F3642E] hover:bg-[#F3642E]/10'}`}
+                                        >
+                                            {displayShortSummaries ? "Full Mode" : "Summary Mode"}
+                                        </Button>
+                                    </>
                                 )}
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={toggleSummaryView}
-                                    className="text-xs border-[#F3642E]/50 text-[#F3642E] hover:bg-[#F3642E]/10"
-                                >
-                                    {displayShortSummaries ? "Show Full Messages" : "Show Summaries"}
-                                </Button>
                             </div>
                         </div>
-                        <div className="text-sm text-white mt-2 font-medium">
-                            {lastPrompt && lastPrompt.message}
+                        <div className="text-sm text-white mt-2">
+                            {selectedChampion === 'info' ? (
+                                <div className="text-white/60 text-xs italic text-center">
+                                </div>
+                            ) : (
+                                <>
+                                    {lastPrompt && lastPrompt.message}
+                                </>
+                            )}
                         </div>
-                        {/* {summaryStats && (
-                            <div className="text-xs text-[#F3642E]/70 mt-2 flex flex-wrap gap-2">
-                                <span>Cache: {summaryStats.cacheSize} msgs ({summaryStats.hitRate}% hits)</span>
-                                
-                                {summaryStats.dbSuccessRate !== undefined && (
-                                    <span className="border-l border-[#F3642E]/30 pl-2">
-                                        DB: {summaryStats.dbSuccessRate}% success
-                                    </span>
-                                )}
-                                
-                                <span className="border-l border-[#F3642E]/30 pl-2">
-                                    {dbInitialized ? '✅' : '❌'} DB
-                                </span>
-                                
-                                {summaryStats.queuedMessages !== undefined && (
-                                    <span className={`border-l border-[#F3642E]/30 pl-2 ${summaryStats.isProcessingQueue ? 'animate-pulse' : ''}`}>
-                                        Queue: {summaryStats.queuedMessages} 
-                                        {summaryStats.processedFromQueue !== undefined && 
-                                          ` (${summaryStats.processedFromQueue} processed)`}
-                                        {summaryStats.isProcessingQueue && ' ⏳'}
-                                    </span>
-                                )}
-                                
-                                <button 
-                                    onClick={clearCache}
-                                    className="border-l border-[#F3642E]/30 pl-2 hover:text-[#F3642E] transition-colors"
-                                    title="Clear cache and reprocess messages"
-                                >
-                                    🔄 Reset
-                                </button>
-                            </div>
-                        )} */}
                     </div>
                     <div className="text-xs text-muted-foreground text-center">
                         Last updated: {new Date(lastUpdateTime).toLocaleTimeString()}
@@ -575,6 +577,24 @@ function ChatMessages({ selectedChampion, countdownActive }: { selectedChampion:
                                     {message.isPinned && (
                                         <Pin className="absolute -top-2 -left-2 h-4 w-4 text-[#F3642E]" />
                                     )}
+                                    
+                                    {/* Simple status indicators for summaries */}
+                                    {displayShortSummaries && selectedChampion === 'info' && (
+                                        <>
+                                            {(!message.shortSummary || message.shortSummary === '⏳ Processing summary...') && (
+                                                <div className="absolute top-0 right-0 -mt-2 -mr-2 bg-[#F3642E]/80 text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium flex items-center">
+                                                    <Loader2 className="h-2 w-2 animate-spin mr-1" />
+                                                    Processing
+                                                </div>
+                                            )}
+                                            {message.shortSummary && message.shortSummary !== '⏳ Processing summary...' && !(message.text || message.content).startsWith(message.shortSummary) && (
+                                                <div className="absolute top-0 right-0 -mt-2 -mr-2 bg-green-600 text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium">
+                                                    Summarized
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
+                                    
                                     <TypewriterText 
                                         text={displayShortSummaries && message.shortSummary 
                                             ? message.shortSummary 

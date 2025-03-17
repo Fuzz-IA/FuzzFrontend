@@ -321,3 +321,165 @@ Format the response in a clear, engaging way that helps users understand the cha
   return response.choices[0].message.content || "No profile available";
 }
 
+/**
+ * Generates a humorous summary from a conversation
+ * Includes error handling and fallbacks to alternative models
+ */
+export async function generateHumorousSummary(conversationText: string, agent1Name: string, agent2Name: string): Promise<{
+  summary: string;
+  model: string;
+  attempts: number;
+  error?: string;
+}> {
+  const prompt = `
+    You are a very funny and sharp comedy commentator.
+    Your job is to summarize this conversation between ${agent1Name} and ${agent2Name}
+    in a humorous, sarcastic and slightly provocative way.
+    
+    Here's the conversation:
+    ${conversationText}
+    
+    Make a humorous 1-2 paragraph summary as if you were a comedy show host.
+    Include:
+    - Sarcastic comments about both participants
+    - Jokes about their points of view 
+    - Some exaggerated and funny comparisons
+    - Sharp observations about their arguments
+    - Use a casual and dynamic tone
+    - Include some humorous interjections like "Damn!", "Fuck yeah!", etc.
+    
+    Avoid any truly offensive or vulgar language, but be bold and funny.
+  `;
+
+  let retryCount = 0;
+  const maxRetries = 3;
+  
+  // First, we check if we're in a rate limit state
+  if (rateLimitState.isRateLimited) {
+    const currentTime = Date.now();
+    const timeElapsed = currentTime - rateLimitState.lastErrorTime;
+    
+    if (timeElapsed < rateLimitState.retryAfter) {
+      // Wait until we can retry
+      const waitTime = Math.max(2000, rateLimitState.retryAfter - timeElapsed);
+      console.log(`Rate limited, waiting ${waitTime}ms before summary generation...`);
+      await sleep(waitTime);
+    }
+    
+    // Reset state
+    rateLimitState.isRateLimited = false;
+  }
+  
+  // Try different models in order
+  const models = ['gpt-4', 'gpt-3.5-turbo'];
+  
+  // If we've had consecutive errors, start with less demanding models
+  const startIndex = Math.min(rateLimitState.consecutiveErrors, models.length - 1);
+  
+  for (let i = startIndex; i < models.length; i++) {
+    try {
+      console.log(`Attempting to generate humorous summary with model: ${models[i]}`);
+      
+      const response = await openai.chat.completions.create({
+        model: models[i],
+        messages: [
+          {
+            role: "system",
+            content: "You are a very funny, witty and sarcastic comedy commentator. Your task is to summarize conversations in a humorous and provocative way, without being offensive."
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        temperature: 0.8,
+        max_tokens: 500,
+      });
+      
+      // Success! Reset consecutive error counter
+      rateLimitState.consecutiveErrors = 0;
+      
+      const summary = response.choices[0].message.content || 
+        "Sorry, I couldn't generate a humorous summary for some reason.";
+      
+      return {
+        summary,
+        model: models[i],
+        attempts: i + 1
+      };
+    } catch (error: any) {
+      console.error(`Error with model ${models[i]}:`, error);
+      
+      const isRateLimit = error?.status === 429;
+      if (isRateLimit) {
+        // Update rate limit state
+        // Correcting how to access headers
+        let retryAfter = 5000; // Default value in ms
+        
+        // Try to extract the header in different possible ways
+        if (error?.headers && typeof error.headers.get === 'function') {
+          // If error.headers is a Headers-like object with get method
+          const headerValue = error.headers.get('retry-after');
+          if (headerValue) retryAfter = parseInt(headerValue) * 1000;
+        } else if (error?.headers && typeof error.headers === 'object') {
+          // If error.headers is a plain object
+          const headerValue = error.headers['retry-after'];
+          if (headerValue) retryAfter = parseInt(headerValue) * 1000;
+        }
+        
+        rateLimitState.isRateLimited = true;
+        rateLimitState.retryAfter = retryAfter;
+        rateLimitState.lastErrorTime = Date.now();
+        rateLimitState.consecutiveErrors++;
+        
+        // If it's not the last model, continue with the next one
+        if (i < models.length - 1) {
+          console.log(`Rate limit with ${models[i]}, trying ${models[i+1]}...`);
+          continue;
+        }
+        
+        // If it's the last model, wait and retry
+        if (retryCount < maxRetries) {
+          retryCount++;
+          await sleep(retryAfter);
+          i--; // Retry with the same model
+          continue;
+        }
+      }
+      
+      // For other types of errors, increment counter and continue with the next model
+      rateLimitState.consecutiveErrors++;
+      
+      // If we're on the last model and we've exhausted retries, return emergency response
+      if (i === models.length - 1 || retryCount >= maxRetries) {
+        const errorMessage = error?.message || "Unknown error";
+        
+        // Locally generated emergency response
+        const emergencySummary = `
+          Well, well, well! Looks like technology isn't on our side today.
+          I've tried several models to summarize this fascinating conversation between ${agent1Name} and ${agent2Name},
+          but it seems even AI wants to take a break.
+          
+          Instead of a deep analysis, allow me to offer this humble apology with a touch of humor.
+          Sometimes, even the best comedians have tough nights. Try again in a few minutes!
+        `;
+        
+        return {
+          summary: emergencySummary,
+          model: "emergency-fallback",
+          attempts: i + 1,
+          error: errorMessage
+        };
+      }
+    }
+  }
+  
+  // This shouldn't be reached, but TypeScript needs a return here
+  return {
+    summary: "Could not generate a summary. Please try again later.",
+    model: "error-fallback",
+    attempts: models.length,
+    error: "Unexpected end of function"
+  };
+}
+

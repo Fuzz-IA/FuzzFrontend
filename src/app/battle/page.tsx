@@ -23,6 +23,7 @@ import { SidebarProvider } from '@/components/ui/sidebar'
 import { useBattleTotals } from '@/hooks/useBattleTotals'
 import { CHAMPION1, CHAMPION2 } from '@/lib/constants'
 import { ChampionType } from '@/types/battle'
+import { MiniNarrator } from '@/components/narrator/mini-narrator'
 
 // Mock data - this would come from your API
 const battleData: BattleData = {
@@ -331,6 +332,9 @@ export default function BattlePage() {
           onChampionSelect={setSelectedChampion}
         />
         <ChatArea selectedChampion={selectedChampion} />
+        
+        {/* Narrador discreto */}
+        <MiniNarrator />
       </div>
     </SidebarProvider>
   );

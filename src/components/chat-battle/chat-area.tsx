@@ -516,7 +516,7 @@ function ChatMessages({ selectedChampion, countdownActive }: { selectedChampion:
                                         {isSummarizing && (
                                             <div className="flex items-center text-xs text-white/70 gap-1">
                                                 <Loader2 className="h-3 w-3 animate-spin" />
-                                                <span>Processing...</span>
+                                                <span>Processing..</span>
                                             </div>
                                         )}
                                         <Button

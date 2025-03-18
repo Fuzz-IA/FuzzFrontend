@@ -547,13 +547,13 @@ function ChatMessages({
                                     {displayShortSummaries && selectedChampion === 'info' && (
                                         <>
                                             {(!message.shortSummary || message.shortSummary === '⏳ Processing summary...') && (
-                                                <div className="absolute top-0 right-0 -mt-3 -mr-3 bg-[#F3642E] text-white text-xs px-2 py-0.5 rounded-full font-medium flex items-center shadow-md shadow-[#F3642E]/20 border border-[#F3642E]/30">
+                                                <div className="w-fit mb-1 bg-[#F3642E] text-white text-xs px-2 py-0.5 rounded-full font-medium flex items-center shadow-sm">
                                                     <Loader2 className="h-3 w-3 animate-spin mr-1" />
                                                     Processing
                                                 </div>
                                             )}
                                             {message.shortSummary && message.shortSummary !== '⏳ Processing summary...' && !(message.text || message.content).startsWith(message.shortSummary) && (
-                                                <div className="absolute top-0 right-0 -mt-3 -mr-3 bg-green-600 text-white text-xs px-2 py-0.5 rounded-full font-medium shadow-md shadow-green-600/20 border border-green-500/30">
+                                                <div className="w-fit mb-1 bg-green-600 text-white text-xs px-2 py-0.5 rounded-full font-medium shadow-sm">
                                                     Summarized
                                                 </div>
                                             )}

@@ -58,15 +58,63 @@ interface AnimatedStyles {
 }
 
 export function ChatArea({ selectedChampion, showHeader = true, countdownActive = false }: ChatAreaProps) {
+  const chatContainerRef = useRef<HTMLDivElement | null>(null);
+
   return (
-    <div className="flex flex-col flex-1 h-full w-full ml-[80px] pl-2 pr-4 max-w-full overflow-x-hidden">
+    <div style={{
+      display: "flex",
+      flexDirection: "column",
+      flex: 1,
+      height: "calc(100vh - 80px)",
+      width: "100%",
+      marginLeft: "80px",
+      paddingLeft: "8px",
+      paddingRight: "16px",
+      maxWidth: "100%"
+    }}>
       {showHeader && <ChatHeader />}
-      <main className={`flex-1 relative ${showHeader ? 'w-full my-4 rounded-lg border bg-background shadow-md border-[#F3642E]' : ''} h-[calc(100vh-10rem)] max-w-full`}>
-        <div className="h-full flex flex-col w-full">
-          <div className="flex-1 overflow-y-auto">
-            <ChatMessages selectedChampion={selectedChampion} countdownActive={countdownActive} />
+      <main 
+        style={{
+          position: "relative",
+          display: "flex",
+          flexDirection: "column",
+          width: "100%",
+          margin: showHeader ? "16px 0" : "0",
+          borderRadius: showHeader ? "8px" : "0",
+          border: showHeader ? "1px solid #F3642E" : "none",
+          backgroundColor: showHeader ? "var(--background)" : "transparent",
+          boxShadow: showHeader ? "0 4px 6px -1px rgba(0, 0, 0, 0.1)" : "none",
+          height: "calc(100vh - 12rem)",
+          maxWidth: "100%",
+          overflow: "hidden"
+        }}
+      >
+        <div style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          display: "flex",
+          flexDirection: "column"
+        }}>
+          <div 
+            ref={chatContainerRef}
+            style={{
+              height: "calc(100% - 80px)",
+              overflowY: "auto",
+              WebkitOverflowScrolling: "touch" // Para mejor scroll en iOS
+            }}
+          >
+            <ChatMessages 
+              selectedChampion={selectedChampion} 
+              countdownActive={countdownActive} 
+              scrollContainerRef={chatContainerRef}
+            />
           </div>
-          <ChatInput selectedChampion={selectedChampion} countdownActive={countdownActive} />
+          <div style={{height: "80px"}}>
+            <ChatInput selectedChampion={selectedChampion} countdownActive={countdownActive} />
+          </div>
         </div>
       </main>
     </div>
@@ -138,7 +186,15 @@ function TypewriterText({ text, animate = false }: { text: string; animate?: boo
     );
 }
 
-function ChatMessages({ selectedChampion, countdownActive }: { selectedChampion: ChampionType; countdownActive?: boolean }) {
+function ChatMessages({ 
+    selectedChampion, 
+    countdownActive,
+    scrollContainerRef
+}: { 
+    selectedChampion: ChampionType;
+    countdownActive?: boolean;
+    scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
+}) {
     const [isLoadingHistory, setIsLoadingHistory] = useState(true);
     const [chatState, setChatState] = useState<ChatState>({
         isTyping: false,
@@ -356,11 +412,33 @@ function ChatMessages({ selectedChampion, countdownActive }: { selectedChampion:
     // Initial scroll to bottom ONLY when messages are first loaded
     useEffect(() => {
         if (!isLoadingHistory && messagesContainerRef.current && messages.length > 0) {
-            const container = messagesContainerRef.current;
-            // Immediate scroll to bottom on initial load only
-            container.scrollTop = container.scrollHeight;
+            setTimeout(() => {
+                if (messagesContainerRef.current) {
+                    messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+                    console.log("Scrolled to bottom on initial load");
+                }
+            }, 300);
         }
-    }, [isLoadingHistory]); // Only depends on isLoadingHistory to run just once after loading
+    }, [isLoadingHistory, messages.length]); 
+
+    // Also scroll when messages change - check both container refs
+    useEffect(() => {
+        if (!showScrollButton) {
+            setTimeout(() => {
+                // Try the message container first
+                if (messagesContainerRef.current) {
+                    messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+                    console.log("Scrolled messages container to bottom");
+                }
+                
+                // Also try the parent container provided as prop
+                if (scrollContainerRef?.current) {
+                    scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+                    console.log("Scrolled parent container to bottom");
+                }
+            }, 200);
+        }
+    }, [messages.length, scrollContainerRef]);
 
     // Add scroll event listener to show/hide scroll button
     useEffect(() => {
@@ -476,39 +554,94 @@ function ChatMessages({ selectedChampion, countdownActive }: { selectedChampion:
     }
 
     return (
-        <div className="flex-1 h-full overflow-x-hidden p-4 pb-0 relative" ref={messagesContainerRef}>
+        <div style={{minHeight: "100%", padding: "16px", paddingBottom: "0"}} ref={messagesContainerRef}>
             {showScrollButton && (
                 <button 
                     onClick={scrollToBottom}
-                    className={`fixed bottom-4 right-4 text-white rounded-full p-2 shadow-lg z-20 transition-all animate-fadeIn hover:scale-110 ${hasNewMessages ? 'bg-[#F3642E] animate-pulse' : 'bg-[#F3642E]/80 hover:bg-[#F3642E]'}`}
+                    style={{
+                        position: "fixed",
+                        bottom: "100px",
+                        right: "20px",
+                        backgroundColor: hasNewMessages ? "#F3642E" : "rgba(243, 100, 46, 0.8)",
+                        color: "white",
+                        borderRadius: "9999px",
+                        padding: "8px",
+                        boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+                        zIndex: 50,
+                        cursor: "pointer",
+                        border: "none",
+                        outline: "none",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        animation: hasNewMessages ? "pulse 2s infinite" : "none"
+                    }}
                     aria-label="Scroll to bottom"
                 >
-                    <ChevronDown className="h-5 w-5" />
+                    <ChevronDown style={{height: "20px", width: "20px"}} />
                     {hasNewMessages && (
-                        <span className="absolute -top-1 -right-1 bg-red-500 rounded-full w-3 h-3"></span>
+                        <span style={{
+                            position: "absolute",
+                            top: "-4px",
+                            right: "-4px",
+                            backgroundColor: "#ef4444", 
+                            borderRadius: "9999px",
+                            width: "12px",
+                            height: "12px"
+                        }}></span>
                     )}
                 </button>
             )}
             {isLoadingHistory ? (
                 <LoadingSpinner />
             ) : (
-                <div className="space-y-8 pb-2 w-full">
-                    <div className={`sticky top-0 z-10 backdrop-blur-sm rounded-lg p-3 mb-3 shadow-lg transition-all duration-300 w-full overflow-x-hidden ${
-                        selectedChampion === 'info' 
-                            ? 'bg-gradient-to-r from-[#1c1c1c] to-[#222] border border-[#F3642E] shadow-[#F3642E]/20' 
-                            : 'bg-black/90 border border-[#F3642E]/50 shadow-[#F3642E]/10'
-                    }`}>
-                        <div className="flex flex-wrap justify-between items-center gap-2">
-                            <div className="flex items-center gap-2 truncate">
+                <div style={{
+                    display: "flex", 
+                    flexDirection: "column", 
+                    gap: "2rem", 
+                    paddingBottom: "5rem", 
+                    width: "100%"
+                }}>
+                    <div style={{
+                        position: "sticky",
+                        top: 0,
+                        zIndex: 10,
+                        backdropFilter: "blur(8px)",
+                        borderRadius: "0.5rem",
+                        padding: "0.75rem",
+                        marginBottom: "0.75rem",
+                        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+                        width: "100%",
+                        overflow: "hidden",
+                        background: selectedChampion === 'info' 
+                            ? "linear-gradient(to right, #1c1c1c, #222)" 
+                            : "rgba(0, 0, 0, 0.8)",
+                        border: `1px solid ${selectedChampion === 'info' ? "#F3642E" : "rgba(243, 100, 46, 0.5)"}`,
+                    }}>
+                        <div style={{
+                            display: "flex", 
+                            flexWrap: "wrap", 
+                            justifyContent: "space-between", 
+                            alignItems: "center", 
+                            gap: "0.5rem"
+                        }}>
+                            <div style={{
+                                display: "flex", 
+                                alignItems: "center", 
+                                gap: "0.5rem", 
+                                overflow: "hidden", 
+                                textOverflow: "ellipsis", 
+                                whiteSpace: "nowrap"
+                            }}>
                                 {selectedChampion === 'info' ? (
                                     <>
-                                        <Info className="h-4 w-4 min-w-[16px] text-[#F3642E]" />
-                                        <span className="font-bold uppercase tracking-wider truncate">Information Mode</span>
+                                        <Info style={{height: "16px", width: "16px", minWidth: "16px", color: "#F3642E"}} />
+                                        <span style={{fontWeight: "bold", textTransform: "uppercase", letterSpacing: "0.05em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>Information Mode</span>
                                     </>
                                 ) : (
                                     <>
-                                        <Pin className="h-4 w-4 min-w-[16px] text-[#F3642E]" />
-                                        <span className="font-bold uppercase tracking-wider truncate">Latest prompt for {selectedChampion === CHAMPION1 ? CHAMPION1_NAME : CHAMPION2_NAME}</span>
+                                        <Pin style={{height: "16px", width: "16px", minWidth: "16px", color: "#F3642E"}} />
+                                        <span style={{fontWeight: "bold", textTransform: "uppercase", letterSpacing: "0.05em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>Latest prompt for {selectedChampion === CHAMPION1 ? CHAMPION1_NAME : CHAMPION2_NAME}</span>
                                     </>
                                 )}
                             </div>

@@ -451,160 +451,160 @@ function ChatMessages({
     }
 
     return (
-        <div className="flex-1 overflow-y-auto p-4 pb-0 relative" ref={messagesContainerRef}>
-            {showScrollButton && (
-                <button 
-                    onClick={scrollToBottom}
-                    className={`absolute bottom-4 right-4 text-white rounded-full p-2 shadow-lg z-20 transition-all animate-fadeIn hover:scale-110 ${hasNewMessages ? 'bg-[#F3642E] animate-pulse' : 'bg-[#F3642E]/80 hover:bg-[#F3642E]'}`}
-                    aria-label="Scroll to bottom"
-                >
-                    <ChevronDown className="h-5 w-5" />
-                    {hasNewMessages && (
-                        <span className="absolute -top-1 -right-1 bg-red-500 rounded-full w-3 h-3"></span>
-                    )}
-                </button>
-            )}
-            {isLoadingHistory ? (
-                <LoadingSpinner />
-            ) : (
-                <div className="flex flex-col w-full">
-                    {/* Panel fijo de information/latest prompt */}
-                    <div className="w-full sticky top-0 left-0 right-0 z-50">
-                        {selectedChampion !== 'info' && lastPrompt && (
-                            <div className="bg-black/90 backdrop-blur-sm rounded-lg border border-[#F3642E]/50 p-3 mb-3 shadow-lg shadow-[#F3642E]/10">
-                                <div className="flex items-center gap-2 text-xs text-[#F3642E]">
-                                    <Pin className="h-4 w-4 text-[#F3642E]" />
-                                    <span className="font-bold uppercase tracking-wider">Latest prompt for {selectedChampion === CHAMPION1 ? CHAMPION1_NAME : CHAMPION2_NAME}</span>
-                                </div>
-                                <div className="text-sm text-white mt-2 font-medium">
-                                    {lastPrompt.message}
-                                </div>
-                            </div>
-                        )}
-                        
-                        {selectedChampion === 'info' && (
-                            <div className="bg-black rounded-lg border border-[#F3642E] p-3 mb-3">
-                                <div className="flex flex-wrap justify-between items-center">
-                                    <div className="flex items-center gap-2 text-[#F3642E]">
-                                        <Info className="h-4 w-4 text-[#F3642E]" />
-                                        <span className="font-bold uppercase text-xs tracking-wider">INFORMATION MODE</span>
-                                    </div>
-                                    <button 
-                                        onClick={toggleSummaryView}
-                                        className={`text-xs px-3 py-1 rounded-md ${
-                                            displayShortSummaries 
-                                                ? 'bg-[#F3642E] text-white' 
-                                                : 'bg-transparent border border-[#F3642E] text-[#F3642E]'
-                                        }`}
-                                    >
-                                        {displayShortSummaries ? "Full Messages" : "Summaries"}
-                                    </button>
-                                </div>
-                                <div className="text-gray-400 text-xs italic mt-2">
-                                    Viewing {displayShortSummaries ? "summarized" : "full"} messages
-                                </div>
-                            </div>
-                        )}
+        <div className="relative flex flex-col w-full">
+            {/* Panel fijo separado del contenedor de scroll */}
+            <div className="mb-4 z-50 sticky top-0 bg-background/80 backdrop-blur-sm shadow-md">
+                {selectedChampion !== 'info' && lastPrompt && (
+                    <div className="bg-black/90 backdrop-blur-sm rounded-lg border border-[#F3642E]/50 p-3 mb-1 shadow-lg shadow-[#F3642E]/10">
+                        <div className="flex items-center gap-2 text-xs text-[#F3642E]">
+                            <Pin className="h-4 w-4 text-[#F3642E]" />
+                            <span className="font-bold uppercase tracking-wider">Latest prompt for {selectedChampion === CHAMPION1 ? CHAMPION1_NAME : CHAMPION2_NAME}</span>
+                        </div>
+                        <div className="text-sm text-white mt-2 font-medium">
+                            {lastPrompt.message}
+                        </div>
                     </div>
-                    
-                    <div className="text-xs text-muted-foreground text-center mt-6 mb-4">
-                        Last updated: {new Date(lastUpdateTime).toLocaleTimeString()}
-                    </div>
-                    
-                    <div className="space-y-8 pb-20">
-                        {filteredMessages.map((message, index) => (
-                            <div
-                                key={`${message.createdAt}-${message.user}-${message.text}-${index}`}
-                                className={`flex items-start gap-3 ${
-                                    message.fromAgent && 
-                                    AGENTS_INFO[message.fromAgent as AgentId]?.side === selectedChampion 
-                                        ? 'flex-row-reverse ml-auto' 
-                                        : 'flex-row mr-auto'
-                                } max-w-full sm:max-w-[90%]`}
+                )}
+                
+                {selectedChampion === 'info' && (
+                    <div className="bg-black rounded-lg border border-[#F3642E] p-3 mb-1">
+                        <div className="flex flex-wrap justify-between items-center">
+                            <div className="flex items-center gap-2 text-[#F3642E]">
+                                <Info className="h-4 w-4 text-[#F3642E]" />
+                                <span className="font-bold uppercase text-xs tracking-wider">INFORMATION MODE</span>
+                            </div>
+                            <button 
+                                onClick={toggleSummaryView}
+                                className={`text-xs px-3 py-1 rounded-md ${
+                                    displayShortSummaries 
+                                        ? 'bg-[#F3642E] text-white' 
+                                        : 'bg-transparent border border-[#F3642E] text-[#F3642E]'
+                                }`}
                             >
-                                <MessageAvatar agentId={message.fromAgent} />
-                                <div className={`flex flex-col overflow-x-hidden ${
-                                    message.fromAgent && 
-                                    AGENTS_INFO[message.fromAgent as AgentId]?.side === selectedChampion 
-                                        ? 'items-end' 
-                                        : 'items-start'
-                                } max-w-[calc(100%-40px)] sm:max-w-[85%]`}>
-                                    <div 
-                                        className={`relative rounded-lg p-3 mb-1 break-words ${
-                                            message.isPinned 
-                                                ? 'bg-[#F3642E]/10 border border-[#F3642E]/30' 
-                                                : message.fromAgent && AGENTS_INFO[message.fromAgent as AgentId]?.side === selectedChampion
-                                                ? 'bg-[#F3642E]/10'
-                                                : 'bg-slate-700/30'
-                                        }`}
-                                    >
-                                        {message.isPinned && (
-                                            <Pin className="absolute -top-2 -left-2 h-4 w-4 text-[#F3642E]" />
-                                        )}
-                                        
-                                        {/* Simple status indicators for summaries */}
-                                        {displayShortSummaries && selectedChampion === 'info' && (
-                                            <>
-                                                {(!message.shortSummary || message.shortSummary === '⏳ Processing summary...') && (
-                                                    <div className="absolute top-0 right-0 -mt-2 -mr-2 bg-[#F3642E]/80 text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium flex items-center">
-                                                        <Loader2 className="h-2 w-2 animate-spin mr-1" />
-                                                        Processing
-                                                    </div>
-                                                )}
-                                                {message.shortSummary && message.shortSummary !== '⏳ Processing summary...' && !(message.text || message.content).startsWith(message.shortSummary) && (
-                                                    <div className="absolute top-0 right-0 -mt-2 -mr-2 bg-green-600 text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium">
-                                                        Summarized
-                                                    </div>
-                                                )}
-                                            </>
-                                        )}
-                                        
-                                        <TypewriterText 
-                                            text={displayShortSummaries && message.shortSummary 
-                                                ? message.shortSummary 
-                                                : (message.text || message.content)
-                                            } 
-                                            animate={message.isTyping} 
-                                        />
-                                    </div>
-                                    <div className="text-xs text-gray-400 truncate max-w-full">
-                                        {message.fromAgent && AGENTS_INFO[message.fromAgent as AgentId]?.name || 'Unknown'} • {new Date(message.timestamp).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                        
-                        {chatState.isTyping && (
-                            <div className={`flex items-start gap-3 max-w-[90%] ${
-                                chatState.typingAgent && 
-                                AGENTS_INFO[chatState.typingAgent as AgentId]?.side === selectedChampion 
-                                ? 'flex-row-reverse ml-auto' 
-                                : 'flex-row mr-auto'
-                            }`}>
-                                <MessageAvatar agentId={chatState.typingAgent || ''} />
-                                <div className={`flex flex-col max-w-[85%] ${
-                                    chatState.typingAgent && 
-                                    AGENTS_INFO[chatState.typingAgent as AgentId]?.side === selectedChampion 
+                                {displayShortSummaries ? "Full Messages" : "Summaries"}
+                            </button>
+                        </div>
+                        <div className="text-gray-400 text-xs italic mt-2">
+                            Viewing {displayShortSummaries ? "summarized" : "full"} messages
+                        </div>
+                    </div>
+                )}
+                
+                <div className="text-xs text-muted-foreground text-center mt-2 pb-1">
+                    Last updated: {new Date(lastUpdateTime).toLocaleTimeString()}
+                </div>
+            </div>
+            
+            <div 
+                className="flex-1 overflow-y-auto p-4 pt-0 relative" 
+                ref={messagesContainerRef}
+            >
+                {showScrollButton && (
+                    <button 
+                        onClick={scrollToBottom}
+                        className={`absolute bottom-4 right-4 text-white rounded-full p-2 shadow-lg z-20 transition-all animate-fadeIn hover:scale-110 ${hasNewMessages ? 'bg-[#F3642E] animate-pulse' : 'bg-[#F3642E]/80 hover:bg-[#F3642E]'}`}
+                        aria-label="Scroll to bottom"
+                    >
+                        <ChevronDown className="h-5 w-5" />
+                        {hasNewMessages && (
+                            <span className="absolute -top-1 -right-1 bg-red-500 rounded-full w-3 h-3"></span>
+                        )}
+                    </button>
+                )}
+                
+                <div className="space-y-8 pb-20">
+                    {filteredMessages.map((message, index) => (
+                        <div
+                            key={`${message.createdAt}-${message.user}-${message.text}-${index}`}
+                            className={`flex items-start gap-3 ${
+                                message.fromAgent && 
+                                AGENTS_INFO[message.fromAgent as AgentId]?.side === selectedChampion 
+                                    ? 'flex-row-reverse ml-auto' 
+                                    : 'flex-row mr-auto'
+                            } max-w-full sm:max-w-[90%]`}
+                        >
+                            <MessageAvatar agentId={message.fromAgent} />
+                            <div className={`flex flex-col overflow-x-hidden ${
+                                message.fromAgent && 
+                                AGENTS_INFO[message.fromAgent as AgentId]?.side === selectedChampion 
                                     ? 'items-end' 
                                     : 'items-start'
-                                }`}>
-                                    <div className={`rounded-lg p-4 mb-1 ${
-                                        chatState.typingAgent && 
-                                        AGENTS_INFO[chatState.typingAgent as AgentId]?.side === selectedChampion
-                                        ? 'bg-[#F3642E]/10'
-                                        : 'bg-slate-700/30'
-                                    }`}>
-                                        <TypingIndicator />
-                                    </div>
-                                    <div className="text-xs text-gray-400">
-                                        {chatState.typingAgent && AGENTS_INFO[chatState.typingAgent as AgentId]?.name || 'Unknown'} • typing...
-                                    </div>
+                            } max-w-[calc(100%-40px)] sm:max-w-[85%]`}>
+                                <div 
+                                    className={`relative rounded-lg p-3 mb-1 break-words ${
+                                        message.isPinned 
+                                            ? 'bg-[#F3642E]/10 border border-[#F3642E]/30' 
+                                            : message.fromAgent && AGENTS_INFO[message.fromAgent as AgentId]?.side === selectedChampion
+                                            ? 'bg-[#F3642E]/10'
+                                            : 'bg-slate-700/30'
+                                    }`}
+                                >
+                                    {message.isPinned && (
+                                        <Pin className="absolute -top-2 -left-2 h-4 w-4 text-[#F3642E]" />
+                                    )}
+                                    
+                                    {/* Simple status indicators for summaries */}
+                                    {displayShortSummaries && selectedChampion === 'info' && (
+                                        <>
+                                            {(!message.shortSummary || message.shortSummary === '⏳ Processing summary...') && (
+                                                <div className="absolute top-0 right-0 -mt-2 -mr-2 bg-[#F3642E]/80 text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium flex items-center">
+                                                    <Loader2 className="h-2 w-2 animate-spin mr-1" />
+                                                    Processing
+                                                </div>
+                                            )}
+                                            {message.shortSummary && message.shortSummary !== '⏳ Processing summary...' && !(message.text || message.content).startsWith(message.shortSummary) && (
+                                                <div className="absolute top-0 right-0 -mt-2 -mr-2 bg-green-600 text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium">
+                                                    Summarized
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
+                                    
+                                    <TypewriterText 
+                                        text={displayShortSummaries && message.shortSummary 
+                                            ? message.shortSummary 
+                                            : (message.text || message.content)
+                                        } 
+                                        animate={message.isTyping} 
+                                    />
+                                </div>
+                                <div className="text-xs text-gray-400 truncate max-w-full">
+                                    {message.fromAgent && AGENTS_INFO[message.fromAgent as AgentId]?.name || 'Unknown'} • {new Date(message.timestamp).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
                                 </div>
                             </div>
-                        )}
-                    </div>
+                        </div>
+                    ))}
+                    
+                    {chatState.isTyping && (
+                        <div className={`flex items-start gap-3 max-w-[90%] ${
+                            chatState.typingAgent && 
+                            AGENTS_INFO[chatState.typingAgent as AgentId]?.side === selectedChampion 
+                            ? 'flex-row-reverse ml-auto' 
+                            : 'flex-row mr-auto'
+                        }`}>
+                            <MessageAvatar agentId={chatState.typingAgent || ''} />
+                            <div className={`flex flex-col max-w-[85%] ${
+                                chatState.typingAgent && 
+                                AGENTS_INFO[chatState.typingAgent as AgentId]?.side === selectedChampion 
+                                ? 'items-end' 
+                                : 'items-start'
+                            }`}>
+                                <div className={`rounded-lg p-4 mb-1 ${
+                                    chatState.typingAgent && 
+                                    AGENTS_INFO[chatState.typingAgent as AgentId]?.side === selectedChampion
+                                    ? 'bg-[#F3642E]/10'
+                                    : 'bg-slate-700/30'
+                                }`}>
+                                    <TypingIndicator />
+                                </div>
+                                <div className="text-xs text-gray-400">
+                                    {chatState.typingAgent && AGENTS_INFO[chatState.typingAgent as AgentId]?.name || 'Unknown'} • typing...
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
-            )}
+            </div>
         </div>
     );
 }

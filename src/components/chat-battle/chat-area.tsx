@@ -612,7 +612,7 @@ function ChatMessages({
                         marginBottom: "0.75rem",
                         boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
                         width: "100%",
-                        overflow: "hidden",
+                        overflow: "show",
                         background: selectedChampion === 'info' 
                             ? "linear-gradient(to right, #1c1c1c, #222)" 
                             : "rgba(0, 0, 0, 0.8)",
@@ -641,7 +641,19 @@ function ChatMessages({
                                 ) : (
                                     <>
                                         <Pin style={{height: "16px", width: "16px", minWidth: "16px", color: "#F3642E"}} />
-                                        <span style={{fontWeight: "bold", textTransform: "uppercase", letterSpacing: "0.05em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>Latest prompt for {selectedChampion === CHAMPION1 ? CHAMPION1_NAME : CHAMPION2_NAME}</span>
+                                        <span style={{
+                                            fontWeight: "bold", 
+                                            textTransform: "uppercase", 
+                                            letterSpacing: "0.05em", 
+                                            overflow: "hidden", 
+                                            textOverflow: "ellipsis", 
+                                            whiteSpace: "normal",
+                                            wordBreak: "break-word",
+                                            lineHeight: "1.2",
+                                            display: "flex",
+                                            flexWrap: "wrap",
+                                            maxWidth: "100%"
+                                        }}>Latest prompt for {selectedChampion === CHAMPION1 ? CHAMPION1_NAME : CHAMPION2_NAME}</span>
                                     </>
                                 )}
                             </div>

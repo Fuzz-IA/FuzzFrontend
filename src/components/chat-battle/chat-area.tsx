@@ -602,6 +602,7 @@ function ChatMessages({
                     paddingBottom: "5rem", 
                     width: "100%"
                 }}>
+                    {/* Comentando temporalmente este componente hasta resolver problemas de layout
                     <div style={{
                         position: "sticky",
                         top: 0,
@@ -695,6 +696,7 @@ function ChatMessages({
                             )}
                         </div>
                     </div>
+                    */}
                     <div className="text-xs text-muted-foreground text-center">
                         Last updated: {new Date(lastUpdateTime).toLocaleTimeString()}
                     </div>

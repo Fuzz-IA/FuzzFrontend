@@ -21,9 +21,9 @@ export function MiniNarrator() {
   const [debugInfo, setDebugInfo] = useState<string>('Inicializando...');
   const [componentMounted, setComponentMounted] = useState(false);
   const [debugLogs, setDebugLogs] = useState<string[]>([]);
-  const [activeUrl, setActiveUrl] = useState<string>(URLS.TEST);
+  const [activeUrl, setActiveUrl] = useState<string>(URLS.RELATIVE);
   const [showDirectPlayer, setShowDirectPlayer] = useState(true);
-  const [showNotice, setShowNotice] = useState(true);
+  const [showNotice, setShowNotice] = useState(false);
 
   // Función para añadir logs
   const addLog = (message: string) => {
@@ -99,6 +99,21 @@ export function MiniNarrator() {
         
         console.error('Error en audio:', errorDetail);
         addLog(`Error de audio: ${errorDetail}`);
+        
+        // Si falla la URL relativa, intentar con la URL absoluta si estábamos usando la relativa
+        if (url === URLS.RELATIVE && url !== URLS.ABSOLUTE) {
+          addLog('Intentando con URL absoluta como fallback');
+          changeAudioSource(URLS.ABSOLUTE);
+          return;
+        }
+        
+        // Si falla la URL absoluta, intentar con la URL de prueba como último recurso
+        if (url === URLS.ABSOLUTE && url !== URLS.TEST) {
+          addLog('Intentando con URL de prueba como último recurso');
+          changeAudioSource(URLS.TEST);
+          return;
+        }
+        
         setError(`Error al cargar (${errorDetail}). Haz clic para reintentar.`);
         setIsLoading(false);
       });
@@ -107,6 +122,10 @@ export function MiniNarrator() {
         setIsPlaying(false);
         addLog('Reproducción finalizada');
       });
+      
+      // Mostrar la URL completa en el log para depuración
+      const fullUrl = url.startsWith('http') ? url : `${window.location.origin}${url}`;
+      addLog(`URL completa: ${fullUrl}`);
       
       // Asignar la URL
       audio.src = url;

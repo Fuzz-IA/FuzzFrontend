@@ -21,6 +21,8 @@ export function MiniNarrator() {
   const lastUrlRef = useRef<string | null>(null);
   const [rendered, setRendered] = useState(false);
   const mountedRef = useRef(false);
+  // Nuevo estado para forzar visibilidad en producción
+  const [forceVisible, setForceVisible] = useState(false);
 
   // Fetch the latest audio on component mount
   useEffect(() => {
@@ -29,6 +31,11 @@ export function MiniNarrator() {
     
     if (mountedRef.current) return;
     mountedRef.current = true;
+    
+    // Forzar visibilidad después de 2 segundos para dar tiempo a la hidratación
+    setTimeout(() => {
+      setForceVisible(true);
+    }, 2000);
     
     fetchLatestAudio();
     
@@ -282,10 +289,15 @@ export function MiniNarrator() {
     }
   }, [readyToPlay, isPlaying, isLoading, error, rendered]);
   
+  // Si no está renderizado o forzado a ser visible, no mostrar nada inicialmente
+  if (!rendered && !forceVisible) {
+    return null;
+  }
+  
   return (
     <>
     {/* Estilos dinámicos para pulsación */}
-    <style jsx global>{`
+    <style dangerouslySetInnerHTML={{ __html: `
       @keyframes narrator-pulse {
         0% { box-shadow: 0 0 0 0 rgba(243, 100, 46, 0.7); }
         70% { box-shadow: 0 0 0 10px rgba(243, 100, 46, 0); }
@@ -295,14 +307,61 @@ export function MiniNarrator() {
       .narrator-pulse {
         animation: narrator-pulse 1.5s ease-out;
       }
-    `}</style>
-    <div 
+
+      /* Estilos forzados para Vercel */
+      .narrator-container {
+        position: fixed !important;
+        bottom: 80px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        z-index: 10000 !important;
+        width: auto !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        pointer-events: auto !important;
+      }
+
+      .narrator-main-button {
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        min-width: 48px !important;
+        height: 48px !important;
+        border-radius: 9999px !important;
+        padding: 0 !important;
+        color: #F3642E !important;
+        border: 2px solid #F3642E !important;
+        cursor: pointer !important;
+        transition: all 300ms !important;
+        outline: none !important;
+        box-shadow: 0 0 10px rgba(243, 100, 46, 0.4) !important;
+        position: relative !important;
+        z-index: 10001 !important;
+      }
+
+      .narrator-main-button.playing {
+        background-color: #F3642E !important;
+        color: white !important;
+      }
+
+      .narrator-main-button.error {
+        background-color: rgba(0, 0, 0, 0.8) !important;
+        box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.6) !important;
+      }
+
+      .narrator-main-button.idle {
+        background-color: rgba(0, 0, 0, 0.7) !important;
+      }
+    `}} />
+
+    <div className="narrator-container"
       style={{
         position: "fixed",
-        bottom: "80px", // Moved higher for better visibility
+        bottom: "60px", // More visible position
         left: "50%",
         transform: "translateX(-50%)",
-        zIndex: 1000, // Increased z-index
+        zIndex: 10000, // Extremely high z-index
         width: "auto",
         display: "flex",
         flexDirection: "column",
@@ -317,7 +376,7 @@ export function MiniNarrator() {
         display: "flex",
         alignItems: "center",
         gap: "12px",
-        backgroundColor: "rgba(0, 0, 0, 0.6)",
+        backgroundColor: "rgba(0, 0, 0, 0.7)",
         backdropFilter: "blur(8px)",
         borderRadius: "9999px",
         padding: "8px 16px",
@@ -328,31 +387,33 @@ export function MiniNarrator() {
       }}>
         {/* Botón principal de reproducción/pausa con ajustes específicos para garantizar visibilidad */}
         <button
-          className="narrator-button"
+          className={`narrator-button narrator-main-button ${isPlaying ? 'playing' : error ? 'error' : 'idle'}`}
           onClick={togglePlayback}
           disabled={isLoading && !error}
           style={{
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            minWidth: "48px", // Ligeramente más grande
-            height: "48px", // Ligeramente más grande
+            minWidth: "52px", // Aún más grande
+            height: "52px", // Aún más grande
             borderRadius: "9999px",
             padding: 0,
             backgroundColor: isPlaying ? "#F3642E" : error ? "rgba(0, 0, 0, 0.8)" : "rgba(0, 0, 0, 0.7)",
             color: isPlaying ? "white" : "#F3642E",
-            border: "2px solid #F3642E", // Borde más grueso para mayor visibilidad
+            border: "3px solid #F3642E", // Borde más grueso para mayor visibilidad
             cursor: "pointer",
             transition: "all 300ms",
             outline: "none",
-            boxShadow: error ? "0 0 0 2px rgba(239, 68, 68, 0.6)" : "0 0 10px rgba(243, 100, 46, 0.4)", // Añadir sombra para destacar el botón
+            boxShadow: error ? "0 0 0 2px rgba(239, 68, 68, 0.6)" : "0 0 10px rgba(243, 100, 46, 0.6)", // Sombra más visible
             position: "relative", // Para asegurar que el z-index funcione
-            zIndex: 1001 // Mayor z-index para el botón principal
+            zIndex: 10001 // Extremadamente alto z-index para el botón principal
           }}
           title={error ? "Error - Haz clic para reintentar" : isLoading ? "Cargando..." : isPlaying ? "Pausar" : readyToPlay ? "Reproducir narración" : "Narrador"}
         >
           {isLoading ? (
-            <Loader2 style={{height: "24px", width: "24px"}} className="animate-spin" />
+            <div style={{ animation: "spin 1s linear infinite", height: "24px", width: "24px" }}>
+              <Loader2 style={{height: "24px", width: "24px"}} />
+            </div>
           ) : error ? (
             <AlertCircle style={{height: "24px", width: "24px"}} />
           ) : isPlaying ? (
@@ -516,16 +577,6 @@ export function MiniNarrator() {
         )}
       </div>
 
-      {/* Notificación de audio nuevo cuando está listo */}
-      {/* {readyToPlay && !isPlaying && !isLoading && !error && !showControls && (
-        <div className="absolute left-1/2 transform -translate-x-1/2 -translate-y-16 flex flex-col items-center">
-          <div className="bg-gradient-to-r from-orange-600 to-orange-500 text-white p-2 px-4 text-xs rounded-full shadow-lg mb-2 whitespace-nowrap">
-            ¡Nuevo resumen disponible! Haz clic para escuchar
-          </div>
-          <div className="w-0 h-0 border-l-8 border-r-8 border-t-8 border-t-orange-500 border-l-transparent border-r-transparent"></div>
-        </div>
-      )} */}
-      
       {/* Status message when loading */}
       {isLoading && (
         <div style={{
@@ -537,12 +588,14 @@ export function MiniNarrator() {
           padding: "8px 16px",
           borderRadius: "8px",
           boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
-          zIndex: 1000,
+          zIndex: 10000,
           display: "flex",
           alignItems: "center",
           gap: "8px"
         }}>
-          <Loader2 style={{height: "20px", width: "20px"}} className="animate-spin" />
+          <div style={{ animation: "spin 1s linear infinite", height: "20px", width: "20px" }}>
+            <Loader2 style={{height: "20px", width: "20px"}} />
+          </div>
           <span style={{fontSize: "12px"}}>Cargando narrador...</span>
         </div>
       )}
@@ -561,7 +614,7 @@ export function MiniNarrator() {
           boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
           maxWidth: "250px",
           textAlign: "center",
-          zIndex: 1000
+          zIndex: 10000
         }}>
           {error}
           {!error.includes('configurar la API key') && (
@@ -598,7 +651,53 @@ export function MiniNarrator() {
           }}></div>
         </div>
       )}
+      
+      {/* Botón de fallback independiente (siempre visible para casos críticos) */}
+      <div style={{
+        display: (rendered && !forceVisible && !isLoading && !error && !isPlaying) ? "block" : "none",
+        position: "fixed",
+        bottom: "20px",
+        right: "20px",
+        zIndex: 20000,
+        width: "40px",
+        height: "40px",
+        borderRadius: "50%",
+        backgroundColor: "#F3642E",
+        boxShadow: "0 4px 10px rgba(0,0,0,0.3)",
+        justifyContent: "center",
+        alignItems: "center",
+        border: "none",
+        cursor: "pointer"
+      }} onClick={() => fetchLatestAudio()}>
+        <Volume2 style={{ width: "20px", height: "20px", color: "white" }} />
+      </div>
     </div>
+    
+    {/* Añadir un elemento de fallback visible para debugging en producción */}
+    <div style={{
+      display: "none", /* Inicialmente oculto */
+      position: "fixed",
+      top: 0,
+      right: 0,
+      backgroundColor: "rgba(0,0,0,0.7)",
+      color: "white",
+      padding: "4px 8px",
+      fontSize: "10px",
+      zIndex: 100000
+    }} id="narrator-debug">
+      Narrador cargado
+    </div>
+    
+    {/* Script para mostrar el elemento de debug después de cargar la página */}
+    <script dangerouslySetInnerHTML={{ __html: `
+      document.addEventListener('DOMContentLoaded', function() {
+        const debug = document.getElementById('narrator-debug');
+        if (debug) {
+          debug.style.display = 'block';
+          setTimeout(() => { debug.style.display = 'none'; }, 5000);
+        }
+      });
+    `}} />
     </>
   );
 } 

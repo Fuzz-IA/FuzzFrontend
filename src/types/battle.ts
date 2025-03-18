@@ -151,6 +151,8 @@ export interface DynamicBetAmounts {
   sideBRatio: number;
   costForSideA: string;
   costForSideB: string;
+  rawSideARatio: number;
+  rawSideBRatio: number;
 }
 
 export interface UseTokenBalanceProps {

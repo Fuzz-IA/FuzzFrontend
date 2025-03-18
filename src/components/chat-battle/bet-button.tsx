@@ -23,7 +23,7 @@ interface BetButtonProps {
 }
 
 export function BetButton({ selectedChampion: initialChampion }: BetButtonProps) {
-  const { data: dynamicData, isLoading: isLoadingDynamicAmount } = useDynamicBetAmount();
+  const { data: dynamicData, isLoading: isLoadingDynamicAmount, getPotentialWinnings } = useDynamicBetAmount();
   const { invalidateAll } = useInvalidations();
   const [selectedChampion, setSelectedChampion] = useState<Exclude<ChampionType, 'info'>>(initialChampion);
   const [gameEnded, setGameEnded] = useState(false);
@@ -61,6 +61,24 @@ export function BetButton({ selectedChampion: initialChampion }: BetButtonProps)
 
   // Determinar si el campeón seleccionado es el agente A (antes 'trump')
   const isAgentA = mapToOriginalChampion(selectedChampion) === 'trump';
+
+  // Calculate potential winnings based on current bet amount
+  const potentialWinnings = useMemo(() => {
+    if (!betAmount || !getPotentialWinnings || !dynamicData) return '0';
+
+    // Add additional safeguard against potential calculation issues
+    try {
+      const winnings = getPotentialWinnings(betAmount, isAgentA);
+      if (winnings === 'NaN' || winnings === 'Infinity' || !winnings) {
+        console.error('Invalid winnings calculation result:', winnings);
+        return '0';
+      }
+      return winnings;
+    } catch (error) {
+      console.error('Error calculating potential winnings:', error);
+      return '0';
+    }
+  }, [betAmount, getPotentialWinnings, isAgentA, dynamicData]);
 
   const handleBet = async () => {
     if (!authenticated) {
@@ -180,10 +198,26 @@ export function BetButton({ selectedChampion: initialChampion }: BetButtonProps)
             </button>
           </div>
 
+          <div className="mt-4">
+            {/* <div className="p-3 border border-[#F3642E]/50 rounded-md bg-black/50">
+              <h3 className="text-lg font-minecraft mb-2">Market Information</h3>
+              <div className="flex justify-between items-center text-sm">
+                <span>Current Ratio:</span>
+                <span>{selectedChampion === CHAMPION1 
+                  ? dynamicData?.sideARatio 
+                  : dynamicData?.sideBRatio}%</span>
+              </div>
+              <div className="flex justify-between items-center mt-1 text-sm">
+                <span>Min Bet Amount:</span>
+                <span>{minBetAmount} FUZZ</span>
+              </div>
+            </div> */}
+          </div>
+
           <div className="mt-8">
             <div className="flex justify-between items-center">
-              <span className="text-xl font-minecraft">Amount</span>
-              <span className="text-sm opacity-80">Minimum: {minBetAmount} FUZZ</span>
+              <span className="text-xl font-minecraft">Bet Amount</span>
+              <span className="text-sm opacity-80">Balance: {tokenBalance} FUZZ</span>
             </div>
 
             <div className="relative mt-4">
@@ -199,6 +233,15 @@ export function BetButton({ selectedChampion: initialChampion }: BetButtonProps)
                 placeholder={isLoadingDynamicAmount ? 'Loading...' : '0'}
                 min={minBetAmount || '0'}
               />
+            </div>
+
+            <div className="p-3 border border-[#F3642E]/50 rounded-md mt-4 bg-black/50">
+              <div className="flex justify-between items-center">
+                <span className="text-lg font-minecraft">Potential Winnings:</span>
+                <span className="text-lg font-minecraft">
+                  {isLoadingDynamicAmount ? 'Loading...' : `${potentialWinnings} FUZZ`}
+                </span>
+              </div>
             </div>
 
             <div className="flex gap-2 mt-6">

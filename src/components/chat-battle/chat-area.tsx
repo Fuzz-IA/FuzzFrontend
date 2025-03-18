@@ -624,85 +624,118 @@ function ChatMessages({
                         top: 0,
                         zIndex: 10,
                         backdropFilter: "blur(8px)",
-                        borderRadius: "0.5rem",
-                        padding: "0.75rem",
-                        marginBottom: "0.75rem",
-                        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-                        width: "calc(100% - 24px)", // Account for any potential margins
-                        maxWidth: "calc(100% - 24px)",
+                        borderRadius: "0.375rem",
+                        padding: "0.375rem 0.5rem",
+                        marginBottom: "0.5rem",
+                        boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+                        width: "calc(100% - 16px)",
+                        maxWidth: "calc(100% - 16px)",
                         boxSizing: "border-box",
                         overflow: "hidden",
+                        height: "auto",
+                        maxHeight: "2.5rem", // Restringir altura
                         background: selectedChampion === 'info' 
                             ? "linear-gradient(to right, #1c1c1c, #222)" 
                             : "rgba(0, 0, 0, 0.8)",
                         border: `1px solid ${selectedChampion === 'info' ? "#F3642E" : "rgba(243, 100, 46, 0.5)"}`,
                     }}>
                         <div style={{
-                            display: "flex", 
-                            flexWrap: "wrap", 
-                            justifyContent: "space-between", 
-                            alignItems: "center", 
-                            gap: "0.5rem"
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            width: "100%",
+                            height: "100%"
                         }}>
                             <div style={{
-                                display: "flex", 
-                                alignItems: "center", 
-                                gap: "0.5rem", 
-                                overflow: "hidden", 
-                                textOverflow: "ellipsis", 
-                                whiteSpace: "nowrap"
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "0.375rem",
+                                overflow: "hidden",
+                                maxWidth: "70%"
                             }}>
                                 {selectedChampion === 'info' ? (
                                     <>
-                                        <Info style={{height: "16px", width: "16px", minWidth: "16px", color: "#F3642E"}} />
-                                        <span style={{fontWeight: "bold", textTransform: "uppercase", letterSpacing: "0.05em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>Information Mode</span>
+                                        <Info style={{height: "14px", width: "14px", minWidth: "14px", color: "#F3642E"}} />
+                                        <span style={{
+                                            fontWeight: "bold", 
+                                            fontSize: "0.75rem",
+                                            textTransform: "uppercase", 
+                                            letterSpacing: "0.025em", 
+                                            overflow: "hidden", 
+                                            textOverflow: "ellipsis", 
+                                            whiteSpace: "nowrap"
+                                        }}>Info</span>
                                     </>
                                 ) : (
                                     <>
-                                        <Pin style={{height: "16px", width: "16px", minWidth: "16px", color: "#F3642E"}} />
-                                        <span style={{fontWeight: "bold", textTransform: "uppercase", letterSpacing: "0.05em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>Latest prompt for {selectedChampion === CHAMPION1 ? CHAMPION1_NAME : CHAMPION2_NAME}</span>
+                                        <Pin style={{height: "14px", width: "14px", minWidth: "14px", color: "#F3642E"}} />
+                                        <span style={{
+                                            fontWeight: "bold", 
+                                            fontSize: "0.75rem",
+                                            overflow: "hidden", 
+                                            textOverflow: "ellipsis", 
+                                            whiteSpace: "nowrap"
+                                        }}>
+                                            {lastPrompt && lastPrompt.message ? 
+                                                lastPrompt.message.length > 30 ? 
+                                                    lastPrompt.message.substring(0, 30) + "..." 
+                                                    : lastPrompt.message 
+                                                : `Prompt: ${selectedChampion === CHAMPION1 ? CHAMPION1_NAME : CHAMPION2_NAME}`}
+                                        </span>
                                     </>
                                 )}
                             </div>
+                            
                             {selectedChampion === 'info' && (
-                                <div className="flex items-center gap-2 ml-auto">
+                                <div style={{
+                                    display: "flex", 
+                                    alignItems: "center", 
+                                    gap: "0.25rem",
+                                    marginLeft: "auto"
+                                }}>
                                     {isSummarizing && (
-                                        <div className="flex items-center text-xs text-white/70 gap-1 whitespace-nowrap">
-                                            <Loader2 className="h-3 w-3 min-w-[12px] animate-spin" />
+                                        <div style={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            fontSize: "0.625rem",
+                                            color: "rgba(255, 255, 255, 0.7)",
+                                            gap: "0.25rem",
+                                            marginRight: "0.25rem"
+                                        }}>
+                                            <Loader2 style={{height: "10px", width: "10px"}} className="animate-spin" />
                                             <span>Processing</span>
                                         </div>
                                     )}
                                     <div 
                                         onClick={toggleSummaryView}
-                                        className={`
-                                            inline-flex items-center justify-center rounded-md text-xs font-medium ring-offset-background 
-                                            transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring 
-                                            focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 
-                                            h-8 px-3 cursor-pointer
-                                            ${displayShortSummaries 
-                                                ? 'bg-[#F3642E] text-white hover:bg-[#F3642E]/90' 
-                                                : 'border border-[#F3642E]/50 text-[#F3642E] hover:bg-[#F3642E]/10 hover:text-[#F3642E]'
-                                            }
-                                        `}
+                                        style={{
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            borderRadius: "0.25rem",
+                                            fontSize: "0.625rem",
+                                            fontWeight: "500",
+                                            height: "1.5rem",
+                                            padding: "0 0.5rem",
+                                            cursor: "pointer",
+                                            background: displayShortSummaries ? "#F3642E" : "transparent",
+                                            color: displayShortSummaries ? "white" : "#F3642E",
+                                            border: displayShortSummaries ? "none" : "1px solid rgba(243, 100, 46, 0.5)"
+                                        }}
                                     >
                                         {displayShortSummaries ? "Full" : "Summary"}
                                     </div>
                                 </div>
                             )}
                         </div>
-                        <div className="text-sm text-white mt-2 truncate">
-                            {selectedChampion === 'info' ? (
-                                <div className="text-white/60 text-xs italic text-center">
-                                    {displayShortSummaries ? "Viewing summarized messages" : "Viewing full messages"}
-                                </div>
-                            ) : (
-                                <>
-                                    {lastPrompt && <div className="truncate">{lastPrompt.message}</div>}
-                                </>
-                            )}
-                        </div>
                     </div>
-                    <div className="text-xs text-muted-foreground text-center">
+                    <div style={{
+                        fontSize: "0.625rem", 
+                        color: "rgba(156, 163, 175, 0.8)", 
+                        textAlign: "center",
+                        marginTop: "0.25rem",
+                        marginBottom: "0.25rem"
+                    }}>
                         Last updated: {new Date(lastUpdateTime).toLocaleTimeString()}
                     </div>
                     
@@ -836,28 +869,64 @@ function ChatMessages({
                     ))}
                     
                     {chatState.isTyping && (
-                        <div className={`flex items-start gap-3 max-w-[90%] ${
-                            chatState.typingAgent && 
-                            AGENTS_INFO[chatState.typingAgent as AgentId]?.side === selectedChampion 
-                            ? 'flex-row-reverse ml-auto' 
-                            : 'flex-row mr-auto'
-                        }`}>
-                            <MessageAvatar agentId={chatState.typingAgent || ''} />
-                            <div className={`flex flex-col max-w-[85%] ${
-                                chatState.typingAgent && 
+                        <div style={{
+                            display: "flex",
+                            alignItems: "flex-start",
+                            gap: "12px",
+                            width: "100%",
+                            maxWidth: "90%",
+                            marginBottom: "20px",
+                            flexDirection: chatState.typingAgent && 
                                 AGENTS_INFO[chatState.typingAgent as AgentId]?.side === selectedChampion 
-                                ? 'items-end' 
-                                : 'items-start'
-                            }`}>
-                                <div className={`rounded-lg p-4 mb-1 ${
-                                    chatState.typingAgent && 
-                                    AGENTS_INFO[chatState.typingAgent as AgentId]?.side === selectedChampion
-                                    ? 'bg-[#F3642E]/10'
-                                    : 'bg-slate-700/30'
-                                }`}>
+                                    ? "row-reverse" : "row",
+                            marginLeft: chatState.typingAgent && 
+                                AGENTS_INFO[chatState.typingAgent as AgentId]?.side === selectedChampion 
+                                    ? "auto" : "0",
+                            marginRight: chatState.typingAgent && 
+                                AGENTS_INFO[chatState.typingAgent as AgentId]?.side === selectedChampion 
+                                    ? "0" : "auto",
+                            boxSizing: "border-box",
+                            padding: "0 4px"
+                        }}>
+                            <div style={{
+                                minWidth: "36px",
+                                maxWidth: "36px",
+                                height: "36px",
+                                display: "flex",
+                                justifyContent: "center",
+                                alignItems: "center"
+                            }}>
+                                <MessageAvatar agentId={chatState.typingAgent || ''} />
+                            </div>
+                            <div style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                overflowX: "hidden",
+                                alignItems: chatState.typingAgent && 
+                                    AGENTS_INFO[chatState.typingAgent as AgentId]?.side === selectedChampion 
+                                        ? "flex-end" : "flex-start",
+                                maxWidth: "calc(100% - 50px)",
+                            }}>
+                                <div style={{
+                                    position: "relative",
+                                    borderRadius: "8px",
+                                    padding: "12px",
+                                    marginBottom: "4px",
+                                    backgroundColor: chatState.typingAgent && 
+                                        AGENTS_INFO[chatState.typingAgent as AgentId]?.side === selectedChampion
+                                            ? 'rgba(243, 100, 46, 0.1)'
+                                            : 'rgba(100, 116, 139, 0.3)',
+                                }}>
                                     <TypingIndicator />
                                 </div>
-                                <div className="text-xs text-gray-400">
+                                <div style={{
+                                    fontSize: "0.75rem",
+                                    color: "#9ca3af",
+                                    textOverflow: "ellipsis",
+                                    overflow: "hidden",
+                                    whiteSpace: "nowrap",
+                                    maxWidth: "100%"
+                                }}>
                                     {chatState.typingAgent && AGENTS_INFO[chatState.typingAgent as AgentId]?.name || 'Unknown'} • typing...
                                 </div>
                             </div>
@@ -871,21 +940,65 @@ function ChatMessages({
 
 function LoadingSpinner() {
     return (
-        <div className="flex justify-center items-center p-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div style={{
+            display: "flex", 
+            justifyContent: "center", 
+            alignItems: "center", 
+            padding: "16px"
+        }}>
+            <div style={{
+                animation: "spin 1s linear infinite",
+                borderRadius: "9999px",
+                height: "32px",
+                width: "32px",
+                borderBottom: "2px solid #F3642E",
+                borderLeft: "2px solid transparent",
+                borderRight: "2px solid transparent",
+                borderTop: "2px solid transparent"
+            }}></div>
         </div>
     );
 }
 
 function TypingIndicator() {
     return (
-        <div className="flex items-center space-x-2">
-            <div className="flex space-x-1">
-                <div className="w-2 h-2 rounded-full bg-primary/60 animate-bounce [animation-delay:-0.3s]" />
-                <div className="w-2 h-2 rounded-full bg-primary/60 animate-bounce [animation-delay:-0.15s]" />
-                <div className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" />
+        <div style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px"
+        }}>
+            <div style={{
+                display: "flex",
+                gap: "4px"
+            }}>
+                <div style={{
+                    width: "8px",
+                    height: "8px",
+                    borderRadius: "9999px",
+                    backgroundColor: "rgba(243, 100, 46, 0.6)",
+                    animation: "bounce 1s infinite",
+                    animationDelay: "-0.3s"
+                }} />
+                <div style={{
+                    width: "8px",
+                    height: "8px",
+                    borderRadius: "9999px",
+                    backgroundColor: "rgba(243, 100, 46, 0.6)",
+                    animation: "bounce 1s infinite",
+                    animationDelay: "-0.15s"
+                }} />
+                <div style={{
+                    width: "8px",
+                    height: "8px",
+                    borderRadius: "9999px",
+                    backgroundColor: "rgba(243, 100, 46, 0.6)",
+                    animation: "bounce 1s infinite",
+                }} />
             </div>
-            <span className="text-sm text-muted-foreground">typing...</span>
+            <span style={{
+                fontSize: "0.875rem",
+                color: "rgba(156, 163, 175, 0.8)"
+            }}>typing...</span>
         </div>
     );
 }

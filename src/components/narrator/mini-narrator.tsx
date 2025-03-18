@@ -1,10 +1,15 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Play, Pause, AlertCircle, Loader2 } from 'lucide-react';
+import { Play, Pause, AlertCircle, Loader2, Music, Volume2, Radio } from 'lucide-react';
 
-// Constante para url directa en producción
-const AUDIO_URL = 'https://www.fuzzai.fun/narrator-audio/1742263051807-2b448ea0-a009-45cb-965f-c20074e95788.mp3';
+// URLs para probar diferentes configuraciones
+const URLS = {
+  ABSOLUTE: 'https://www.fuzzai.fun/narrator-audio/1742263051807-2b448ea0-a009-45cb-965f-c20074e95788.mp3',
+  RELATIVE: '/narrator-audio/1742263051807-2b448ea0-a009-45cb-965f-c20074e95788.mp3',
+  // Una URL de prueba de audio público que sabemos que funciona para validar la reproducción
+  TEST: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'
+};
 
 // Versión para debugging
 export function MiniNarrator() {
@@ -15,6 +20,8 @@ export function MiniNarrator() {
   const [debugInfo, setDebugInfo] = useState<string>('Inicializando...');
   const [componentMounted, setComponentMounted] = useState(false);
   const [debugLogs, setDebugLogs] = useState<string[]>([]);
+  const [activeUrl, setActiveUrl] = useState<string>(URLS.ABSOLUTE);
+  const [showDirectPlayer, setShowDirectPlayer] = useState(false);
 
   // Función para añadir logs
   const addLog = (message: string) => {
@@ -35,6 +42,15 @@ export function MiniNarrator() {
       const hasAudioContext = !!audioContext;
       addLog(`User Agent: ${userAgent.substring(0, 50)}...`);
       addLog(`Soporte Audio API: ${hasAudioContext ? 'Sí' : 'No'}`);
+
+      // Prueba de fetch directo para ver si podemos acceder al archivo
+      fetch(URLS.ABSOLUTE, { method: 'HEAD' })
+        .then(response => {
+          addLog(`Fetch HEAD a URL absoluta: ${response.status} ${response.statusText}`);
+        })
+        .catch(err => {
+          addLog(`Error en fetch HEAD: ${err.message}`);
+        });
     } catch (e) {
       addLog(`Error obteniendo info del navegador: ${e}`);
     }
@@ -45,16 +61,26 @@ export function MiniNarrator() {
     };
   }, []);
 
-  // Inicializar el audio una sola vez
-  useEffect(() => {
-    if (!componentMounted) return;
+  // Cambiar la URL activa y reiniciar el audio
+  const changeAudioSource = (url: string) => {
+    addLog(`Cambiando URL de audio a: ${url}`);
+    setActiveUrl(url);
     
-    // Crear el elemento de audio
+    // Limpiar el audio anterior si existe
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    
+    // Reset states
+    setIsPlaying(false);
+    setIsLoading(true);
+    setError(null);
+    
+    // Crear nuevo audio con la URL seleccionada
     try {
-      addLog('Creando elemento de audio...');
       const audio = new Audio();
       
-      // Configurar eventos antes de asignar src
       audio.addEventListener('canplaythrough', () => {
         setIsLoading(false);
         addLog('Audio listo para reproducir');
@@ -80,21 +106,27 @@ export function MiniNarrator() {
         addLog('Reproducción finalizada');
       });
       
-      // Ahora asignar la URL
-      audio.src = AUDIO_URL;
+      // Asignar la URL
+      audio.src = url;
       
       // Almacenar la referencia
       audioRef.current = audio;
-      addLog(`Audio inicializado con URL: ${AUDIO_URL}`);
       
       // Precargar
-      setIsLoading(true);
       audio.load();
     } catch (err) {
       console.error('Error al crear audio:', err);
       addLog(`Error al inicializar audio: ${err}`);
-      setError('Error al inicializar audio. Haz clic para reintentar.');
+      setError(`Error al inicializar audio: ${err}`);
+      setIsLoading(false);
     }
+  };
+
+  // Inicializar el audio cuando el componente se monta
+  useEffect(() => {
+    if (!componentMounted) return;
+    
+    changeAudioSource(activeUrl);
     
     // Limpieza
     return () => {
@@ -114,32 +146,7 @@ export function MiniNarrator() {
       // Si hay error, reintentar cargando el audio
       setError(null);
       setIsLoading(true);
-      addLog('Reintentando carga por error previo...');
-      
-      try {
-        if (audioRef.current) {
-          audioRef.current.load();
-        } else {
-          const audio = new Audio();
-          audio.addEventListener('error', (e) => {
-            const errorDetail = audio.error 
-              ? `Código: ${audio.error.code}, Mensaje: ${audio.error.message}` 
-              : 'desconocido';
-            addLog(`Nuevo error de audio: ${errorDetail}`);
-            setError(`No se pudo cargar (${errorDetail})`);
-            setIsLoading(false);
-          });
-          
-          audio.src = AUDIO_URL;
-          audioRef.current = audio;
-          audio.load();
-          addLog('Creado nuevo elemento de audio para reintento');
-        }
-      } catch (e) {
-        addLog(`Error en reintento: ${e}`);
-        setError(`Error en reintento: ${e}`);
-        setIsLoading(false);
-      }
+      changeAudioSource(activeUrl);
       return;
     }
     
@@ -169,6 +176,12 @@ export function MiniNarrator() {
           setError(`No se pudo reproducir (${err.message})`);
         });
     }
+  };
+
+  // Mostrar u ocultar el reproductor directo
+  const toggleDirectPlayer = () => {
+    setShowDirectPlayer(!showDirectPlayer);
+    addLog(`Reproductor directo ${!showDirectPlayer ? 'activado' : 'desactivado'}`);
   };
 
   // Si el componente aún no está montado, mostrar un mensaje simple
@@ -236,6 +249,27 @@ export function MiniNarrator() {
           )}
         </button>
         
+        {/* Botón para mostrar reproductor directo */}
+        <button
+          onClick={toggleDirectPlayer}
+          style={{
+            backgroundColor: showDirectPlayer ? '#F3642E' : 'rgba(0,0,0,0.7)',
+            color: showDirectPlayer ? 'white' : '#F3642E',
+            border: '2px solid #F3642E',
+            borderRadius: '20px',
+            padding: '4px 12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            marginTop: '8px',
+            fontSize: '12px',
+            cursor: 'pointer'
+          }}
+        >
+          <Radio size={16} />
+          <span>Reproductor HTML</span>
+        </button>
+        
         {/* Mensaje de error */}
         {error && (
           <div style={{
@@ -268,6 +302,71 @@ export function MiniNarrator() {
             </button>
           </div>
         )}
+        
+        {/* Reproductor HTML directo (alternativa) */}
+        {showDirectPlayer && (
+          <div style={{
+            backgroundColor: 'rgba(0,0,0,0.8)',
+            padding: '16px',
+            borderRadius: '8px',
+            marginTop: '16px',
+            width: '300px',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
+            border: '1px solid #444'
+          }}>
+            <div style={{
+              fontSize: '14px',
+              fontWeight: 'bold',
+              marginBottom: '12px',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}>
+              <Music size={18} />
+              <span>Reproductor HTML Directo</span>
+            </div>
+            
+            <audio 
+              controls 
+              style={{ width: '100%' }}
+              crossOrigin="anonymous"
+              src={activeUrl}
+            >
+              Tu navegador no soporta el elemento audio.
+            </audio>
+            
+            <div style={{
+              marginTop: '12px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px'
+            }}>
+              {Object.entries(URLS).map(([key, url]) => (
+                <button
+                  key={key}
+                  onClick={() => changeAudioSource(url)}
+                  style={{
+                    backgroundColor: activeUrl === url ? '#F3642E' : 'rgba(60,60,60,0.8)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    padding: '6px 8px',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <Volume2 size={14} />
+                  <span>{key}: {url.substring(0, 20)}...</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
       
       {/* Panel de depuración con logs completos */}
@@ -280,8 +379,8 @@ export function MiniNarrator() {
         padding: '12px',
         fontSize: '12px',
         zIndex: 10001,
-        width: '50%',
-        maxHeight: '200px',
+        width: '60%',
+        maxHeight: '300px',
         overflowY: 'auto',
         borderTop: '1px solid #333',
         borderRight: '1px solid #333'
@@ -290,7 +389,7 @@ export function MiniNarrator() {
           Depuración Narrador ({debugLogs.length} eventos)
         </div>
         <div>Estado: {isPlaying ? 'Reproduciendo' : isLoading ? 'Cargando' : error ? 'Error' : 'Listo'}</div>
-        <div>Audio URL: {AUDIO_URL}</div>
+        <div>URL Activa: {activeUrl}</div>
         <div>Último evento: {debugInfo}</div>
         
         <div style={{ 
@@ -299,31 +398,22 @@ export function MiniNarrator() {
           paddingTop: '4px',
           fontSize: '11px',
           opacity: 0.8,
-          maxHeight: '100px',
+          maxHeight: '180px',
           overflowY: 'auto'
         }}>
           {debugLogs.map((log, i) => (
-            <div key={i} style={{ marginBottom: '2px' }}>{log}</div>
+            <div key={i} style={{ marginBottom: '2px', wordBreak: 'break-word' }}>{log}</div>
           ))}
         </div>
         
         <div style={{
           marginTop: '8px',
           display: 'flex',
-          gap: '4px'
+          gap: '4px',
+          flexWrap: 'wrap'
         }}>
           <button
-            onClick={() => {
-              if (audioRef.current) {
-                audioRef.current.pause();
-                audioRef.current = null;
-              }
-              const newAudio = new Audio(AUDIO_URL);
-              audioRef.current = newAudio;
-              setIsLoading(true);
-              addLog('Recargando audio manualmente');
-              newAudio.load();
-            }}
+            onClick={() => changeAudioSource(activeUrl)}
             style={{
               backgroundColor: '#F3642E',
               border: 'none',
@@ -332,10 +422,26 @@ export function MiniNarrator() {
               fontSize: '11px',
               color: 'white',
               cursor: 'pointer',
-              flex: 1
+              flex: '1 0 auto'
             }}
           >
             Recargar Audio
+          </button>
+          
+          <button
+            onClick={toggleDirectPlayer}
+            style={{
+              backgroundColor: '#0066cc',
+              border: 'none',
+              borderRadius: '4px',
+              padding: '4px 8px',
+              fontSize: '11px',
+              color: 'white',
+              cursor: 'pointer',
+              flex: '1 0 auto'
+            }}
+          >
+            {showDirectPlayer ? 'Ocultar' : 'Mostrar'} Reproductor HTML
           </button>
           
           <button
@@ -350,7 +456,8 @@ export function MiniNarrator() {
               padding: '4px 8px',
               fontSize: '11px',
               color: 'white',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              flex: '0 0 auto'
             }}
           >
             Limpiar

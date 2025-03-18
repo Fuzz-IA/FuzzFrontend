@@ -132,25 +132,19 @@ export async function GET() {
     // Verificar si necesitamos un nuevo resumen (basado en tiempo y mensajes nuevos)
     const currentTime = Date.now();
     
-    // Verificar cuándo fue generado el último archivo y si ha pasado suficiente tiempo
-    const fileAge = currentTime - timestamp;
-    console.log(`Último audio generado hace ${Math.floor(fileAge / 1000 / 60)} minutos`);
-
-    // Marcar explícitamente si se requiere regeneración
-    let requiresNewGeneration = false;
-
-    // Solo considerar regenerar si ha pasado el tiempo de cooldown
-    if (fileAge > GENERATION_COOLDOWN) {
+    // Si pasó el cooldown, verificar si hay nuevos mensajes suficientes
+    if (currentTime - timestamp > GENERATION_COOLDOWN) {
       try {
         const currentMessageCount = await getTotalMessageCount();
-        console.log(`Mensajes actuales: ${currentMessageCount}, Último conteo: ${lastMessageCount}, Umbral: ${MESSAGE_THRESHOLD}`);
         
-        // Solo regenerar si hay suficientes mensajes nuevos
+        // Si hay suficientes mensajes nuevos, generar un nuevo resumen
         if (currentMessageCount - lastMessageCount >= MESSAGE_THRESHOLD) {
-          console.log(`Hay ${currentMessageCount - lastMessageCount} mensajes nuevos, generando nuevo resumen...`);
-          requiresNewGeneration = true;
-        } else {
-          console.log(`Solo hay ${currentMessageCount - lastMessageCount} mensajes nuevos, reusando audio existente`);
+          try {
+            return await generateNewSummary();
+          } catch (genError) {
+            console.error('Error generating new summary after threshold check:', genError);
+            // Si falla la generación, seguir con el archivo existente
+          }
         }
         
         // Actualizar el contador de mensajes aunque no generemos nuevo audio
@@ -159,23 +153,9 @@ export async function GET() {
         console.error('Error counting messages:', countError);
         // Continuar con el archivo existente
       }
-    } else {
-      console.log(`El archivo de audio es reciente (${Math.floor(fileAge / 1000 / 60)} min), reusando`);
-    }
-
-    // Solo generar nuevo resumen si explícitamente se requiere
-    if (requiresNewGeneration) {
-      try {
-        console.log('Iniciando generación de nuevo resumen por umbral alcanzado');
-        return await generateNewSummary();
-      } catch (genError) {
-        console.error('Error generating new summary after threshold check:', genError);
-        // Si falla la generación, seguir con el archivo existente
-      }
     }
 
     // Devolver el archivo existente
-    console.log('Devolviendo archivo de audio existente');
     return NextResponse.json({
       success: true,
       audioUrl: filePath,

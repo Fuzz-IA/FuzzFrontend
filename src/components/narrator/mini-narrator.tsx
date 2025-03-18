@@ -19,9 +19,17 @@ export function MiniNarrator() {
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const audioCache = useRef<Record<string, HTMLAudioElement>>({});
   const lastUrlRef = useRef<string | null>(null);
+  const [rendered, setRendered] = useState(false);
+  const mountedRef = useRef(false);
 
   // Fetch the latest audio on component mount
   useEffect(() => {
+    // Marcar como renderizado para evitar problemas de hidratación
+    setRendered(true);
+    
+    if (mountedRef.current) return;
+    mountedRef.current = true;
+    
     fetchLatestAudio();
     
     // Auto-hide controls after 5 seconds
@@ -256,112 +264,250 @@ export function MiniNarrator() {
     }, 5000);
   };
   
+  // Añadir pulsación visual si hay audio nuevo pero no se está reproduciendo
+  useEffect(() => {
+    if (readyToPlay && !isPlaying && !isLoading && !error && rendered) {
+      // Crear un intervalo pulsante para llamar la atención
+      const pulseInterval = setInterval(() => {
+        const button = document.querySelector('.narrator-button');
+        if (button) {
+          button.classList.add('narrator-pulse');
+          setTimeout(() => {
+            button.classList.remove('narrator-pulse');
+          }, 1000);
+        }
+      }, 3000);
+      
+      return () => clearInterval(pulseInterval);
+    }
+  }, [readyToPlay, isPlaying, isLoading, error, rendered]);
+  
   return (
+    <>
+    {/* Estilos dinámicos para pulsación */}
+    <style jsx global>{`
+      @keyframes narrator-pulse {
+        0% { box-shadow: 0 0 0 0 rgba(243, 100, 46, 0.7); }
+        70% { box-shadow: 0 0 0 10px rgba(243, 100, 46, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(243, 100, 46, 0); }
+      }
+      
+      .narrator-pulse {
+        animation: narrator-pulse 1.5s ease-out;
+      }
+    `}</style>
     <div 
-      className="fixed bottom-16 left-1/2 transform -translate-x-1/2 z-50"
+      style={{
+        position: "fixed",
+        bottom: "80px", // Moved higher for better visibility
+        left: "50%",
+        transform: "translateX(-50%)",
+        zIndex: 1000, // Increased z-index
+        width: "auto",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        pointerEvents: "auto"
+      }}
       onMouseEnter={() => showControlsWithTimeout()}
       onMouseLeave={() => !isPlaying && setShowControls(false)}
     >
       {/* Panel principal con controles flotantes */}
-      <div className={`
-        flex items-center gap-3 
-        bg-black/50 backdrop-blur-md rounded-full px-4 py-2 
-        shadow-lg border border-orange-500/20
-        transition-all duration-300 ease-out
-        ${showControls ? 'opacity-100 translate-y-0' : 'opacity-90 hover:opacity-100'}
-      `}>
-        {/* Botón principal de reproducción/pausa */}
-        <Button
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "12px",
+        backgroundColor: "rgba(0, 0, 0, 0.6)",
+        backdropFilter: "blur(8px)",
+        borderRadius: "9999px",
+        padding: "8px 16px",
+        boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.3)",
+        border: "1px solid rgba(243, 100, 46, 0.2)",
+        transition: "all 300ms ease-out",
+        opacity: showControls || isPlaying ? 1 : 0.98
+      }}>
+        {/* Botón principal de reproducción/pausa con ajustes específicos para garantizar visibilidad */}
+        <button
+          className="narrator-button"
           onClick={togglePlayback}
           disabled={isLoading && !error}
-          size="sm"
-          variant={error ? "destructive" : isPlaying ? "default" : "outline"}
-          className={`
-            rounded-full min-w-10 h-10 p-0
-            ${isPlaying ? 'bg-orange-600 hover:bg-orange-700 text-white' : 'border-orange-500 text-orange-500 hover:bg-orange-500/10'}
-            transition-all duration-300
-          `}
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            minWidth: "48px", // Ligeramente más grande
+            height: "48px", // Ligeramente más grande
+            borderRadius: "9999px",
+            padding: 0,
+            backgroundColor: isPlaying ? "#F3642E" : error ? "rgba(0, 0, 0, 0.8)" : "rgba(0, 0, 0, 0.7)",
+            color: isPlaying ? "white" : "#F3642E",
+            border: "2px solid #F3642E", // Borde más grueso para mayor visibilidad
+            cursor: "pointer",
+            transition: "all 300ms",
+            outline: "none",
+            boxShadow: error ? "0 0 0 2px rgba(239, 68, 68, 0.6)" : "0 0 10px rgba(243, 100, 46, 0.4)", // Añadir sombra para destacar el botón
+            position: "relative", // Para asegurar que el z-index funcione
+            zIndex: 1001 // Mayor z-index para el botón principal
+          }}
           title={error ? "Error - Haz clic para reintentar" : isLoading ? "Cargando..." : isPlaying ? "Pausar" : readyToPlay ? "Reproducir narración" : "Narrador"}
         >
           {isLoading ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
+            <Loader2 style={{height: "24px", width: "24px"}} className="animate-spin" />
           ) : error ? (
-            <AlertCircle className="h-5 w-5" />
+            <AlertCircle style={{height: "24px", width: "24px"}} />
           ) : isPlaying ? (
-            <Pause className="h-5 w-5" />
+            <Pause style={{height: "24px", width: "24px"}} />
           ) : (
-            <Play className="h-5 w-5" />
+            <Play style={{height: "24px", width: "24px"}} />
           )}
-        </Button>
+          {readyToPlay && !isPlaying && !isLoading && !error && (
+            <span style={{
+              position: "absolute", 
+              top: "-6px", 
+              right: "-6px", 
+              width: "12px", 
+              height: "12px", 
+              borderRadius: "50%", 
+              backgroundColor: "#F3642E", 
+              border: "2px solid #000"
+            }}></span>
+          )}
+        </button>
 
         {/* Controles que se muestran siempre que haya audio */}
         {audioElement && (
           <>
             {/* Botón de detener */}
-            <Button
+            <button
               onClick={stopPlayback}
-              variant="ghost"
-              size="sm"
-              className="rounded-full h-8 w-8 p-0 text-white/80 hover:text-white hover:bg-black/30"
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                height: "32px",
+                width: "32px",
+                borderRadius: "9999px",
+                padding: 0,
+                backgroundColor: "transparent",
+                color: "rgba(255, 255, 255, 0.8)",
+                border: "none",
+                cursor: "pointer"
+              }}
               title="Detener"
             >
-              <Square className="h-4 w-4" />
-            </Button>
+              <Square style={{height: "16px", width: "16px"}} />
+            </button>
 
             {/* Control de velocidad compacto */}
-            <div className="flex items-center bg-black/30 rounded-full px-2">
-              <Button
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              backgroundColor: "rgba(0, 0, 0, 0.3)",
+              borderRadius: "9999px",
+              padding: "2px 4px"
+            }}>
+              <button
                 onClick={() => setPlaybackRate(1)}
-                variant={playbackRate === 1 ? "default" : "ghost"}
-                size="sm"
-                className={`h-6 px-1 text-xs rounded-full ${playbackRate === 1 ? 'bg-orange-600 text-white' : 'text-white/70'}`}
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  height: "24px",
+                  width: "24px",
+                  borderRadius: "9999px",
+                  padding: "2px",
+                  backgroundColor: playbackRate === 1 ? "#F3642E" : "transparent",
+                  color: playbackRate === 1 ? "white" : "rgba(255, 255, 255, 0.7)",
+                  border: playbackRate === 1 ? "none" : "1px solid rgba(255, 255, 255, 0.3)",
+                  cursor: "pointer"
+                }}
               >
                 1x
-              </Button>
-              <Button
+              </button>
+              <button
                 onClick={() => setPlaybackRate(1.5)}
-                variant={playbackRate === 1.5 ? "default" : "ghost"}
-                size="sm"
-                className={`h-6 px-1 text-xs rounded-full ${playbackRate === 1.5 ? 'bg-orange-600 text-white' : 'text-white/70'}`}
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  height: "24px",
+                  width: "24px",
+                  borderRadius: "9999px",
+                  padding: "2px",
+                  backgroundColor: playbackRate === 1.5 ? "#F3642E" : "transparent",
+                  color: playbackRate === 1.5 ? "white" : "rgba(255, 255, 255, 0.7)",
+                  border: playbackRate === 1.5 ? "none" : "1px solid rgba(255, 255, 255, 0.3)",
+                  cursor: "pointer"
+                }}
               >
                 1.5x
-              </Button>
-              <Button
+              </button>
+              <button
                 onClick={() => setPlaybackRate(2)}
-                variant={playbackRate === 2 ? "default" : "ghost"}
-                size="sm" 
-                className={`h-6 px-1 text-xs rounded-full ${playbackRate === 2 ? 'bg-orange-600 text-white' : 'text-white/70'}`}
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  height: "24px",
+                  width: "24px",
+                  borderRadius: "9999px",
+                  padding: "2px",
+                  backgroundColor: playbackRate === 2 ? "#F3642E" : "transparent",
+                  color: playbackRate === 2 ? "white" : "rgba(255, 255, 255, 0.7)",
+                  border: playbackRate === 2 ? "none" : "1px solid rgba(255, 255, 255, 0.3)",
+                  cursor: "pointer"
+                }}
               >
                 2x
-              </Button>
+              </button>
             </div>
 
             {/* Control de volumen */}
-            <div className="flex items-center gap-1 bg-black/30 rounded-full px-2 py-1">
-              <Button
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "2px",
+              backgroundColor: "rgba(0, 0, 0, 0.3)",
+              borderRadius: "9999px",
+              padding: "2px 4px"
+            }}>
+              <button
                 onClick={() => volume > 0 ? setVolume(0) : setVolume(70)}
-                variant="ghost"
-                size="sm"
-                className="h-6 w-6 p-0 text-white/80 hover:text-white"
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  height: "24px",
+                  width: "24px",
+                  borderRadius: "9999px",
+                  padding: 0,
+                  backgroundColor: "transparent",
+                  color: "rgba(255, 255, 255, 0.8)",
+                  cursor: "pointer"
+                }}
                 title={volume === 0 ? "Activar sonido" : "Silenciar"}
               >
                 {volume === 0 ? (
-                  <VolumeX className="h-3 w-3" />
+                  <VolumeX style={{height: "16px", width: "16px"}} />
                 ) : volume < 50 ? (
-                  <Volume1 className="h-3 w-3" />
+                  <Volume1 style={{height: "16px", width: "16px"}} />
                 ) : (
-                  <Volume2 className="h-3 w-3" />
+                  <Volume2 style={{height: "16px", width: "16px"}} />
                 )}
-              </Button>
+              </button>
               
-              <div className="w-16">
+              <div style={{
+                width: "64px"
+              }}>
                 <Slider
                   value={[volume]}
                   min={0}
                   max={100}
                   step={1}
                   onValueChange={(value) => setVolume(value[0])}
-                  className="h-2"
+                  style={{
+                    height: "4px"
+                  }}
                   aria-label="Volumen"
                 />
               </div>
@@ -382,36 +528,77 @@ export function MiniNarrator() {
       
       {/* Status message when loading */}
       {isLoading && (
-        <div className="absolute left-1/2 transform -translate-x-1/2 -translate-y-12 
-                        bg-black/70 text-white px-4 py-1 rounded-full 
-                        flex items-center gap-2 shadow-lg">
-          <Loader2 className="h-3 w-3 animate-spin" />
-          <span className="text-xs">Cargando narrador...</span>
+        <div style={{
+          position: "absolute",
+          left: "50%",
+          transform: "translateX(-50%) translateY(-40px)",
+          backgroundColor: "rgba(0, 0, 0, 0.7)",
+          color: "white",
+          padding: "8px 16px",
+          borderRadius: "8px",
+          boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+          zIndex: 1000,
+          display: "flex",
+          alignItems: "center",
+          gap: "8px"
+        }}>
+          <Loader2 style={{height: "20px", width: "20px"}} className="animate-spin" />
+          <span style={{fontSize: "12px"}}>Cargando narrador...</span>
         </div>
       )}
       
       {/* Error tooltip */}
       {error && (
-        <div className="absolute left-1/2 transform -translate-x-1/2 -translate-y-20 
-                        bg-red-600/90 text-white p-3 text-xs rounded-lg shadow-lg 
-                        max-w-[250px] text-center">
+        <div style={{
+          position: "absolute",
+          left: "50%",
+          transform: "translateX(-50%) translateY(-80px)",
+          backgroundColor: "rgba(239, 68, 68, 0.9)",
+          color: "white",
+          padding: "12px",
+          fontSize: "12px",
+          borderRadius: "8px",
+          boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+          maxWidth: "250px",
+          textAlign: "center",
+          zIndex: 1000
+        }}>
           {error}
           {!error.includes('configurar la API key') && (
-            <Button 
-              size="sm" 
-              variant="outline"
-              className="mt-2 h-7 text-xs w-full border-white/30 hover:bg-white/20"
+            <button 
+              style={{
+                marginTop: "8px",
+                height: "28px",
+                fontSize: "12px",
+                width: "100%",
+                backgroundColor: "transparent",
+                border: "1px solid rgba(255, 255, 255, 0.3)",
+                borderRadius: "4px",
+                color: "white",
+                cursor: "pointer"
+              }}
               onClick={() => {
                 setError(null);
                 fetchLatestAudio();
               }}
             >
               Reintentar
-            </Button>
+            </button>
           )}
-          <div className="w-0 h-0 border-l-8 border-r-8 border-t-8 border-t-red-600/90 border-l-transparent border-r-transparent absolute -bottom-2 left-1/2 transform -translate-x-1/2"></div>
+          <div style={{
+            width: 0,
+            height: 0,
+            borderLeft: "8px solid transparent",
+            borderRight: "8px solid transparent",
+            borderTop: "8px solid rgba(239, 68, 68, 0.9)",
+            position: "absolute",
+            bottom: "-8px",
+            left: "50%",
+            transform: "translateX(-50%)"
+          }}></div>
         </div>
       )}
     </div>
+    </>
   );
 } 

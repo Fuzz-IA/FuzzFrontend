@@ -66,12 +66,11 @@ export function ChatArea({ selectedChampion, showHeader = true, countdownActive 
       flexDirection: "column",
       flex: 1,
       height: "calc(100vh - 80px)",
-      width: "calc(100% - 100px)", // Account for the left sidebar margin
+      width: "100%",
       marginLeft: "80px",
       paddingLeft: "8px",
       paddingRight: "16px",
-      overflowX: "hidden",
-      position: "relative"
+      maxWidth: "100%"
     }}>
       {showHeader && <ChatHeader />}
       <main 
@@ -86,8 +85,8 @@ export function ChatArea({ selectedChampion, showHeader = true, countdownActive 
           backgroundColor: showHeader ? "var(--background)" : "transparent",
           boxShadow: showHeader ? "0 4px 6px -1px rgba(0, 0, 0, 0.1)" : "none",
           height: "calc(100vh - 12rem)",
-          overflowX: "hidden",
-          boxSizing: "border-box" // Force it to include borders in width
+          maxWidth: "100%",
+          overflow: "hidden"
         }}
       >
         <div style={{
@@ -97,19 +96,14 @@ export function ChatArea({ selectedChampion, showHeader = true, countdownActive 
           right: 0,
           bottom: 0,
           display: "flex",
-          flexDirection: "column",
-          boxSizing: "border-box"
+          flexDirection: "column"
         }}>
           <div 
             ref={chatContainerRef}
             style={{
               height: "calc(100% - 80px)",
               overflowY: "auto",
-              overflowX: "hidden",
-              WebkitOverflowScrolling: "touch", // Para mejor scroll en iOS
-              width: "100%",
-              maxWidth: "100%",
-              paddingBottom: "20px" // Add space at the bottom
+              WebkitOverflowScrolling: "touch" // Para mejor scroll en iOS
             }}
           >
             <ChatMessages 
@@ -560,15 +554,7 @@ function ChatMessages({
     }
 
     return (
-        <div style={{
-            minHeight: "100%", 
-            padding: "16px 16px 80px 16px", // Increased bottom padding for the input area
-            overflowY: "auto",
-            overflowX: "hidden",
-            width: "100%", 
-            boxSizing: "border-box",
-            maxWidth: "100%"
-        }} ref={messagesContainerRef}>
+        <div style={{minHeight: "100%", padding: "16px", paddingBottom: "0"}} ref={messagesContainerRef}>
             {showScrollButton && (
                 <button 
                     onClick={scrollToBottom}
@@ -588,8 +574,6 @@ function ChatMessages({
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        width: "40px",
-                        height: "40px",
                         animation: hasNewMessages ? "pulse 2s infinite" : "none"
                     }}
                     aria-label="Scroll to bottom"
@@ -614,232 +598,136 @@ function ChatMessages({
                 <div style={{
                     display: "flex", 
                     flexDirection: "column", 
-                    gap: "32px", // Increased gap for better message separation
-                    width: "100%",
-                    maxWidth: "100%",
-                    boxSizing: "border-box"
+                    gap: "2rem", 
+                    paddingBottom: "5rem", 
+                    width: "100%"
                 }}>
                     <div style={{
                         position: "sticky",
                         top: 0,
                         zIndex: 10,
                         backdropFilter: "blur(8px)",
-                        borderRadius: "0.375rem",
-                        padding: "0.375rem 0.5rem",
-                        marginBottom: "0.5rem",
-                        boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
-                        width: "calc(100% - 16px)",
-                        maxWidth: "calc(100% - 16px)",
-                        boxSizing: "border-box",
+                        borderRadius: "0.5rem",
+                        padding: "0.75rem",
+                        marginBottom: "0.75rem",
+                        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+                        width: "100%",
                         overflow: "hidden",
-                        height: "auto",
-                        maxHeight: "2.5rem", // Restringir altura
                         background: selectedChampion === 'info' 
                             ? "linear-gradient(to right, #1c1c1c, #222)" 
                             : "rgba(0, 0, 0, 0.8)",
                         border: `1px solid ${selectedChampion === 'info' ? "#F3642E" : "rgba(243, 100, 46, 0.5)"}`,
                     }}>
                         <div style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            width: "100%",
-                            height: "100%"
+                            display: "flex", 
+                            flexWrap: "wrap", 
+                            justifyContent: "space-between", 
+                            alignItems: "center", 
+                            gap: "0.5rem"
                         }}>
                             <div style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "0.375rem",
-                                overflow: "hidden",
-                                maxWidth: "70%"
+                                display: "flex", 
+                                alignItems: "center", 
+                                gap: "0.5rem", 
+                                overflow: "hidden", 
+                                textOverflow: "ellipsis", 
+                                whiteSpace: "nowrap"
                             }}>
                                 {selectedChampion === 'info' ? (
                                     <>
-                                        <Info style={{height: "14px", width: "14px", minWidth: "14px", color: "#F3642E"}} />
-                                        <span style={{
-                                            fontWeight: "bold", 
-                                            fontSize: "0.75rem",
-                                            textTransform: "uppercase", 
-                                            letterSpacing: "0.025em", 
-                                            overflow: "hidden", 
-                                            textOverflow: "ellipsis", 
-                                            whiteSpace: "nowrap"
-                                        }}>Info</span>
+                                        <Info style={{height: "16px", width: "16px", minWidth: "16px", color: "#F3642E"}} />
+                                        <span style={{fontWeight: "bold", textTransform: "uppercase", letterSpacing: "0.05em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>Information Mode</span>
                                     </>
                                 ) : (
                                     <>
-                                        <Pin style={{height: "14px", width: "14px", minWidth: "14px", color: "#F3642E"}} />
-                                        <span style={{
-                                            fontWeight: "bold", 
-                                            fontSize: "0.75rem",
-                                            overflow: "hidden", 
-                                            textOverflow: "ellipsis", 
-                                            whiteSpace: "nowrap"
-                                        }}>
-                                            {lastPrompt && lastPrompt.message ? 
-                                                lastPrompt.message.length > 30 ? 
-                                                    lastPrompt.message.substring(0, 30) + "..." 
-                                                    : lastPrompt.message 
-                                                : `Prompt: ${selectedChampion === CHAMPION1 ? CHAMPION1_NAME : CHAMPION2_NAME}`}
-                                        </span>
+                                        <Pin style={{height: "16px", width: "16px", minWidth: "16px", color: "#F3642E"}} />
+                                        <span style={{fontWeight: "bold", textTransform: "uppercase", letterSpacing: "0.05em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>Latest prompt for {selectedChampion === CHAMPION1 ? CHAMPION1_NAME : CHAMPION2_NAME}</span>
                                     </>
                                 )}
                             </div>
-                            
                             {selectedChampion === 'info' && (
-                                <div style={{
-                                    display: "flex", 
-                                    alignItems: "center", 
-                                    gap: "0.25rem",
-                                    marginLeft: "auto"
-                                }}>
+                                <div className="flex items-center gap-2 ml-auto">
                                     {isSummarizing && (
-                                        <div style={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            fontSize: "0.625rem",
-                                            color: "rgba(255, 255, 255, 0.7)",
-                                            gap: "0.25rem",
-                                            marginRight: "0.25rem"
-                                        }}>
-                                            <Loader2 style={{height: "10px", width: "10px"}} className="animate-spin" />
+                                        <div className="flex items-center text-xs text-white/70 gap-1 whitespace-nowrap">
+                                            <Loader2 className="h-3 w-3 min-w-[12px] animate-spin" />
                                             <span>Processing</span>
                                         </div>
                                     )}
                                     <div 
                                         onClick={toggleSummaryView}
-                                        style={{
-                                            display: "inline-flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            borderRadius: "0.25rem",
-                                            fontSize: "0.625rem",
-                                            fontWeight: "500",
-                                            height: "1.5rem",
-                                            padding: "0 0.5rem",
-                                            cursor: "pointer",
-                                            background: displayShortSummaries ? "#F3642E" : "transparent",
-                                            color: displayShortSummaries ? "white" : "#F3642E",
-                                            border: displayShortSummaries ? "none" : "1px solid rgba(243, 100, 46, 0.5)"
-                                        }}
+                                        className={`
+                                            inline-flex items-center justify-center rounded-md text-xs font-medium ring-offset-background 
+                                            transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring 
+                                            focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 
+                                            h-8 px-3 cursor-pointer
+                                            ${displayShortSummaries 
+                                                ? 'bg-[#F3642E] text-white hover:bg-[#F3642E]/90' 
+                                                : 'border border-[#F3642E]/50 text-[#F3642E] hover:bg-[#F3642E]/10 hover:text-[#F3642E]'
+                                            }
+                                        `}
                                     >
                                         {displayShortSummaries ? "Full" : "Summary"}
                                     </div>
                                 </div>
                             )}
                         </div>
+                        <div className="text-sm text-white mt-2 truncate">
+                            {selectedChampion === 'info' ? (
+                                <div className="text-white/60 text-xs italic text-center">
+                                    {displayShortSummaries ? "Viewing summarized messages" : "Viewing full messages"}
+                                </div>
+                            ) : (
+                                <>
+                                    {lastPrompt && <div className="truncate">{lastPrompt.message}</div>}
+                                </>
+                            )}
+                        </div>
                     </div>
-                    <div style={{
-                        fontSize: "0.625rem", 
-                        color: "rgba(156, 163, 175, 0.8)", 
-                        textAlign: "center",
-                        marginTop: "0.25rem",
-                        marginBottom: "0.25rem"
-                    }}>
+                    <div className="text-xs text-muted-foreground text-center">
                         Last updated: {new Date(lastUpdateTime).toLocaleTimeString()}
                     </div>
                     
                     {filteredMessages.map((message, index) => (
                         <div
                             key={`${message.createdAt}-${message.user}-${message.text}-${index}`}
-                            style={{
-                                display: "flex",
-                                alignItems: "flex-start",
-                                gap: "12px",
-                                width: "100%",
-                                maxWidth: "90%",
-                                marginBottom: "20px",
-                                flexDirection: message.fromAgent && 
-                                    AGENTS_INFO[message.fromAgent as AgentId]?.side === selectedChampion 
-                                        ? "row-reverse" : "row",
-                                marginLeft: message.fromAgent && 
-                                    AGENTS_INFO[message.fromAgent as AgentId]?.side === selectedChampion 
-                                        ? "auto" : "0",
-                                marginRight: message.fromAgent && 
-                                    AGENTS_INFO[message.fromAgent as AgentId]?.side === selectedChampion 
-                                        ? "0" : "auto",
-                                boxSizing: "border-box",
-                                padding: "0 4px"
-                            }}
+                            className={`flex items-start gap-3 ${
+                                message.fromAgent && 
+                                AGENTS_INFO[message.fromAgent as AgentId]?.side === selectedChampion 
+                                    ? 'flex-row-reverse ml-auto' 
+                                    : 'flex-row mr-auto'
+                            } max-w-full sm:max-w-[90%]`}
                         >
-                            <div style={{
-                                minWidth: "36px", // Make the avatar have a fixed minimum width
-                                maxWidth: "36px",
-                                height: "36px",
-                                display: "flex",
-                                justifyContent: "center",
-                                alignItems: "center"
-                            }}>
-                                <MessageAvatar agentId={message.fromAgent} />
-                            </div>
-                            <div style={{
-                                display: "flex",
-                                flexDirection: "column",
-                                overflowX: "hidden",
-                                alignItems: message.fromAgent && 
-                                    AGENTS_INFO[message.fromAgent as AgentId]?.side === selectedChampion 
-                                        ? "flex-end" : "flex-start",
-                                maxWidth: "calc(100% - 50px)", // Account for avatar and gap
-                            }}>
-                                <div style={{
-                                    position: "relative",
-                                    borderRadius: "8px",
-                                    padding: "12px",
-                                    marginBottom: "4px",
-                                    wordBreak: "break-word",
-                                    maxWidth: "100%",
-                                    boxSizing: "border-box",
-                                    backgroundColor: message.isPinned 
-                                        ? 'rgba(243, 100, 46, 0.1)'
-                                        : message.fromAgent && AGENTS_INFO[message.fromAgent as AgentId]?.side === selectedChampion
-                                            ? 'rgba(243, 100, 46, 0.1)'
-                                            : 'rgba(100, 116, 139, 0.3)',
-                                    border: message.isPinned ? '1px solid rgba(243, 100, 46, 0.3)' : 'none'
-                                }}>
+                            <MessageAvatar agentId={message.fromAgent} />
+                            <div className={`flex flex-col overflow-x-hidden ${
+                                message.fromAgent && 
+                                AGENTS_INFO[message.fromAgent as AgentId]?.side === selectedChampion 
+                                    ? 'items-end' 
+                                    : 'items-start'
+                            } max-w-[calc(100%-40px)] sm:max-w-[85%]`}>
+                                <div 
+                                    className={`relative rounded-lg p-3 mb-1 break-words ${
+                                        message.isPinned 
+                                            ? 'bg-[#F3642E]/10 border border-[#F3642E]/30' 
+                                            : message.fromAgent && AGENTS_INFO[message.fromAgent as AgentId]?.side === selectedChampion
+                                              ? 'bg-[#F3642E]/10'
+                                              : 'bg-slate-700/30'
+                                    }`}
+                                >
                                     {message.isPinned && (
-                                        <div style={{
-                                            position: "absolute",
-                                            top: "-8px",
-                                            left: "-8px",
-                                            color: "#F3642E"
-                                        }}>
-                                            <Pin style={{ height: "16px", width: "16px" }} />
-                                        </div>
+                                        <Pin className="absolute -top-2 -left-2 h-4 w-4 text-[#F3642E]" />
                                     )}
                                     
                                     {/* Simple status indicators for summaries */}
                                     {displayShortSummaries && selectedChampion === 'info' && (
                                         <>
                                             {(!message.shortSummary || message.shortSummary === '⏳ Processing summary...') && (
-                                                <div style={{
-                                                    position: "absolute",
-                                                    top: "-8px",
-                                                    right: "-8px",
-                                                    backgroundColor: "rgba(243, 100, 46, 0.8)",
-                                                    color: "white",
-                                                    fontSize: "10px",
-                                                    padding: "2px 6px",
-                                                    borderRadius: "9999px",
-                                                    fontWeight: "500",
-                                                    display: "flex",
-                                                    alignItems: "center"
-                                                }}>
-                                                    <Loader2 style={{ height: "8px", width: "8px", marginRight: "4px" }} className="animate-spin" />
+                                                <div className="absolute top-0 right-0 -mt-2 -mr-2 bg-[#F3642E]/80 text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium flex items-center">
+                                                    <Loader2 className="h-2 w-2 animate-spin mr-1" />
                                                     Processing
                                                 </div>
                                             )}
                                             {message.shortSummary && message.shortSummary !== '⏳ Processing summary...' && !(message.text || message.content).startsWith(message.shortSummary) && (
-                                                <div style={{
-                                                    position: "absolute",
-                                                    top: "-8px",
-                                                    right: "-8px",
-                                                    backgroundColor: "rgb(22, 163, 74)",
-                                                    color: "white",
-                                                    fontSize: "10px",
-                                                    padding: "2px 6px",
-                                                    borderRadius: "9999px",
-                                                    fontWeight: "500"
-                                                }}>
+                                                <div className="absolute top-0 right-0 -mt-2 -mr-2 bg-green-600 text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium">
                                                     Summarized
                                                 </div>
                                             )}
@@ -854,14 +742,7 @@ function ChatMessages({
                                         animate={message.isTyping} 
                                     />
                                 </div>
-                                <div style={{
-                                    fontSize: "0.75rem",
-                                    color: "#9ca3af",
-                                    textOverflow: "ellipsis",
-                                    overflow: "hidden",
-                                    whiteSpace: "nowrap",
-                                    maxWidth: "100%"
-                                }}>
+                                <div className="text-xs text-gray-400 truncate max-w-full">
                                     {message.fromAgent && AGENTS_INFO[message.fromAgent as AgentId]?.name || 'Unknown'} • {new Date(message.timestamp).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
                                 </div>
                             </div>
@@ -869,64 +750,28 @@ function ChatMessages({
                     ))}
                     
                     {chatState.isTyping && (
-                        <div style={{
-                            display: "flex",
-                            alignItems: "flex-start",
-                            gap: "12px",
-                            width: "100%",
-                            maxWidth: "90%",
-                            marginBottom: "20px",
-                            flexDirection: chatState.typingAgent && 
+                        <div className={`flex items-start gap-3 max-w-[90%] ${
+                            chatState.typingAgent && 
+                            AGENTS_INFO[chatState.typingAgent as AgentId]?.side === selectedChampion 
+                            ? 'flex-row-reverse ml-auto' 
+                            : 'flex-row mr-auto'
+                        }`}>
+                            <MessageAvatar agentId={chatState.typingAgent || ''} />
+                            <div className={`flex flex-col max-w-[85%] ${
+                                chatState.typingAgent && 
                                 AGENTS_INFO[chatState.typingAgent as AgentId]?.side === selectedChampion 
-                                    ? "row-reverse" : "row",
-                            marginLeft: chatState.typingAgent && 
-                                AGENTS_INFO[chatState.typingAgent as AgentId]?.side === selectedChampion 
-                                    ? "auto" : "0",
-                            marginRight: chatState.typingAgent && 
-                                AGENTS_INFO[chatState.typingAgent as AgentId]?.side === selectedChampion 
-                                    ? "0" : "auto",
-                            boxSizing: "border-box",
-                            padding: "0 4px"
-                        }}>
-                            <div style={{
-                                minWidth: "36px",
-                                maxWidth: "36px",
-                                height: "36px",
-                                display: "flex",
-                                justifyContent: "center",
-                                alignItems: "center"
-                            }}>
-                                <MessageAvatar agentId={chatState.typingAgent || ''} />
-                            </div>
-                            <div style={{
-                                display: "flex",
-                                flexDirection: "column",
-                                overflowX: "hidden",
-                                alignItems: chatState.typingAgent && 
-                                    AGENTS_INFO[chatState.typingAgent as AgentId]?.side === selectedChampion 
-                                        ? "flex-end" : "flex-start",
-                                maxWidth: "calc(100% - 50px)",
-                            }}>
-                                <div style={{
-                                    position: "relative",
-                                    borderRadius: "8px",
-                                    padding: "12px",
-                                    marginBottom: "4px",
-                                    backgroundColor: chatState.typingAgent && 
-                                        AGENTS_INFO[chatState.typingAgent as AgentId]?.side === selectedChampion
-                                            ? 'rgba(243, 100, 46, 0.1)'
-                                            : 'rgba(100, 116, 139, 0.3)',
-                                }}>
+                                ? 'items-end' 
+                                : 'items-start'
+                            }`}>
+                                <div className={`rounded-lg p-4 mb-1 ${
+                                    chatState.typingAgent && 
+                                    AGENTS_INFO[chatState.typingAgent as AgentId]?.side === selectedChampion
+                                    ? 'bg-[#F3642E]/10'
+                                    : 'bg-slate-700/30'
+                                }`}>
                                     <TypingIndicator />
                                 </div>
-                                <div style={{
-                                    fontSize: "0.75rem",
-                                    color: "#9ca3af",
-                                    textOverflow: "ellipsis",
-                                    overflow: "hidden",
-                                    whiteSpace: "nowrap",
-                                    maxWidth: "100%"
-                                }}>
+                                <div className="text-xs text-gray-400">
                                     {chatState.typingAgent && AGENTS_INFO[chatState.typingAgent as AgentId]?.name || 'Unknown'} • typing...
                                 </div>
                             </div>
@@ -940,65 +785,21 @@ function ChatMessages({
 
 function LoadingSpinner() {
     return (
-        <div style={{
-            display: "flex", 
-            justifyContent: "center", 
-            alignItems: "center", 
-            padding: "16px"
-        }}>
-            <div style={{
-                animation: "spin 1s linear infinite",
-                borderRadius: "9999px",
-                height: "32px",
-                width: "32px",
-                borderBottom: "2px solid #F3642E",
-                borderLeft: "2px solid transparent",
-                borderRight: "2px solid transparent",
-                borderTop: "2px solid transparent"
-            }}></div>
+        <div className="flex justify-center items-center p-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
     );
 }
 
 function TypingIndicator() {
     return (
-        <div style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px"
-        }}>
-            <div style={{
-                display: "flex",
-                gap: "4px"
-            }}>
-                <div style={{
-                    width: "8px",
-                    height: "8px",
-                    borderRadius: "9999px",
-                    backgroundColor: "rgba(243, 100, 46, 0.6)",
-                    animation: "bounce 1s infinite",
-                    animationDelay: "-0.3s"
-                }} />
-                <div style={{
-                    width: "8px",
-                    height: "8px",
-                    borderRadius: "9999px",
-                    backgroundColor: "rgba(243, 100, 46, 0.6)",
-                    animation: "bounce 1s infinite",
-                    animationDelay: "-0.15s"
-                }} />
-                <div style={{
-                    width: "8px",
-                    height: "8px",
-                    borderRadius: "9999px",
-                    backgroundColor: "rgba(243, 100, 46, 0.6)",
-                    animation: "bounce 1s infinite",
-                }} />
+        <div className="flex items-center space-x-2">
+            <div className="flex space-x-1">
+                <div className="w-2 h-2 rounded-full bg-primary/60 animate-bounce [animation-delay:-0.3s]" />
+                <div className="w-2 h-2 rounded-full bg-primary/60 animate-bounce [animation-delay:-0.15s]" />
+                <div className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" />
             </div>
-            <span style={{
-                fontSize: "0.875rem",
-                color: "rgba(156, 163, 175, 0.8)"
-            }}>typing...</span>
+            <span className="text-sm text-muted-foreground">typing...</span>
         </div>
     );
 }

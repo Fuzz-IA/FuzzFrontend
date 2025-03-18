@@ -66,11 +66,12 @@ export function ChatArea({ selectedChampion, showHeader = true, countdownActive 
       flexDirection: "column",
       flex: 1,
       height: "calc(100vh - 80px)",
-      width: "100%",
+      width: "calc(100% - 100px)", // Account for the left sidebar margin
       marginLeft: "80px",
       paddingLeft: "8px",
       paddingRight: "16px",
-      maxWidth: "100%"
+      overflowX: "hidden",
+      position: "relative"
     }}>
       {showHeader && <ChatHeader />}
       <main 
@@ -85,8 +86,8 @@ export function ChatArea({ selectedChampion, showHeader = true, countdownActive 
           backgroundColor: showHeader ? "var(--background)" : "transparent",
           boxShadow: showHeader ? "0 4px 6px -1px rgba(0, 0, 0, 0.1)" : "none",
           height: "calc(100vh - 12rem)",
-          maxWidth: "100%",
-          overflow: "hidden"
+          overflowX: "hidden",
+          boxSizing: "border-box" // Force it to include borders in width
         }}
       >
         <div style={{
@@ -96,14 +97,19 @@ export function ChatArea({ selectedChampion, showHeader = true, countdownActive 
           right: 0,
           bottom: 0,
           display: "flex",
-          flexDirection: "column"
+          flexDirection: "column",
+          boxSizing: "border-box"
         }}>
           <div 
             ref={chatContainerRef}
             style={{
               height: "calc(100% - 80px)",
               overflowY: "auto",
-              WebkitOverflowScrolling: "touch" // Para mejor scroll en iOS
+              overflowX: "hidden",
+              WebkitOverflowScrolling: "touch", // Para mejor scroll en iOS
+              width: "100%",
+              maxWidth: "100%",
+              paddingBottom: "20px" // Add space at the bottom
             }}
           >
             <ChatMessages 
@@ -554,7 +560,15 @@ function ChatMessages({
     }
 
     return (
-        <div style={{minHeight: "100%", padding: "16px", paddingBottom: "0"}} ref={messagesContainerRef}>
+        <div style={{
+            minHeight: "100%", 
+            padding: "16px 16px 80px 16px", // Increased bottom padding for the input area
+            overflowY: "auto",
+            overflowX: "hidden",
+            width: "100%", 
+            boxSizing: "border-box",
+            maxWidth: "100%"
+        }} ref={messagesContainerRef}>
             {showScrollButton && (
                 <button 
                     onClick={scrollToBottom}
@@ -574,6 +588,8 @@ function ChatMessages({
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
+                        width: "40px",
+                        height: "40px",
                         animation: hasNewMessages ? "pulse 2s infinite" : "none"
                     }}
                     aria-label="Scroll to bottom"
@@ -598,9 +614,10 @@ function ChatMessages({
                 <div style={{
                     display: "flex", 
                     flexDirection: "column", 
-                    gap: "2rem", 
-                    paddingBottom: "5rem", 
-                    width: "100%"
+                    gap: "32px", // Increased gap for better message separation
+                    width: "100%",
+                    maxWidth: "100%",
+                    boxSizing: "border-box"
                 }}>
                     <div style={{
                         position: "sticky",
@@ -611,7 +628,9 @@ function ChatMessages({
                         padding: "0.75rem",
                         marginBottom: "0.75rem",
                         boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-                        width: "100%",
+                        width: "calc(100% - 24px)", // Account for any potential margins
+                        maxWidth: "calc(100% - 24px)",
+                        boxSizing: "border-box",
                         overflow: "hidden",
                         background: selectedChampion === 'info' 
                             ? "linear-gradient(to right, #1c1c1c, #222)" 
@@ -690,44 +709,104 @@ function ChatMessages({
                     {filteredMessages.map((message, index) => (
                         <div
                             key={`${message.createdAt}-${message.user}-${message.text}-${index}`}
-                            className={`flex items-start gap-3 ${
-                                message.fromAgent && 
-                                AGENTS_INFO[message.fromAgent as AgentId]?.side === selectedChampion 
-                                    ? 'flex-row-reverse ml-auto' 
-                                    : 'flex-row mr-auto'
-                            } max-w-full sm:max-w-[90%]`}
+                            style={{
+                                display: "flex",
+                                alignItems: "flex-start",
+                                gap: "12px",
+                                width: "100%",
+                                maxWidth: "90%",
+                                marginBottom: "20px",
+                                flexDirection: message.fromAgent && 
+                                    AGENTS_INFO[message.fromAgent as AgentId]?.side === selectedChampion 
+                                        ? "row-reverse" : "row",
+                                marginLeft: message.fromAgent && 
+                                    AGENTS_INFO[message.fromAgent as AgentId]?.side === selectedChampion 
+                                        ? "auto" : "0",
+                                marginRight: message.fromAgent && 
+                                    AGENTS_INFO[message.fromAgent as AgentId]?.side === selectedChampion 
+                                        ? "0" : "auto",
+                                boxSizing: "border-box",
+                                padding: "0 4px"
+                            }}
                         >
-                            <MessageAvatar agentId={message.fromAgent} />
-                            <div className={`flex flex-col overflow-x-hidden ${
-                                message.fromAgent && 
-                                AGENTS_INFO[message.fromAgent as AgentId]?.side === selectedChampion 
-                                    ? 'items-end' 
-                                    : 'items-start'
-                            } max-w-[calc(100%-40px)] sm:max-w-[85%]`}>
-                                <div 
-                                    className={`relative rounded-lg p-3 mb-1 break-words ${
-                                        message.isPinned 
-                                            ? 'bg-[#F3642E]/10 border border-[#F3642E]/30' 
-                                            : message.fromAgent && AGENTS_INFO[message.fromAgent as AgentId]?.side === selectedChampion
-                                              ? 'bg-[#F3642E]/10'
-                                              : 'bg-slate-700/30'
-                                    }`}
-                                >
+                            <div style={{
+                                minWidth: "36px", // Make the avatar have a fixed minimum width
+                                maxWidth: "36px",
+                                height: "36px",
+                                display: "flex",
+                                justifyContent: "center",
+                                alignItems: "center"
+                            }}>
+                                <MessageAvatar agentId={message.fromAgent} />
+                            </div>
+                            <div style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                overflowX: "hidden",
+                                alignItems: message.fromAgent && 
+                                    AGENTS_INFO[message.fromAgent as AgentId]?.side === selectedChampion 
+                                        ? "flex-end" : "flex-start",
+                                maxWidth: "calc(100% - 50px)", // Account for avatar and gap
+                            }}>
+                                <div style={{
+                                    position: "relative",
+                                    borderRadius: "8px",
+                                    padding: "12px",
+                                    marginBottom: "4px",
+                                    wordBreak: "break-word",
+                                    maxWidth: "100%",
+                                    boxSizing: "border-box",
+                                    backgroundColor: message.isPinned 
+                                        ? 'rgba(243, 100, 46, 0.1)'
+                                        : message.fromAgent && AGENTS_INFO[message.fromAgent as AgentId]?.side === selectedChampion
+                                            ? 'rgba(243, 100, 46, 0.1)'
+                                            : 'rgba(100, 116, 139, 0.3)',
+                                    border: message.isPinned ? '1px solid rgba(243, 100, 46, 0.3)' : 'none'
+                                }}>
                                     {message.isPinned && (
-                                        <Pin className="absolute -top-2 -left-2 h-4 w-4 text-[#F3642E]" />
+                                        <div style={{
+                                            position: "absolute",
+                                            top: "-8px",
+                                            left: "-8px",
+                                            color: "#F3642E"
+                                        }}>
+                                            <Pin style={{ height: "16px", width: "16px" }} />
+                                        </div>
                                     )}
                                     
                                     {/* Simple status indicators for summaries */}
                                     {displayShortSummaries && selectedChampion === 'info' && (
                                         <>
                                             {(!message.shortSummary || message.shortSummary === '⏳ Processing summary...') && (
-                                                <div className="absolute top-0 right-0 -mt-2 -mr-2 bg-[#F3642E]/80 text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium flex items-center">
-                                                    <Loader2 className="h-2 w-2 animate-spin mr-1" />
+                                                <div style={{
+                                                    position: "absolute",
+                                                    top: "-8px",
+                                                    right: "-8px",
+                                                    backgroundColor: "rgba(243, 100, 46, 0.8)",
+                                                    color: "white",
+                                                    fontSize: "10px",
+                                                    padding: "2px 6px",
+                                                    borderRadius: "9999px",
+                                                    fontWeight: "500",
+                                                    display: "flex",
+                                                    alignItems: "center"
+                                                }}>
+                                                    <Loader2 style={{ height: "8px", width: "8px", marginRight: "4px" }} className="animate-spin" />
                                                     Processing
                                                 </div>
                                             )}
                                             {message.shortSummary && message.shortSummary !== '⏳ Processing summary...' && !(message.text || message.content).startsWith(message.shortSummary) && (
-                                                <div className="absolute top-0 right-0 -mt-2 -mr-2 bg-green-600 text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium">
+                                                <div style={{
+                                                    position: "absolute",
+                                                    top: "-8px",
+                                                    right: "-8px",
+                                                    backgroundColor: "rgb(22, 163, 74)",
+                                                    color: "white",
+                                                    fontSize: "10px",
+                                                    padding: "2px 6px",
+                                                    borderRadius: "9999px",
+                                                    fontWeight: "500"
+                                                }}>
                                                     Summarized
                                                 </div>
                                             )}
@@ -742,7 +821,14 @@ function ChatMessages({
                                         animate={message.isTyping} 
                                     />
                                 </div>
-                                <div className="text-xs text-gray-400 truncate max-w-full">
+                                <div style={{
+                                    fontSize: "0.75rem",
+                                    color: "#9ca3af",
+                                    textOverflow: "ellipsis",
+                                    overflow: "hidden",
+                                    whiteSpace: "nowrap",
+                                    maxWidth: "100%"
+                                }}>
                                     {message.fromAgent && AGENTS_INFO[message.fromAgent as AgentId]?.name || 'Unknown'} • {new Date(message.timestamp).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
                                 </div>
                             </div>

@@ -9,6 +9,7 @@ import { ChampionType } from '@/types/battle';
 import { CountdownBanner } from '@/components/countdown-banner';
 import { AnimatePresence } from 'framer-motion';
 import { ChatHeader } from '@/components/chat-battle/chat-header';
+import { MiniNarrator } from '@/components/narrator/mini-narrator';
 
 export default function ChatBattlePage() {
   const [selectedChampion, setSelectedChampion] = useState<ChampionType>('info');
@@ -36,6 +37,8 @@ export default function ChatBattlePage() {
       {showEndPopup && (
         <BattleEndedPopup onClose={() => setShowEndPopup(false)} />
       )}
+      
+      <MiniNarrator />
       
       <SidebarProvider defaultOpen>
         <BattleSidebar 

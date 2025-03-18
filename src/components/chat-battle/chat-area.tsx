@@ -61,50 +61,13 @@ export function ChatArea({ selectedChampion, showHeader = true, countdownActive 
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
 
   return (
-    <div style={{
-      display: "flex",
-      flexDirection: "column",
-      flex: 1,
-      height: "calc(100vh - 80px)",
-      width: "100%",
-      marginLeft: "80px",
-      paddingLeft: "8px",
-      paddingRight: "16px",
-      maxWidth: "100%"
-    }}>
+    <>
       {showHeader && <ChatHeader />}
-      <main 
-        style={{
-          position: "relative",
-          display: "flex",
-          flexDirection: "column",
-          width: "100%",
-          margin: showHeader ? "16px 0" : "0",
-          borderRadius: showHeader ? "8px" : "0",
-          border: showHeader ? "1px solid #F3642E" : "none",
-          backgroundColor: showHeader ? "var(--background)" : "transparent",
-          boxShadow: showHeader ? "0 4px 6px -1px rgba(0, 0, 0, 0.1)" : "none",
-          height: "calc(100vh - 12rem)",
-          maxWidth: "100%",
-          overflow: "hidden"
-        }}
-      >
-        <div style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          display: "flex",
-          flexDirection: "column"
-        }}>
+      <main className={`flex-1 overflow-hidden relative ${showHeader ? 'mx-0 ml-20 my-6 mt-4 rounded-lg border bg-background shadow-md border-[#F3642E]' : ''} h-[calc(100vh-10rem)]`}>
+        <div className="h-full flex flex-col">
           <div 
             ref={chatContainerRef}
-            style={{
-              height: "calc(100% - 80px)",
-              overflowY: "auto",
-              WebkitOverflowScrolling: "touch" // Para mejor scroll en iOS
-            }}
+            className="flex-1 overflow-y-auto"
           >
             <ChatMessages 
               selectedChampion={selectedChampion} 
@@ -112,12 +75,10 @@ export function ChatArea({ selectedChampion, showHeader = true, countdownActive 
               scrollContainerRef={chatContainerRef}
             />
           </div>
-          <div style={{height: "80px"}}>
-            <ChatInput selectedChampion={selectedChampion} countdownActive={countdownActive} />
-          </div>
+          <ChatInput selectedChampion={selectedChampion} countdownActive={countdownActive} />
         </div>
       </main>
-    </div>
+    </>
   );
 }
 
@@ -177,7 +138,7 @@ function TypewriterText({ text, animate = false }: { text: string; animate?: boo
     }, [text, animate]);
 
     return (
-        <span className="whitespace-pre-wrap break-words overflow-hidden">
+        <span className="whitespace-pre-wrap break-words">
             {displayedText}
             {!isComplete && (
                 <span className="inline-block w-[2px] h-[1.2em] bg-primary/60 animate-pulse ml-[1px] align-middle" />
@@ -396,26 +357,17 @@ function ChatMessages({
 
     const messages = queryClient.getQueryData<Message[]>(["messages"]) || [];
     
-    // Automatic scroll to bottom when new messages arrive or typing state changes
-    // Removing this effect to avoid continuous auto-scrolling
-    // useEffect(() => {
-    //     if (messagesContainerRef.current) {
-    //         const container = messagesContainerRef.current;
-    //         // Smooth scroll to bottom
-    //         container.scrollTo({
-    //             top: container.scrollHeight,
-    //             behavior: 'smooth'
-    //         });
-    //     }
-    // }, [messages.length, chatState.isTyping]); // Triggers on new messages or typing state changes
-
     // Initial scroll to bottom ONLY when messages are first loaded
     useEffect(() => {
         if (!isLoadingHistory && messagesContainerRef.current && messages.length > 0) {
             setTimeout(() => {
                 if (messagesContainerRef.current) {
                     messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
-                    console.log("Scrolled to bottom on initial load");
+                }
+                
+                // Also try the parent container provided as prop
+                if (scrollContainerRef?.current) {
+                    scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
                 }
             }, 300);
         }
@@ -428,13 +380,11 @@ function ChatMessages({
                 // Try the message container first
                 if (messagesContainerRef.current) {
                     messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
-                    console.log("Scrolled messages container to bottom");
                 }
                 
                 // Also try the parent container provided as prop
                 if (scrollContainerRef?.current) {
                     scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
-                    console.log("Scrolled parent container to bottom");
                 }
             }, 200);
         }
@@ -496,207 +446,72 @@ function ChatMessages({
         setDisplayShortSummaries(!displayShortSummaries);
     };
 
-    // Actualización periódica de estadísticas
-    useEffect(() => {
-        // Actualizar estadísticas cada segundo cuando hay procesamiento en cola
-        const statsInterval = setInterval(() => {
-            const stats = getCacheStats();
-            if (stats.queuedMessages > 0 || stats.isProcessingQueue) {
-                setSummaryStats(stats);
-            }
-        }, 1000);
-        
-        return () => clearInterval(statsInterval);
-    }, []);
-
-    // Refrescar mensajes cuando cambien las estadísticas de procesamiento
-    useEffect(() => {
-        if (!summaryStats) return;
-        
-        // Si hay mensajes en cola y el procesamiento está activo, 
-        // refrescar los mensajes para obtener las versiones resumidas
-        if (summaryStats.isProcessingQueue && messages.length > 0) {
-            const hasPlaceholders = messages.some(msg => 
-                msg.shortSummary === '⏳ Processing summary...'
-            );
-            
-            // Solo refrescar si hay marcadores de procesamiento
-            if (hasPlaceholders) {
-                const refreshMessages = async () => {
-                    // No necesitamos volver a cargar de la API, solo reprocesar con la caché actual
-                    const refreshedMessages = await processChatMessages(messages);
-                    queryClient.setQueryData(["messages"], refreshedMessages);
-                };
-                
-                refreshMessages();
-            }
-        }
-    }, [summaryStats, messages]);
-
-    // Añadir función para limpiar la caché
-    const clearCache = () => {
-        clearSummaryCache();
-        setSummaryStats(getCacheStats());
-        
-        // Reprocesar los mensajes
-        const refreshMessages = async () => {
-            setIsSummarizing(true);
-            const refreshedMessages = await processChatMessages(messages);
-            queryClient.setQueryData(["messages"], refreshedMessages);
-            setIsSummarizing(false);
-        };
-        
-        refreshMessages();
-    };
-
     if (isLoadingHistory) {
         return <LoadingSpinner />;
     }
 
     return (
-        <div style={{minHeight: "100%", padding: "16px", paddingBottom: "0"}} ref={messagesContainerRef}>
+        <div className="flex-1 overflow-y-auto p-4 pb-0 relative" ref={messagesContainerRef}>
             {showScrollButton && (
                 <button 
                     onClick={scrollToBottom}
-                    style={{
-                        position: "fixed",
-                        bottom: "100px",
-                        right: "20px",
-                        backgroundColor: hasNewMessages ? "#F3642E" : "rgba(243, 100, 46, 0.8)",
-                        color: "white",
-                        borderRadius: "9999px",
-                        padding: "8px",
-                        boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
-                        zIndex: 50,
-                        cursor: "pointer",
-                        border: "none",
-                        outline: "none",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        animation: hasNewMessages ? "pulse 2s infinite" : "none"
-                    }}
+                    className={`absolute bottom-4 right-4 text-white rounded-full p-2 shadow-lg z-20 transition-all animate-fadeIn hover:scale-110 ${hasNewMessages ? 'bg-[#F3642E] animate-pulse' : 'bg-[#F3642E]/80 hover:bg-[#F3642E]'}`}
                     aria-label="Scroll to bottom"
                 >
-                    <ChevronDown style={{height: "20px", width: "20px"}} />
+                    <ChevronDown className="h-5 w-5" />
                     {hasNewMessages && (
-                        <span style={{
-                            position: "absolute",
-                            top: "-4px",
-                            right: "-4px",
-                            backgroundColor: "#ef4444", 
-                            borderRadius: "9999px",
-                            width: "12px",
-                            height: "12px"
-                        }}></span>
+                        <span className="absolute -top-1 -right-1 bg-red-500 rounded-full w-3 h-3"></span>
                     )}
                 </button>
             )}
             {isLoadingHistory ? (
                 <LoadingSpinner />
             ) : (
-                <div style={{
-                    display: "flex", 
-                    flexDirection: "column", 
-                    gap: "2rem", 
-                    paddingBottom: "5rem", 
-                    width: "100%"
-                }}>
-                    {/* Comentando temporalmente este componente hasta resolver problemas de layout
-                    <div style={{
-                        position: "sticky",
-                        top: 0,
-                        zIndex: 10,
-                        backdropFilter: "blur(8px)",
-                        borderRadius: "0.5rem",
-                        padding: "0.75rem",
-                        marginBottom: "0.75rem",
-                        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-                        width: "100%",
-                        overflow: "show",
-                        background: selectedChampion === 'info' 
-                            ? "linear-gradient(to right, #1c1c1c, #222)" 
-                            : "rgba(0, 0, 0, 0.8)",
-                        border: `1px solid ${selectedChampion === 'info' ? "#F3642E" : "rgba(243, 100, 46, 0.5)"}`,
-                    }}>
-                        <div style={{
-                            display: "flex", 
-                            flexWrap: "wrap", 
-                            justifyContent: "space-between", 
-                            alignItems: "center", 
-                            gap: "0.5rem"
-                        }}>
-                            <div style={{
-                                display: "flex", 
-                                alignItems: "center", 
-                                gap: "0.5rem", 
-                                overflow: "hidden", 
-                                textOverflow: "ellipsis", 
-                                whiteSpace: "nowrap"
-                            }}>
-                                {selectedChampion === 'info' ? (
-                                    <>
-                                        <Info style={{height: "16px", width: "16px", minWidth: "16px", color: "#F3642E"}} />
-                                        <span style={{fontWeight: "bold", textTransform: "uppercase", letterSpacing: "0.05em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>Information Mode</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Pin style={{height: "16px", width: "16px", minWidth: "16px", color: "#F3642E"}} />
-                                        <span style={{
-                                            fontWeight: "bold", 
-                                            textTransform: "uppercase", 
-                                            letterSpacing: "0.05em", 
-                                            overflow: "hidden", 
-                                            textOverflow: "ellipsis", 
-                                            whiteSpace: "normal",
-                                            wordBreak: "break-word",
-                                            lineHeight: "1.2",
-                                            display: "flex",
-                                            flexWrap: "wrap",
-                                            maxWidth: "100%"
-                                        }}>Latest prompt for {selectedChampion === CHAMPION1 ? CHAMPION1_NAME : CHAMPION2_NAME}</span>
-                                    </>
-                                )}
+                <div className="space-y-8 pb-20">
+                    {selectedChampion !== 'info' && lastPrompt && (
+                        <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-sm rounded-lg border-2 border-[#F3642E]/50 p-3 mb-3 shadow-lg shadow-[#F3642E]/10">
+                            <div className="flex items-center gap-2 text-xs text-[#F3642E]">
+                                <Pin className="h-4 w-4 text-[#F3642E]" />
+                                <span className="font-bold uppercase tracking-wider">Latest prompt for {selectedChampion === CHAMPION1 ? CHAMPION1_NAME : CHAMPION2_NAME}</span>
                             </div>
-                            {selectedChampion === 'info' && (
-                                <div className="flex items-center gap-2 ml-auto">
+                            <div className="text-sm text-white mt-2 font-medium">
+                                {lastPrompt.message}
+                            </div>
+                        </div>
+                    )}
+                    
+                    {selectedChampion === 'info' && (
+                        <div className="sticky top-0 z-10 bg-gradient-to-r from-gray-900 to-black backdrop-blur-sm rounded-lg border-2 border-[#F3642E]/50 p-3 mb-3 shadow-lg shadow-[#F3642E]/10">
+                            <div className="flex flex-wrap justify-between items-center gap-2">
+                                <div className="flex items-center gap-2 text-xs text-[#F3642E]">
+                                    <Info className="h-4 w-4 text-[#F3642E]" />
+                                    <span className="font-bold uppercase tracking-wider">Information Mode</span>
+                                </div>
+                                <div className="flex items-center gap-2">
                                     {isSummarizing && (
-                                        <div className="flex items-center text-xs text-white/70 gap-1 whitespace-nowrap">
-                                            <Loader2 className="h-3 w-3 min-w-[12px] animate-spin" />
+                                        <div className="flex items-center text-xs text-white/70 gap-1">
+                                            <Loader2 className="h-3 w-3 animate-spin" />
                                             <span>Processing</span>
                                         </div>
                                     )}
-                                    <div 
+                                    <button 
                                         onClick={toggleSummaryView}
-                                        className={`
-                                            inline-flex items-center justify-center rounded-md text-xs font-medium ring-offset-background 
-                                            transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring 
-                                            focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 
-                                            h-8 px-3 cursor-pointer
-                                            ${displayShortSummaries 
-                                                ? 'bg-[#F3642E] text-white hover:bg-[#F3642E]/90' 
-                                                : 'border border-[#F3642E]/50 text-[#F3642E] hover:bg-[#F3642E]/10 hover:text-[#F3642E]'
-                                            }
-                                        `}
+                                        className={`text-xs px-3 py-1 rounded-md font-medium transition-colors ${
+                                            displayShortSummaries 
+                                                ? 'bg-[#F3642E] text-white' 
+                                                : 'bg-transparent border border-[#F3642E]/50 text-[#F3642E]'
+                                        }`}
                                     >
-                                        {displayShortSummaries ? "Full" : "Summary"}
-                                    </div>
+                                        {displayShortSummaries ? "Full Messages" : "Summaries"}
+                                    </button>
                                 </div>
-                            )}
+                            </div>
+                            <div className="text-xs text-center text-white/60 mt-2 italic">
+                                {displayShortSummaries ? "Viewing summarized messages" : "Viewing full messages"}
+                            </div>
                         </div>
-                        <div className="text-sm text-white mt-2 truncate">
-                            {selectedChampion === 'info' ? (
-                                <div className="text-white/60 text-xs italic text-center">
-                                    {displayShortSummaries ? "Viewing summarized messages" : "Viewing full messages"}
-                                </div>
-                            ) : (
-                                <>
-                                    {lastPrompt && <div className="truncate">{lastPrompt.message}</div>}
-                                </>
-                            )}
-                        </div>
-                    </div>
-                    */}
+                    )}
+                    
                     <div className="text-xs text-muted-foreground text-center">
                         Last updated: {new Date(lastUpdateTime).toLocaleTimeString()}
                     </div>

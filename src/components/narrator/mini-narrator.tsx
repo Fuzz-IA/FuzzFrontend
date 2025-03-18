@@ -5,8 +5,9 @@ import { Play, Pause, AlertCircle, Loader2, Music, Volume2, Radio } from 'lucide
 
 // URLs para probar diferentes configuraciones
 const URLS = {
-  ABSOLUTE: 'https://www.fuzzai.fun/narrator-audio/1742263051807-2b448ea0-a009-45cb-965f-c20074e95788.mp3',
-  RELATIVE: '/narrator-audio/1742263051807-2b448ea0-a009-45cb-965f-c20074e95788.mp3',
+  ABSOLUTE: 'https://www.fuzzai.fun/narrator-audio/1742269796903-82ba3372-8796-4a55-bb80-08208327d202.mp3',
+  RELATIVE: '/narrator-audio/1742269796903-82ba3372-8796-4a55-bb80-08208327d202.mp3',
+  
   // Una URL de prueba de audio público que sabemos que funciona para validar la reproducción
   TEST: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'
 };
@@ -20,8 +21,9 @@ export function MiniNarrator() {
   const [debugInfo, setDebugInfo] = useState<string>('Inicializando...');
   const [componentMounted, setComponentMounted] = useState(false);
   const [debugLogs, setDebugLogs] = useState<string[]>([]);
-  const [activeUrl, setActiveUrl] = useState<string>(URLS.ABSOLUTE);
-  const [showDirectPlayer, setShowDirectPlayer] = useState(false);
+  const [activeUrl, setActiveUrl] = useState<string>(URLS.TEST);
+  const [showDirectPlayer, setShowDirectPlayer] = useState(true);
+  const [showNotice, setShowNotice] = useState(true);
 
   // Función para añadir logs
   const addLog = (message: string) => {
@@ -216,6 +218,43 @@ export function MiniNarrator() {
         justifyContent: 'center',
         flexDirection: 'column'
       }}>
+        {/* Aviso sobre el problema 404 */}
+        {showNotice && (
+          <div style={{
+            backgroundColor: 'rgba(59, 130, 246, 0.9)',
+            color: 'white',
+            padding: '12px 16px',
+            borderRadius: '8px',
+            marginBottom: '16px',
+            fontSize: '14px',
+            textAlign: 'left',
+            maxWidth: '350px',
+            boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
+          }}>
+            <div style={{ fontWeight: 'bold', marginBottom: '8px', display: 'flex', justifyContent: 'space-between' }}>
+              <span>⚠️ Archivo de audio no encontrado (404)</span>
+              <button 
+                onClick={() => setShowNotice(false)}
+                style={{ 
+                  background: 'none', 
+                  border: 'none', 
+                  color: 'white', 
+                  fontSize: '16px',
+                  cursor: 'pointer' 
+                }}
+              >
+                ×
+              </button>
+            </div>
+            <p style={{ marginBottom: '8px' }}>
+              El archivo de audio original no se encuentra en la ruta especificada. Estamos usando un audio de prueba mientras tanto.
+            </p>
+            <p style={{ fontSize: '12px', opacity: 0.8 }}>
+              Solución: Coloca tu archivo MP3 en la carpeta <code style={{ background: 'rgba(0,0,0,0.2)', padding: '2px 4px', borderRadius: '4px' }}>public/narrator-audio/</code> de tu proyecto y despliega nuevamente.
+            </p>
+          </div>
+        )}
+
         <button 
           onClick={togglePlayback}
           style={{

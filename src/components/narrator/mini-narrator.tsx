@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Play, Pause, Volume2, VolumeX, Loader2, AlertCircle } from 'lucide-react';
+import { Play, Pause, Square, Volume2, VolumeX, Loader2, AlertCircle } from 'lucide-react';
 
 // URLs para probar diferentes configuraciones
 const URLS = {
@@ -10,15 +10,20 @@ const URLS = {
   TEST: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'
 };
 
-// Versión minimalista tipo pill
+// Opciones de velocidad de reproducción
+const SPEEDS = [1, 1.5, 2];
+
+// Versión mejorada con controles adicionales
 export function MiniNarrator() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState<number>(1);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [componentMounted, setComponentMounted] = useState(false);
   const [activeUrl, setActiveUrl] = useState<string>(URLS.RELATIVE);
+  const [showSpeedControls, setShowSpeedControls] = useState(false);
 
   // Inicializar el componente
   useEffect(() => {
@@ -75,6 +80,7 @@ export function MiniNarrator() {
       
       audio.src = url;
       audio.muted = isMuted;
+      audio.playbackRate = playbackRate;
       audioRef.current = audio;
       audio.load();
     } catch (err) {
@@ -97,6 +103,13 @@ export function MiniNarrator() {
     };
   }, [componentMounted]);
 
+  // Aplicar cambios en la velocidad de reproducción
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.playbackRate = playbackRate;
+    }
+  }, [playbackRate]);
+
   // Función para alternar reproducción
   const togglePlayback = () => {
     if (error) {
@@ -116,6 +129,7 @@ export function MiniNarrator() {
       setIsPlaying(false);
     } else {
       audioRef.current.load();
+      audioRef.current.currentTime = audioRef.current.currentTime || 0;
       
       audioRef.current.play()
         .then(() => {
@@ -128,6 +142,15 @@ export function MiniNarrator() {
     }
   };
 
+  // Función para detener la reproducción
+  const stopPlayback = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      setIsPlaying(false);
+    }
+  };
+
   // Función para silenciar/activar sonido
   const toggleMute = () => {
     if (audioRef.current) {
@@ -136,13 +159,26 @@ export function MiniNarrator() {
     }
   };
 
+  // Función para cambiar la velocidad de reproducción
+  const changePlaybackRate = (speed: number) => {
+    setPlaybackRate(speed);
+    if (audioRef.current) {
+      audioRef.current.playbackRate = speed;
+    }
+  };
+
+  // Función para mostrar/ocultar controles de velocidad
+  const toggleSpeedControls = () => {
+    setShowSpeedControls(!showSpeedControls);
+  };
+
   if (!componentMounted) {
     return null;
   }
 
   return (
     <>
-      {/* Control de narrador tipo píldora */}
+      {/* Control de narrador tipo píldora mejorado */}
       <div style={{
         position: 'fixed',
         bottom: '100px',
@@ -150,17 +186,19 @@ export function MiniNarrator() {
         transform: 'translateX(-50%)',
         zIndex: 10000,
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
       }}>
         <div style={{
           backgroundColor: '#F3642E',
           borderRadius: '30px',
-          padding: '8px 20px',
+          padding: '8px 16px',
           display: 'flex',
           alignItems: 'center',
-          gap: '20px',
-          boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
+          gap: '12px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+          transition: 'all 0.3s ease',
         }}>
           {/* Botón Play/Pause */}
           <button 
@@ -176,7 +214,9 @@ export function MiniNarrator() {
               justifyContent: 'center',
               cursor: 'pointer',
               transition: 'all 0.2s ease',
-              opacity: error ? 0.7 : 1
+              opacity: error ? 0.7 : 1,
+              borderRadius: '50%',
+              padding: '6px',
             }}
             aria-label={isPlaying ? "Pausar narración" : "Reproducir narración"}
           >
@@ -186,15 +226,39 @@ export function MiniNarrator() {
                 transformOrigin: 'center',
                 display: 'flex'
               }}>
-                <Loader2 size={24} />
+                <Loader2 size={22} />
               </div>
             ) : error ? (
-              <AlertCircle size={24} />
+              <AlertCircle size={22} />
             ) : isPlaying ? (
-              <Pause size={24} />
+              <Pause size={22} />
             ) : (
-              <Play size={24} />
+              <Play size={22} />
             )}
+          </button>
+
+          {/* Botón de Stop */}
+          <button 
+            onClick={stopPlayback}
+            style={{
+              backgroundColor: 'transparent',
+              border: 'none',
+              color: 'white',
+              width: '36px',
+              height: '36px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              opacity: !isPlaying && !isLoading ? 0.5 : 1,
+              borderRadius: '50%',
+              padding: '6px',
+            }}
+            aria-label="Detener narración"
+            disabled={!isPlaying && !isLoading}
+          >
+            <Square size={18} />
           </button>
 
           {/* Botón para silenciar */}
@@ -211,13 +275,76 @@ export function MiniNarrator() {
               justifyContent: 'center',
               cursor: 'pointer',
               transition: 'all 0.2s ease',
-              opacity: error ? 0.7 : 1
+              opacity: error ? 0.7 : 1,
+              borderRadius: '50%',
+              padding: '6px',
             }}
             aria-label={isMuted ? "Activar sonido" : "Silenciar"}
           >
-            {isMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
+            {isMuted ? <VolumeX size={22} /> : <Volume2 size={22} />}
+          </button>
+
+          {/* Botón para mostrar velocidad actual / abrir selector */}
+          <button
+            onClick={toggleSpeedControls}
+            style={{
+              backgroundColor: 'rgba(255,255,255,0.2)',
+              border: 'none',
+              color: 'white',
+              borderRadius: '15px',
+              padding: '2px 10px',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              minWidth: '40px',
+              textAlign: 'center',
+            }}
+            aria-label="Cambiar velocidad"
+          >
+            {playbackRate === 1 ? '1x' : playbackRate === 1.5 ? '1.5x' : '2x'}
           </button>
         </div>
+
+        {/* Controles de velocidad (desplegable) */}
+        {showSpeedControls && (
+          <div style={{
+            position: 'absolute',
+            top: '100%',
+            marginTop: '8px',
+            backgroundColor: 'rgba(0,0,0,0.85)',
+            borderRadius: '12px',
+            padding: '6px',
+            display: 'flex',
+            gap: '4px',
+            boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
+            backdropFilter: 'blur(5px)',
+            border: '1px solid rgba(255,255,255,0.1)',
+          }}>
+            {SPEEDS.map(speed => (
+              <button
+                key={speed}
+                onClick={() => {
+                  changePlaybackRate(speed);
+                  setShowSpeedControls(false);
+                }}
+                style={{
+                  backgroundColor: playbackRate === speed ? '#F3642E' : 'rgba(255,255,255,0.1)',
+                  border: 'none',
+                  color: 'white',
+                  borderRadius: '12px',
+                  padding: '6px 12px',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                {speed === 1 ? '1x' : speed === 1.5 ? '1.5x' : '2x'}
+              </button>
+            ))}
+          </div>
+        )}
         
         {/* Mensaje de error - se muestra solo cuando hay error */}
         {error && (

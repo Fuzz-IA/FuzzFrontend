@@ -59,11 +59,13 @@ interface AnimatedStyles {
 
 export function ChatArea({ selectedChampion, showHeader = true, countdownActive = false }: ChatAreaProps) {
   return (
-    <div className="flex flex-col flex-1 h-full w-full ml-[80px] pl-2 pr-4">
+    <div className="flex flex-col flex-1 h-full w-full ml-[80px] pl-2 pr-4 max-w-full overflow-x-hidden">
       {showHeader && <ChatHeader />}
-      <main className={`flex-1 overflow-hidden relative ${showHeader ? 'w-full my-4 rounded-lg border bg-background shadow-md border-[#F3642E]' : ''} h-[calc(100vh-10rem)]`}>
-        <div className="h-full flex flex-col">
-          <ChatMessages selectedChampion={selectedChampion} countdownActive={countdownActive} />
+      <main className={`flex-1 relative ${showHeader ? 'w-full my-4 rounded-lg border bg-background shadow-md border-[#F3642E]' : ''} h-[calc(100vh-10rem)] max-w-full`}>
+        <div className="h-full flex flex-col w-full">
+          <div className="flex-1 overflow-y-auto">
+            <ChatMessages selectedChampion={selectedChampion} countdownActive={countdownActive} />
+          </div>
           <ChatInput selectedChampion={selectedChampion} countdownActive={countdownActive} />
         </div>
       </main>
@@ -127,7 +129,7 @@ function TypewriterText({ text, animate = false }: { text: string; animate?: boo
     }, [text, animate]);
 
     return (
-        <span className="whitespace-pre-wrap">
+        <span className="whitespace-pre-wrap break-words overflow-hidden">
             {displayedText}
             {!isComplete && (
                 <span className="inline-block w-[2px] h-[1.2em] bg-primary/60 animate-pulse ml-[1px] align-middle" />
@@ -474,11 +476,11 @@ function ChatMessages({ selectedChampion, countdownActive }: { selectedChampion:
     }
 
     return (
-        <div className="flex-1 overflow-y-auto p-4 pb-0 relative" ref={messagesContainerRef}>
+        <div className="flex-1 h-full overflow-x-hidden p-4 pb-0 relative" ref={messagesContainerRef}>
             {showScrollButton && (
                 <button 
                     onClick={scrollToBottom}
-                    className={`absolute bottom-4 right-4 text-white rounded-full p-2 shadow-lg z-20 transition-all animate-fadeIn hover:scale-110 ${hasNewMessages ? 'bg-[#F3642E] animate-pulse' : 'bg-[#F3642E]/80 hover:bg-[#F3642E]'}`}
+                    className={`fixed bottom-4 right-4 text-white rounded-full p-2 shadow-lg z-20 transition-all animate-fadeIn hover:scale-110 ${hasNewMessages ? 'bg-[#F3642E] animate-pulse' : 'bg-[#F3642E]/80 hover:bg-[#F3642E]'}`}
                     aria-label="Scroll to bottom"
                 >
                     <ChevronDown className="h-5 w-5" />
@@ -490,56 +492,60 @@ function ChatMessages({ selectedChampion, countdownActive }: { selectedChampion:
             {isLoadingHistory ? (
                 <LoadingSpinner />
             ) : (
-                <div className="space-y-8 pb-2">
-                    <div className={`sticky top-0 z-10 backdrop-blur-sm rounded-lg p-3 mb-3 shadow-lg transition-all duration-300 ${
+                <div className="space-y-8 pb-2 w-full">
+                    <div className={`sticky top-0 z-10 backdrop-blur-sm rounded-lg p-3 mb-3 shadow-lg transition-all duration-300 w-full overflow-x-hidden ${
                         selectedChampion === 'info' 
-                            ? 'bg-gradient-to-r from-[#1c1c1c] to-[#222]  border-2 border-[#F3642E] shadow-[#F3642E]/20' 
-                            : 'bg-black/90 border-2 border-[#F3642E]/50 shadow-[#F3642E]/10'
+                            ? 'bg-gradient-to-r from-[#1c1c1c] to-[#222] border border-[#F3642E] shadow-[#F3642E]/20' 
+                            : 'bg-black/90 border border-[#F3642E]/50 shadow-[#F3642E]/10'
                     }`}>
-                        <div className="flex justify-between items-center">
-                            <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap justify-between items-center gap-2">
+                            <div className="flex items-center gap-2 truncate">
                                 {selectedChampion === 'info' ? (
                                     <>
-                                        <Info className="h-4 w-4 text-[#F3642E]" />
-                                        <span className="font-bold uppercase tracking-wider">Information Mode</span>
+                                        <Info className="h-4 w-4 min-w-[16px] text-[#F3642E]" />
+                                        <span className="font-bold uppercase tracking-wider truncate">Information Mode</span>
                                     </>
                                 ) : (
                                     <>
-                                        <Pin className="h-4 w-4 text-[#F3642E]" />
-                                        <span className="font-bold uppercase tracking-wider">Latest prompt for {selectedChampion === CHAMPION1 ? CHAMPION1_NAME : CHAMPION2_NAME}</span>
+                                        <Pin className="h-4 w-4 min-w-[16px] text-[#F3642E]" />
+                                        <span className="font-bold uppercase tracking-wider truncate">Latest prompt for {selectedChampion === CHAMPION1 ? CHAMPION1_NAME : CHAMPION2_NAME}</span>
                                     </>
                                 )}
                             </div>
-                            <div className="flex items-center gap-2">
-                                {selectedChampion === 'info' && (
-                                    <>
-                                        {isSummarizing && (
-                                            <div className="flex items-center text-xs text-white/70 gap-1">
-                                                <Loader2 className="h-3 w-3 animate-spin" />
-                                                <span>Processing..</span>
-                                            </div>
-                                        )}
-                                        <Button
-                                            variant={displayShortSummaries ? "default" : "outline"}
-                                            size="sm"
-                                            onClick={toggleSummaryView}
-                                            className={`text-xs transition-all ${displayShortSummaries 
-                                                ? 'bg-[#F3642E] hover:bg-[#F3642E]/90 text-white' 
-                                                : 'border-[#F3642E]/50 text-[#F3642E] hover:bg-[#F3642E]/10'}`}
-                                        >
-                                            {displayShortSummaries ? "Full Mode" : "Summary Mode"}
-                                        </Button>
-                                    </>
-                                )}
-                            </div>
+                            {selectedChampion === 'info' && (
+                                <div className="flex items-center gap-2 ml-auto">
+                                    {isSummarizing && (
+                                        <div className="flex items-center text-xs text-white/70 gap-1 whitespace-nowrap">
+                                            <Loader2 className="h-3 w-3 min-w-[12px] animate-spin" />
+                                            <span>Processing</span>
+                                        </div>
+                                    )}
+                                    <div 
+                                        onClick={toggleSummaryView}
+                                        className={`
+                                            inline-flex items-center justify-center rounded-md text-xs font-medium ring-offset-background 
+                                            transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring 
+                                            focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 
+                                            h-8 px-3 cursor-pointer
+                                            ${displayShortSummaries 
+                                                ? 'bg-[#F3642E] text-white hover:bg-[#F3642E]/90' 
+                                                : 'border border-[#F3642E]/50 text-[#F3642E] hover:bg-[#F3642E]/10 hover:text-[#F3642E]'
+                                            }
+                                        `}
+                                    >
+                                        {displayShortSummaries ? "Full" : "Summary"}
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                        <div className="text-sm text-white mt-2">
+                        <div className="text-sm text-white mt-2 truncate">
                             {selectedChampion === 'info' ? (
                                 <div className="text-white/60 text-xs italic text-center">
+                                    {displayShortSummaries ? "Viewing summarized messages" : "Viewing full messages"}
                                 </div>
                             ) : (
                                 <>
-                                    {lastPrompt && lastPrompt.message}
+                                    {lastPrompt && <div className="truncate">{lastPrompt.message}</div>}
                                 </>
                             )}
                         </div>
@@ -551,22 +557,22 @@ function ChatMessages({ selectedChampion, countdownActive }: { selectedChampion:
                     {filteredMessages.map((message, index) => (
                         <div
                             key={`${message.createdAt}-${message.user}-${message.text}-${index}`}
-                            className={`flex items-start gap-3 max-w-[90%] ${
+                            className={`flex items-start gap-3 ${
                                 message.fromAgent && 
                                 AGENTS_INFO[message.fromAgent as AgentId]?.side === selectedChampion 
                                     ? 'flex-row-reverse ml-auto' 
                                     : 'flex-row mr-auto'
-                            }`}
+                            } max-w-full sm:max-w-[90%]`}
                         >
                             <MessageAvatar agentId={message.fromAgent} />
-                            <div className={`flex flex-col max-w-[85%] ${
+                            <div className={`flex flex-col overflow-x-hidden ${
                                 message.fromAgent && 
                                 AGENTS_INFO[message.fromAgent as AgentId]?.side === selectedChampion 
                                     ? 'items-end' 
                                     : 'items-start'
-                            }`}>
+                            } max-w-[calc(100%-40px)] sm:max-w-[85%]`}>
                                 <div 
-                                    className={`relative rounded-lg p-4 mb-1 ${
+                                    className={`relative rounded-lg p-3 mb-1 break-words ${
                                         message.isPinned 
                                             ? 'bg-[#F3642E]/10 border border-[#F3642E]/30' 
                                             : message.fromAgent && AGENTS_INFO[message.fromAgent as AgentId]?.side === selectedChampion
@@ -603,7 +609,7 @@ function ChatMessages({ selectedChampion, countdownActive }: { selectedChampion:
                                         animate={message.isTyping} 
                                     />
                                 </div>
-                                <div className="text-xs text-gray-400">
+                                <div className="text-xs text-gray-400 truncate max-w-full">
                                     {message.fromAgent && AGENTS_INFO[message.fromAgent as AgentId]?.name || 'Unknown'} • {new Date(message.timestamp).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
                                 </div>
                             </div>

@@ -453,7 +453,7 @@ function ChatMessages({
     return (
         <div className="relative flex flex-col w-full">
             {/* Panel fijo separado del contenedor de scroll */}
-            <div className="mb-4 z-50 sticky top-0 bg-background/80 backdrop-blur-sm shadow-md">
+            <div className="mb-4 z-50 px-8 sticky top-0 bg-background/80 backdrop-blur-sm shadow-md">
                 {selectedChampion !== 'info' && lastPrompt && (
                     <div className="bg-black/90 backdrop-blur-sm rounded-lg border border-[#F3642E]/50 p-3 mb-1 shadow-lg shadow-[#F3642E]/10">
                         <div className="flex items-center gap-2 text-xs text-[#F3642E]">

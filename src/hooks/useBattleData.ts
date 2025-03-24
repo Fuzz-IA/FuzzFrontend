@@ -299,7 +299,9 @@ const mockData: BattleContractData = {
     sideARatio: 0.5,
     sideBRatio: 0.5,
     costForSideA: '10',
-    costForSideB: '10'
+    costForSideB: '10',
+    rawSideARatio: 50,
+    rawSideBRatio: 50
   },
   scores: { 
     [CHAMPION1]: 0, 

@@ -9,8 +9,7 @@ export async function fetchDynamicBetAmounts(): Promise<DynamicBetAmounts> {
   const provider = new ethers.providers.Web3Provider(window.ethereum);
   const contract = new ethers.Contract(BATTLE_ADDRESS, BATTLE_ABI, provider);
 
-  const [sideARatio, sideBRatio, costForSideA, costForSideB] = await contract.getMarketInfo();
-
+  const [sideARatio, sideBRatio] = await contract.getMarketInfo();
   const ratioA = Number(sideARatio);  
   const ratioB = Number(sideBRatio);
   const BASE_AMOUNT = 2000;
@@ -42,10 +41,11 @@ export function calculatePotentialWinnings(betAmount: string, isAgentA: boolean,
     const amount = parseFloat(betAmount);
     if (isNaN(amount) || amount <= 0) return '0';
 
-    // Log market data for debugging
-    console.log('Market Data:', {
+    console.log('Market Data for potential winnings:', {
       rawSideARatio: marketData.rawSideARatio,
       rawSideBRatio: marketData.rawSideBRatio,
+      sideARatio: marketData.sideARatio,
+      sideBRatio: marketData.sideBRatio,
       betAmount: amount,
       isAgentA
     });
@@ -57,28 +57,31 @@ export function calculatePotentialWinnings(betAmount: string, isAgentA: boolean,
       return '0';
     }
 
-    // Calculate total pool size and your contribution to it
-    const sideA = marketData.rawSideARatio;
-    const sideB = marketData.rawSideBRatio;
+    // Simplified payout calculation based on betting odds
+    // When you bet on an agent, you receive your bet plus a proportional amount of the opposite pool
     
-    // For a betting odds scenario, we use a simplified formula:
-    // If you're betting on side with lower ratio, you get better odds
-    let potentialWin = 0;
+    // Total pools for each side (using rawRatios which represent actual pool sizes)
+    const totalA = marketData.rawSideARatio;
+    const totalB = marketData.rawSideBRatio;
+    
+    let potentialWin;
     
     if (isAgentA) {
-      // Betting on side A
-      const odds = sideB / sideA;
-      potentialWin = amount + (amount * odds);
+      // If betting on Agent A
+      // Your potential winnings = your bet + (your bet / total A pool) * total B pool
+      potentialWin = amount + (amount / totalA * totalB);
     } else {
-      // Betting on side B
-      const odds = sideA / sideB;
-      potentialWin = amount + (amount * odds);
+      // If betting on Agent B
+      // Your potential winnings = your bet + (your bet / total B pool) * total A pool
+      potentialWin = amount + (amount / totalB * totalA);
     }
     
     console.log('Calculated potential win:', potentialWin);
     
-    // Ensure result is a valid number
-    return isNaN(potentialWin) ? '0' : potentialWin.toFixed(2);
+    // Ensure result is a valid number and has 2 decimal places
+    const result = isNaN(potentialWin) ? '0' : potentialWin.toFixed(2);
+    console.log('Final formatted result:', result);
+    return result;
   } catch (error) {
     console.error("Error calculating potential winnings:", error);
     return '0';

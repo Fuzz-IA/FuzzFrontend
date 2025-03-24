@@ -64,11 +64,17 @@ export function BetButton({ selectedChampion: initialChampion }: BetButtonProps)
 
   // Calculate potential winnings based on current bet amount
   const potentialWinnings = useMemo(() => {
-    if (!betAmount || !getPotentialWinnings || !dynamicData) return '0';
+    if (!betAmount || !getPotentialWinnings || !dynamicData) {
+      console.log('Missing data for potential winnings calculation', { betAmount, hasPotentialWinnings: !!getPotentialWinnings, hasDynamicData: !!dynamicData });
+      return '0';
+    }
 
     // Add additional safeguard against potential calculation issues
     try {
+      console.log('Calling getPotentialWinnings with:', { betAmount, isAgentA });
       const winnings = getPotentialWinnings(betAmount, isAgentA);
+      console.log('Received potential winnings result:', winnings);
+      
       if (winnings === 'NaN' || winnings === 'Infinity' || !winnings) {
         console.error('Invalid winnings calculation result:', winnings);
         return '0';
